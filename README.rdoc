@@ -1,0 +1,31 @@
+= mondrian-olap
+
+Ruby DSL for Mondrian OLAP Java library
+
+== DESCRIPTION
+
+mondrian-olap provides OLAP queries from relational databases using Mondrian OLAP engine.
+
+== USAGE
+
+...
+
+== REQUIREMENTS:
+
+...
+
+== INSTALL:
+
+...
+
+== LINKS
+
+...
+
+
+== LICENSE:
+
+mondrian-olap is released under the terms of MIT license; see LICENSE.txt.
+
+Mondrian OLAP Engine is released under the terms of the Eclipse Public
+License v1.0 (EPL); see LICENSE-Mondrian.html.

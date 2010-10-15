@@ -1,0 +1,10 @@
+.bundle
+.rvmrc
+.DS_Store
+coverage
+doc
+pkg
+log
+tmp
+sqlnet.log
+Gemfile.lock
