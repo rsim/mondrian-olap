@@ -136,6 +136,20 @@ describe "Query" do
       end
     end
 
+    describe "crossjoin" do
+      it "should do crossjoin of several dimensions" do
+        @query.rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]')
+        @query.rows.should == [['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+      end
+    end
+
+    describe "nonempty" do
+      it "should limit to set of members with nonempty values" do
+        @query.rows('[Product].children').nonempty
+        @query.rows.should == [:nonempty, ['[Product].children']]
+      end
+    end
+
     describe "where" do
       it "should accept conditions" do
         @query.where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').should equal(@query)
@@ -190,6 +204,30 @@ describe "Query" do
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE ([Time].[1997].[Q1], [Customers].[USA].[CA])
+          SQL
+      end
+
+      it "should return MDX query with crossjoin" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          where('[Time].[1997].[Q1]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
+              FROM  [Sales]
+              WHERE ([Time].[1997].[Q1])
+          SQL
+      end
+
+      it "should return MDX query with crossjoin and nonempty" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').nonempty.
+          where('[Time].[1997].[Q1]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    NON EMPTY CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
+              FROM  [Sales]
+              WHERE ([Time].[1997].[Q1])
           SQL
       end
 

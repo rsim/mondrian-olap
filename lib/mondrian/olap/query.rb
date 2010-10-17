@@ -24,6 +24,7 @@ module Mondrian
           @axes[i]
         else
           @axes[i] ||= []
+          @current_axis = i
           if axis_members.length == 1 && axis_members[0].is_a?(Array)
             @axes[i].concat(axis_members[0])
           else
@@ -40,6 +41,23 @@ module Mondrian
             axis(#{i}, *axis_members)
           end
         RUBY
+      end
+
+      def crossjoin(*axis_members)
+        raise ArgumentError, "cannot use crossjoin method before axis method" unless @current_axis
+        raise ArgumentError, "specify list of members for crossjoin method" if axis_members.empty?
+        members = axis_members.length > 1 ? axis_members : Array(axis_members)
+        unless @axes[@current_axis][0].is_a?(Array)
+          @axes[@current_axis] = [@axes[@current_axis]]
+        end
+        @axes[@current_axis] << members
+        self
+      end
+
+      def nonempty
+        raise ArgumentError, "cannot use crossjoin method before axis method" unless @current_axis
+        @axes[@current_axis] = [:nonempty, @axes[@current_axis]]
+        self
       end
 
       # Add new WHERE condition to query
@@ -99,16 +117,25 @@ module Mondrian
       end
 
       def axis_to_mdx
-        i = 0
-        @axes.map do |axis_members|
+        mdx = ""
+        @axes.each_with_index do |axis_members, i|
           axis_name = AXIS_ALIASES[i] ? AXIS_ALIASES[i].upcase : "AXIS(#{i})"
-          i += 1
-          if axis_members.length == 1
-            "#{axis_members[0]} ON #{axis_name}"
-          else
-            "{#{axis_members.join(', ')}} ON #{axis_name}"
-          end
-        end.join(",\n")
+          mdx << ",\n" if i > 0
+          mdx << members_to_mdx(axis_members) << " ON " << axis_name
+        end
+        mdx
+      end
+
+      def members_to_mdx(axis_members)
+        if axis_members.length == 1
+          axis_members[0]
+        elsif axis_members[0].is_a?(Array)
+          "CROSSJOIN(#{axis_members.map{|m| members_to_mdx(m)}.join(', ')})"
+        elsif axis_members[0] == :nonempty
+          "NON EMPTY #{members_to_mdx(axis_members[1])}"
+        else
+          "{#{axis_members.join(', ')}}"
+        end
       end
 
       def from_to_mdx
