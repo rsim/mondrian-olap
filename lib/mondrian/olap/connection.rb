@@ -7,7 +7,7 @@ module Mondrian
         connection
       end
 
-      attr_reader :raw_connection
+      attr_reader :raw_connection, :raw_schema, :raw_schema_reader
 
       def initialize(params={})
         @params = params
@@ -18,6 +18,8 @@ module Mondrian
 
       def connect
         @raw_connection = Java::mondrian.olap.DriverManager.getConnection(connection_string, nil)
+        @raw_schema = @raw_connection.getSchema
+        @raw_schema_reader = @raw_connection.getSchemaReader
         @connected = true
         true
       end
@@ -40,6 +42,14 @@ module Mondrian
 
       def from(cube_name)
         Query.from(self, cube_name)
+      end
+
+      def cube_names
+        @raw_schema.getCubes.map{|c| c.getName}
+      end
+
+      def cube(name)
+        Cube.get(self, name)
       end
 
       private

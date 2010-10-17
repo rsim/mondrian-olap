@@ -40,7 +40,24 @@ module Mondrian
 
       # format results in simple HTML table
       def to_html
-        if axes_count == 2
+        case axes_count
+        when 1
+          builder = Nokogiri::XML::Builder.new do |doc|
+            doc.table do
+              doc.tr do
+                column_full_names.each do |column_full_name|
+                  doc.th column_full_name, :align => 'right'
+                end
+              end
+              doc.tr do
+                values.each do |value|
+                  doc.td value, :align => 'right'
+                end
+              end
+            end
+          end
+          builder.doc.to_html
+        when 2
           builder = Nokogiri::XML::Builder.new do |doc|
             doc.table do
               doc.tr do

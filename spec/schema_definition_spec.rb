@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe "Schema" do
+describe "Schema definition" do
 
   describe "elements" do
     before(:each) do
