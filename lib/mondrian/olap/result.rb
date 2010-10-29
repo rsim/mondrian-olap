@@ -46,6 +46,7 @@ module Mondrian
             doc.table do
               doc.tr do
                 column_full_names.each do |column_full_name|
+                  column_full_name = column_full_name.join(',') if column_full_name.is_a?(Array)
                   doc.th column_full_name, :align => 'right'
                 end
               end
@@ -63,12 +64,14 @@ module Mondrian
               doc.tr do
                 doc.th
                 column_full_names.each do |column_full_name|
+                  column_full_name = column_full_name.join(',') if column_full_name.is_a?(Array)
                   doc.th column_full_name, :align => 'right'
                 end
               end
               values.each_with_index do |row, i|
                 doc.tr do
-                  doc.th row_full_names[i], :align => 'left'
+                  row_full_name = row_full_names[i].is_a?(Array) ? row_full_names[i].join(',') : row_full_names[i]
+                  doc.th row_full_name, :align => 'left'
                   row.each do |cell|
                     doc.td cell, :align => 'right'
                   end
@@ -88,12 +91,19 @@ module Mondrian
         @axes ||= @raw_result.getAxes
       end
 
-      def axis_positions(map_method, join_with=',')
+      def axis_positions(map_method, join_with=false)
         axes.map do |axis|
           axis.getPositions.map do |position|
-            position.map do |member|
+            names = position.map do |member|
               member.send(map_method)
-            end.join(join_with)
+            end
+            if names.size == 1
+              names[0]
+            elsif join_with
+              names.join(join_with)
+            else
+              names
+            end
           end
         end
       end
