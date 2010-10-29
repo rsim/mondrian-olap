@@ -53,6 +53,10 @@ describe "Cube" do
     @olap.cube('invalid').should be_nil
   end
 
+  it "should get cube name" do
+    @olap.cube('Sales').name.should == 'Sales'
+  end
+
   describe "dimensions" do
     before(:all) do
       @cube = @olap.cube('Sales')

@@ -12,6 +12,10 @@ module Mondrian
         @raw_cube = raw_cube
       end
 
+      def name
+        @name ||= @raw_cube.getName
+      end
+
       def dimensions
         @dimenstions ||= @raw_cube.getDimensions.map{|d| Dimension.new(@connection, d)}
       end
@@ -22,6 +26,10 @@ module Mondrian
 
       def dimension(name)
         dimensions.detect{|d| d.name == name}
+      end
+
+      def query
+        Query.from(@connection, name)
       end
     end
 
@@ -88,6 +96,10 @@ module Mondrian
 
       def root_member_names
         @connection.raw_schema_reader.getHierarchyRootMembers(@raw_hierarchy).map{|m| m.getName}
+      end
+
+      def root_member_full_names
+        @connection.raw_schema_reader.getHierarchyRootMembers(@raw_hierarchy).map{|m| m.getUniqueName}
       end
 
       def child_names(*parent_member_names)
