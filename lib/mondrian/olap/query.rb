@@ -46,7 +46,7 @@ module Mondrian
       def crossjoin(*axis_members)
         raise ArgumentError, "cannot use crossjoin method before axis method" unless @current_axis
         raise ArgumentError, "specify list of members for crossjoin method" if axis_members.empty?
-        members = axis_members.length > 1 ? axis_members : Array(axis_members)
+        members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
         unless @axes[@current_axis][0].is_a?(Array)
           @axes[@current_axis] = [@axes[@current_axis]]
         end

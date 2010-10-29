@@ -141,6 +141,11 @@ describe "Query" do
         @query.rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]')
         @query.rows.should == [['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
       end
+
+      it "should do crossjoin passing array as first argument" do
+        @query.rows('[Product].children').crossjoin(['[Customers].[Canada]', '[Customers].[USA]'])
+        @query.rows.should == [['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+      end
     end
 
     describe "nonempty" do
