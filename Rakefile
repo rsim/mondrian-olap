@@ -12,6 +12,7 @@ EOS
     gem.email = "raimonds.simanovskis@gmail.com"
     gem.homepage = "http://github.com/rsim/mondrian-olap"
     gem.authors = ["Raimonds Simanovskis"]
+    gem.add_dependency "nokogiri", ">= 1.4.3"
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
