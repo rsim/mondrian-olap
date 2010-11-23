@@ -130,7 +130,9 @@ module Mondrian
         if axis_members.length == 1
           axis_members[0]
         elsif axis_members[0].is_a?(Array)
-          "CROSSJOIN(#{axis_members.map{|m| members_to_mdx(m)}.join(', ')})"
+          axis_members.inject(nil) do |str, m|
+            str.nil? ? members_to_mdx(m) : "CROSSJOIN(#{str}, #{members_to_mdx(m)})"
+          end
         elsif axis_members[0] == :nonempty
           "NON EMPTY #{members_to_mdx(axis_members[1])}"
         else

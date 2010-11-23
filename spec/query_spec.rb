@@ -224,6 +224,18 @@ describe "Query" do
           SQL
       end
 
+      it "should return MDX query with several crossjoins" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          crossjoin('[Time].[1997].[Q1]', '[Time].[1997].[Q2]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    CROSSJOIN(CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}),
+                              {[Time].[1997].[Q1], [Time].[1997].[Q2]}) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
       it "should return MDX query with crossjoin and nonempty" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').nonempty.
