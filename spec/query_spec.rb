@@ -38,8 +38,10 @@ describe "Query" do
       # TODO: replace hardcoded expected values with result of SQL query
       @expected_column_names = ["Unit Sales", "Store Sales"]
       @expected_column_full_names = ["[Measures].[Unit Sales]", "[Measures].[Store Sales]"]
+      @expected_drillable_columns = [false, false]
       @expected_row_names = ["Drink", "Food", "Non-Consumable"]
       @expected_row_full_names = ["[Product].[Drink]", "[Product].[Food]", "[Product].[Non-Consumable]"]
+      @expected_drillable_rows = [true, true, true]
 
       # @expected_result_values = [
       #   [1654.0, 3309.75],
@@ -75,6 +77,18 @@ describe "Query" do
       @result.axis_full_names[0].should == @expected_column_full_names
     end
 
+    it "should return column members" do
+      @result.column_members.map(&:name).should == @expected_column_names
+      @result.column_members.map(&:full_name).should == @expected_column_full_names
+      @result.column_members.map(&:"drillable?").should == @expected_drillable_columns
+    end
+
+    it "should return row members" do
+      @result.row_members.map(&:name).should == @expected_row_names
+      @result.row_members.map(&:full_name).should == @expected_row_full_names
+      @result.row_members.map(&:"drillable?").should == @expected_drillable_rows
+    end
+
     it "should return cells" do
       @result.values.should == @expected_result_values
     end
@@ -85,6 +99,10 @@ describe "Query" do
 
     it "should return cells with specified axes name sequence" do
       @result.values(:columns, :rows).should == @expected_result_values_by_columns
+    end
+
+    it "should return formatted cells" do
+      @result.formatted_values.map{|r| r.map{|s| BigDecimal.new(s.gsub(',',''))}}.should == @expected_result_values
     end
 
   end

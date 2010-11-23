@@ -31,6 +31,14 @@ module Mondrian
       def query
         Query.from(@connection, name)
       end
+
+      def member(full_name)
+        names = full_name.scan(/\[([^\]]+)\](\.|$)/).map{|m| m.first}
+        raw_member = @connection.raw_schema_reader.lookupCompound(@raw_cube,
+          Java::mondrian.olap.Id::Segment.toList(*names),
+          false, Java::mondrian.olap.Category::Member)
+        raw_member && Member.new(@connection, raw_member)
+      end
     end
 
     class Dimension
@@ -41,6 +49,10 @@ module Mondrian
 
       def name
         @name ||= @raw_dimension.getName
+      end
+
+      def full_name
+        @full_name ||= @raw_dimension.getUniqueName
       end
 
       def hierarchies
@@ -94,6 +106,10 @@ module Mondrian
         has_all? ? @raw_hierarchy.getAllMember.getName : nil
       end
 
+      def root_members
+        @connection.raw_schema_reader.getHierarchyRootMembers(@raw_hierarchy).map{|m| Member.new(@connection, m)}
+      end
+
       def root_member_names
         @connection.raw_schema_reader.getHierarchyRootMembers(@raw_hierarchy).map{|m| m.getName}
       end
@@ -113,6 +129,51 @@ module Mondrian
         end
         parent_member && @connection.raw_schema_reader.getMemberChildren(parent_member).map{|m| m.getName}
       end
+    end
+
+    class Member
+      def initialize(connection, raw_member)
+        @connection = connection
+        @raw_member = raw_member
+      end
+
+      def name
+        @raw_member.getName
+      end
+
+      def full_name
+        @raw_member.getUniqueName
+      end
+
+      def drillable?
+        @connection.raw_schema_reader.isDrillable(@raw_member)
+      end
+
+      def depth
+        @raw_member.getDepth
+      end
+
+      def children
+        @connection.raw_schema_reader.getMemberChildren(@raw_member).map{|m| Member.new(@connection, m)}
+      end
+
+      def descendants_at_level(level)
+        relative_depth = 0
+        raw_level = @raw_member.getLevel
+        while raw_level = raw_level.getChildLevel
+          relative_depth += 1
+          break if raw_level.getName == level
+        end
+        return nil unless raw_level
+        members = [self]
+        relative_depth.times do
+          members = members.map do |member|
+            member.children
+          end.flatten
+        end
+        members
+      end
+
     end
   end
 end

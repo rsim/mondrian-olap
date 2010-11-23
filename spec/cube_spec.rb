@@ -75,6 +75,10 @@ describe "Cube" do
       @cube.dimension('Gender').name.should == 'Gender'
     end
 
+    it "should get dimension full name" do
+      @cube.dimension('Gender').full_name.should == '[Gender]'
+    end
+
     it "should get measures dimension" do
       @cube.dimension('Measures').should be_measures
     end
@@ -131,7 +135,9 @@ describe "Cube" do
     end
 
     it "should get hierarchy root members" do
+      @cube.dimension('Gender').hierarchy.root_members.map(&:name).should == ['All Genders']
       @cube.dimension('Gender').hierarchy.root_member_names.should == ['All Genders']
+      @cube.dimension('Time').hierarchy.root_members.map(&:name).should == ['1997', '1998']
       @cube.dimension('Time').hierarchy.root_member_names.should == ['1997', '1998']
     end
 
@@ -152,6 +158,49 @@ describe "Cube" do
 
     it "should return nil as child members if parent member not found" do
       @cube.dimension('Gender').hierarchy.child_names('N').should be_nil
+    end
+
+  end
+
+  describe "members" do
+    before(:all) do
+      @cube = @olap.cube('Sales')
+    end
+
+    it "should return member for specified full name" do
+      @cube.member('[Gender].[All Genders]').name.should == 'All Genders'
+      @cube.member('[Customers].[USA].[OR]').name.should == 'OR'
+    end
+
+    it "should not return member for invalid full name" do
+      @cube.member('[Gender].[invalid]').should be_nil
+    end
+
+    it "should return child members for member" do
+      @cube.member('[Gender].[All Genders]').children.map(&:name).should == ['F', 'M']
+      @cube.member('[Customers].[USA].[OR]').children.map(&:name).should ==
+        ["Albany", "Beaverton", "Corvallis", "Lake Oswego", "Lebanon", "Milwaukie",
+        "Oregon City", "Portland", "Salem", "W. Linn", "Woodburn"]
+    end
+
+    it "should return empty children array if member does not have children" do
+      @cube.member('[Gender].[All Genders].[F]').children.should be_empty
+    end
+
+    it "should return member depth" do
+      @cube.member('[Customers].[All Customers]').depth.should == 0
+      @cube.member('[Customers].[USA]').depth.should == 1
+      @cube.member('[Customers].[USA].[CA]').depth.should == 2
+    end
+
+    it "should return descendants for member at specified level" do
+      @cube.member('[Customers].[Mexico]').descendants_at_level('City').map(&:name).should ==
+        ["San Andres", "Santa Anita", "Santa Fe", "Tixapan", "Acapulco", "Guadalajara",
+        "Mexico City", "Tlaxiaco", "La Cruz", "Orizaba", "Merida", "Camacho", "Hidalgo"]
+    end
+
+    it "should not return descendants for member when upper level specified" do
+      @cube.member('[Customers].[Mexico].[DF]').descendants_at_level('Country').should be_nil
     end
 
   end

@@ -3,7 +3,8 @@ require 'nokogiri'
 module Mondrian
   module OLAP
     class Result
-      def initialize(raw_result)
+      def initialize(connection, raw_result)
+        @connection = connection
         @raw_result = raw_result
       end
 
@@ -12,11 +13,15 @@ module Mondrian
       end
 
       def axis_names
-        @axis_names ||= axis_positions(:"getName")
+        @axis_names ||= axis_positions(:getName)
       end
 
       def axis_full_names
-        @axis_full_names ||= axis_positions(:"getUniqueName")
+        @axis_full_names ||= axis_positions(:getUniqueName)
+      end
+
+      def axis_members
+        @axis_members ||= axis_positions(:to_member)
       end
 
       %w(column row page section chapter).each_with_index do |axis, i|
@@ -27,15 +32,27 @@ module Mondrian
         define_method :"#{axis}_full_names" do
           axis_full_names[i]
         end
+
+        define_method :"#{axis}_members" do
+          axis_members[i]
+        end
       end
 
       def values(*axes_sequence)
+        values_using(:getValue, axes_sequence)
+      end
+
+      def formatted_values(*axes_sequence)
+        values_using(:getFormattedValue, axes_sequence)
+      end
+
+      def values_using(values_method, axes_sequence = [])
         if axes_sequence.empty?
           axes_sequence = (0...axes_count).to_a.reverse
         elsif axes_sequence.size != axes_count
           raise ArgumentError, "axes sequence size is not equal to result axes count"
         end
-        recursive_values(axes_sequence, 0)
+        recursive_values(values_method, axes_sequence, 0)
       end
 
       # format results in simple HTML table
@@ -95,7 +112,11 @@ module Mondrian
         axes.map do |axis|
           axis.getPositions.map do |position|
             names = position.map do |member|
-              member.send(map_method)
+              if map_method == :to_member
+                Member.new(@connection, member)
+              else
+                member.send(map_method)
+              end
             end
             if names.size == 1
               names[0]
@@ -116,16 +137,16 @@ module Mondrian
         :chapters => 4
       }.freeze
 
-      def recursive_values(axes_sequence, current_index, cell_params=[])
+      def recursive_values(value_method, axes_sequence, current_index, cell_params=[])
         if axis_number = axes_sequence[current_index]
           axis_number = AXIS_SYMBOL_TO_NUMBER[axis_number] if axis_number.is_a?(Symbol)
           positions_size = axes[axis_number].getPositions.size
           (0...positions_size).map do |i|
             cell_params[axis_number] = i
-            recursive_values(axes_sequence, current_index + 1, cell_params)
+            recursive_values(value_method, axes_sequence, current_index + 1, cell_params)
           end
         else
-          @raw_result.getCell(cell_params).getValue
+          @raw_result.getCell(cell_params).send(value_method)
         end
       end
 

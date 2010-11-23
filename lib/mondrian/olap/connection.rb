@@ -37,7 +37,7 @@ module Mondrian
 
       def execute(query_string)
         query = @raw_connection.parseQuery(query_string)
-        Result.new(@raw_connection.execute(query))
+        Result.new(self, @raw_connection.execute(query))
       end
 
       def from(cube_name)

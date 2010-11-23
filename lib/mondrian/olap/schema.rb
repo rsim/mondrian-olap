@@ -129,7 +129,9 @@ module Mondrian
           # The default datatype of a measure is 'Integer' if the measure's aggregator is 'Count', otherwise it is 'Numeric'.
           :datatype,
           # Aggregation function. Allowed values are "sum", "count", "min", "max", "avg", and "distinct-count".
-          :aggregator
+          :aggregator,
+          # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
+          :format_string
       end
 
       class CalculatedMember < SchemaElement
