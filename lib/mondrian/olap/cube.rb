@@ -2,7 +2,7 @@ module Mondrian
   module OLAP
     class Cube
       def self.get(connection, name)
-        if raw_cube = connection.raw_schema.lookupCube(name)
+        if raw_cube = connection.raw_schema.getCubes.get(name)
           Cube.new(connection, raw_cube)
         end
       end
@@ -17,7 +17,7 @@ module Mondrian
       end
 
       def dimensions
-        @dimenstions ||= @raw_cube.getDimensions.map{|d| Dimension.new(@connection, d)}
+        @dimenstions ||= @raw_cube.getDimensions.map{|d| Dimension.new(self, d)}
       end
 
       def dimension_names
@@ -33,19 +33,25 @@ module Mondrian
       end
 
       def member(full_name)
-        names = full_name.scan(/\[([^\]]+)\](\.|$)/).map{|m| m.first}
-        raw_member = @connection.raw_schema_reader.lookupCompound(@raw_cube,
-          Java::mondrian.olap.Id::Segment.toList(*names),
-          false, Java::mondrian.olap.Category::Member)
-        raw_member && Member.new(@connection, raw_member)
+        segment_names = Java::OrgOlap4jMdx::IdentifierNode.parseIdentifier(full_name).map do |segment|
+          segment.getName
+        end
+        member_by_segments(*segment_names)
+      end
+
+      def member_by_segments(*segment_names)
+        raw_member = @raw_cube.lookupMember(*segment_names)
+        raw_member && Member.new(raw_member)
       end
     end
 
     class Dimension
-      def initialize(connection, raw_dimension)
-        @connection = connection
+      def initialize(cube, raw_dimension)
+        @cube = cube
         @raw_dimension = raw_dimension
       end
+
+      attr_reader :cube
 
       def name
         @name ||= @raw_dimension.getName
@@ -56,7 +62,7 @@ module Mondrian
       end
 
       def hierarchies
-        @hierarchies ||= @raw_dimension.getHierarchies.map{|h| Hierarchy.new(@connection, h)}
+        @hierarchies ||= @raw_dimension.getHierarchies.map{|h| Hierarchy.new(self, h)}
       end
 
       def hierarchy_names
@@ -69,24 +75,24 @@ module Mondrian
       end
 
       def measures?
-        @raw_dimension.isMeasures
+        @raw_dimension.getDimensionType == Java::OrgOlap4jMetadata::Dimension::Type::MEASURE
       end
 
       def dimension_type
         case @raw_dimension.getDimensionType
-        when Java::mondrian.olap.DimensionType::StandardDimension
-          :standard
-        when Java::mondrian.olap.DimensionType::TimeDimension
+        when Java::OrgOlap4jMetadata::Dimension::Type::TIME
           :time
-        when Java::mondrian.olap.DimensionType::MeasuresDimension
+        when Java::OrgOlap4jMetadata::Dimension::Type::MEASURE
           :measures
+        else
+          :standard
         end
       end
     end
 
     class Hierarchy
-      def initialize(connection, raw_hierarchy)
-        @connection = connection
+      def initialize(dimension, raw_hierarchy)
+        @dimension = dimension
         @raw_hierarchy = raw_hierarchy
       end
 
@@ -103,37 +109,38 @@ module Mondrian
       end
 
       def all_member_name
-        has_all? ? @raw_hierarchy.getAllMember.getName : nil
+        has_all? ? @raw_hierarchy.getRootMembers.first.getName : nil
+      end
+
+      def all_member
+        has_all? ? Member.new(@raw_hierarchy.getRootMembers.first) : nil
       end
 
       def root_members
-        @connection.raw_schema_reader.getHierarchyRootMembers(@raw_hierarchy).map{|m| Member.new(@connection, m)}
+        @raw_hierarchy.getRootMembers.map{|m| Member.new(m)}
       end
 
       def root_member_names
-        @connection.raw_schema_reader.getHierarchyRootMembers(@raw_hierarchy).map{|m| m.getName}
+        @raw_hierarchy.getRootMembers.map{|m| m.getName}
       end
 
       def root_member_full_names
-        @connection.raw_schema_reader.getHierarchyRootMembers(@raw_hierarchy).map{|m| m.getUniqueName}
+        @raw_hierarchy.getRootMembers.map{|m| m.getUniqueName}
       end
 
-      def child_names(*parent_member_names)
-        parent_member = if parent_member_names.empty?
+      def child_names(*parent_member_segment_names)
+        parent_member = if parent_member_segment_names.empty?
           return root_member_names unless has_all?
-          @raw_hierarchy.getAllMember
+          all_member
         else
-          @connection.raw_schema_reader.lookupCompound(@raw_hierarchy,
-            Java::mondrian.olap.Id::Segment.toList(*parent_member_names),
-            false, Java::mondrian.olap.Category::Member)
+          @dimension.cube.member_by_segments(*parent_member_segment_names)
         end
-        parent_member && @connection.raw_schema_reader.getMemberChildren(parent_member).map{|m| m.getName}
+        parent_member && parent_member.children.map{|m| m.name}
       end
     end
 
     class Member
-      def initialize(connection, raw_member)
-        @connection = connection
+      def initialize(raw_member)
         @raw_member = raw_member
       end
 
@@ -146,7 +153,11 @@ module Mondrian
       end
 
       def drillable?
-        @connection.raw_schema_reader.isDrillable(@raw_member)
+        # @raw_member.getChildMemberCount > 0
+        # This hopefully is faster than counting actual child members
+        raw_level = @raw_member.getLevel
+        raw_levels = raw_level.getHierarchy.getLevels
+        raw_levels.indexOf(raw_level) < raw_levels.size - 1
       end
 
       def depth
@@ -154,19 +165,19 @@ module Mondrian
       end
 
       def children
-        @connection.raw_schema_reader.getMemberChildren(@raw_member).map{|m| Member.new(@connection, m)}
+        @raw_member.getChildMembers.map{|m| Member.new(m)}
       end
 
       def descendants_at_level(level)
-        relative_depth = 0
         raw_level = @raw_member.getLevel
-        while raw_level = raw_level.getChildLevel
-          relative_depth += 1
-          break if raw_level.getName == level
-        end
-        return nil unless raw_level
+        raw_levels = raw_level.getHierarchy.getLevels
+        current_level_index = raw_levels.indexOf(raw_level)
+        descendants_level_index = raw_levels.indexOfName(level)
+
+        return nil unless descendants_level_index > current_level_index
+
         members = [self]
-        relative_depth.times do
+        (descendants_level_index - current_level_index).times do
           members = members.map do |member|
             member.children
           end.flatten

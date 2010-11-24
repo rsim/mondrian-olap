@@ -17,9 +17,9 @@ module Mondrian
       end
 
       def connect
-        @raw_connection = Java::mondrian.olap.DriverManager.getConnection(connection_string, nil)
+        @raw_jdbc_connection = Java::JavaSql::DriverManager.getConnection(connection_string)
+        @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
         @raw_schema = @raw_connection.getSchema
-        @raw_schema_reader = @raw_connection.getSchemaReader
         @connected = true
         true
       end
@@ -31,13 +31,13 @@ module Mondrian
       def close
         @raw_connection.close
         @connected = false
-        @raw_connection = nil
+        @raw_connection = @raw_jdbc_connection = nil
         true
       end
 
       def execute(query_string)
-        query = @raw_connection.parseQuery(query_string)
-        Result.new(self, @raw_connection.execute(query))
+        statement = @raw_connection.prepareOlapStatement(query_string)
+        Result.new(self, statement.executeQuery())
       end
 
       def from(cube_name)
@@ -55,7 +55,7 @@ module Mondrian
       private
 
       def connection_string
-        "Provider=mondrian;Jdbc=#{jdbc_uri};JdbcDrivers=#{jdbc_driver};" <<
+        "jdbc:mondrian:Jdbc=#{jdbc_uri};JdbcDrivers=#{jdbc_driver};" <<
           (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{catalog_content}")
       end
 

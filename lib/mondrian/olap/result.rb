@@ -3,9 +3,9 @@ require 'nokogiri'
 module Mondrian
   module OLAP
     class Result
-      def initialize(connection, raw_result)
+      def initialize(connection, raw_cell_set)
         @connection = connection
-        @raw_result = raw_result
+        @raw_cell_set = raw_cell_set
       end
 
       def axes_count
@@ -105,15 +105,15 @@ module Mondrian
       private
 
       def axes
-        @axes ||= @raw_result.getAxes
+        @axes ||= @raw_cell_set.getAxes
       end
 
       def axis_positions(map_method, join_with=false)
         axes.map do |axis|
           axis.getPositions.map do |position|
-            names = position.map do |member|
+            names = position.getMembers.map do |member|
               if map_method == :to_member
-                Member.new(@connection, member)
+                Member.new(member)
               else
                 member.send(map_method)
               end
@@ -142,11 +142,11 @@ module Mondrian
           axis_number = AXIS_SYMBOL_TO_NUMBER[axis_number] if axis_number.is_a?(Symbol)
           positions_size = axes[axis_number].getPositions.size
           (0...positions_size).map do |i|
-            cell_params[axis_number] = i
+            cell_params[axis_number] = Java::JavaLang::Integer.new(i)
             recursive_values(value_method, axes_sequence, current_index + 1, cell_params)
           end
         else
-          @raw_result.getCell(cell_params).send(value_method)
+          @raw_cell_set.getCell(cell_params).send(value_method)
         end
       end
 
