@@ -60,6 +60,17 @@ module Mondrian
         self
       end
 
+      VALID_ORDERS = ['ASC', 'BASC', 'DESC', 'BDESC']
+
+      def order(expression, direction)
+        raise ArgumentError, "cannot use order method before axis method" unless @current_axis
+        direction = direction.to_s.upcase
+        raise ArgumentError, "invalid order direction #{direction.inspect}," <<
+          " should be one of #{VALID_ORDERS.inspect[1..-2]}" unless VALID_ORDERS.include?(direction)
+        @axes[@current_axis] = [:order, @axes[@current_axis], expression, direction]
+        self
+      end
+
       # Add new WHERE condition to query
       # or return array of existing conditions if no arguments specified
       def where(*members)
@@ -135,6 +146,11 @@ module Mondrian
           end
         elsif axis_members[0] == :nonempty
           "NON EMPTY #{members_to_mdx(axis_members[1])}"
+        elsif axis_members[0] == :order
+          set = members_to_mdx(axis_members[1])
+          expression = axis_members[2].is_a?(Array) ? "(#{axis_members[2].join(', ')})" : axis_members[2]
+          order = axis_members[3]
+          "ORDER(#{set}, #{expression}, #{order})"
         else
           "{#{axis_members.join(', ')}}"
         end

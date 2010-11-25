@@ -173,6 +173,23 @@ describe "Query" do
       end
     end
 
+    describe "order" do
+      it "should order by one measure" do
+        @query.rows('[Product].children').order('[Measures].[Unit Sales]', :bdesc)
+        @query.rows.should == [:order, ['[Product].children'], '[Measures].[Unit Sales]', 'BDESC']
+      end
+
+      it "should order using String order direction" do
+        @query.rows('[Product].children').order('[Measures].[Unit Sales]', 'DESC')
+        @query.rows.should == [:order, ['[Product].children'], '[Measures].[Unit Sales]', 'DESC']
+      end
+
+      it "should order by measure and other member" do
+        @query.rows('[Product].children').order(['[Measures].[Unit Sales]', '[Customers].[USA]'], :basc)
+        @query.rows.should == [:order, ['[Product].children'], ['[Measures].[Unit Sales]', '[Customers].[USA]'], 'BASC']
+      end
+    end
+
     describe "where" do
       it "should accept conditions" do
         @query.where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').should equal(@query)
@@ -230,7 +247,7 @@ describe "Query" do
           SQL
       end
 
-      it "should return MDX query with crossjoin" do
+      it "should return query with crossjoin" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
           where('[Time].[1997].[Q1]').
@@ -242,7 +259,7 @@ describe "Query" do
           SQL
       end
 
-      it "should return MDX query with several crossjoins" do
+      it "should return query with several crossjoins" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
           crossjoin('[Time].[1997].[Q1]', '[Time].[1997].[Q2]').
@@ -254,7 +271,7 @@ describe "Query" do
           SQL
       end
 
-      it "should return MDX query with crossjoin and nonempty" do
+      it "should return query with crossjoin and nonempty" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').nonempty.
           where('[Time].[1997].[Q1]').
@@ -266,7 +283,27 @@ describe "Query" do
           SQL
       end
 
-      it "should return MDX query including WITH MEMBER clause" do
+      it "should return query with order by one measure" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').order('[Measures].[Unit Sales]', :bdesc).
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    ORDER([Product].children, [Measures].[Unit Sales], BDESC) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with order by measure and other member" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').order(['[Measures].[Unit Sales]', '[Customers].[USA]'], :asc).
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    ORDER([Product].children, ([Measures].[Unit Sales], [Customers].[USA]), ASC) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query including WITH MEMBER clause" do
         @query.with_member('[Measures].[ProfitPct]',
             :as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
             :solve_order => 1, :format_string => 'Percent').
