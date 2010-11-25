@@ -47,10 +47,7 @@ module Mondrian
         raise ArgumentError, "cannot use crossjoin method before axis method" unless @current_axis
         raise ArgumentError, "specify list of members for crossjoin method" if axis_members.empty?
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-        unless @axes[@current_axis][0].is_a?(Array)
-          @axes[@current_axis] = [@axes[@current_axis]]
-        end
-        @axes[@current_axis] << members
+        @axes[@current_axis] = [:crossjoin, @axes[@current_axis], members]
         self
       end
 
@@ -69,6 +66,24 @@ module Mondrian
           " should be one of #{VALID_ORDERS.inspect[1..-2]}" unless VALID_ORDERS.include?(direction)
         @axes[@current_axis] = [:order, @axes[@current_axis], expression, direction]
         self
+      end
+
+      def hierarchize(order=nil, all=nil)
+        raise ArgumentError, "cannot use hierarchize method before axis method" unless @current_axis
+        order = order && order.to_s.upcase
+        raise ArgumentError, "invalid hierarchize order #{order.inspect}" unless order.nil? || order == 'POST'
+        if all.nil? && @axes[@current_axis][0] == :crossjoin
+          @axes[@current_axis][2] = [:hierarchize, @axes[@current_axis][2]]
+          @axes[@current_axis][2] << order if order
+        else
+          @axes[@current_axis] = [:hierarchize, @axes[@current_axis]]
+          @axes[@current_axis] << order if order
+        end
+        self
+      end
+
+      def hierarchize_all(order=nil)
+        hierarchize(order, :all)
       end
 
       # Add new WHERE condition to query
@@ -140,17 +155,20 @@ module Mondrian
       def members_to_mdx(axis_members)
         if axis_members.length == 1
           axis_members[0]
-        elsif axis_members[0].is_a?(Array)
-          axis_members.inject(nil) do |str, m|
-            str.nil? ? members_to_mdx(m) : "CROSSJOIN(#{str}, #{members_to_mdx(m)})"
+        elsif axis_members[0].is_a?(Symbol)
+          case axis_members[0]
+          when :crossjoin
+            "CROSSJOIN(#{members_to_mdx(axis_members[1])}, #{members_to_mdx(axis_members[2])})"
+          when :nonempty
+            "NON EMPTY #{members_to_mdx(axis_members[1])}"
+          when :order
+            expression = axis_members[2].is_a?(Array) ? "(#{axis_members[2].join(', ')})" : axis_members[2]
+            "ORDER(#{members_to_mdx(axis_members[1])}, #{expression}, #{axis_members[3]})"
+          when :hierarchize
+            "HIERARCHIZE(#{members_to_mdx(axis_members[1])}#{axis_members[2] && ", #{axis_members[2]}"})"
+          else
+            raise ArgumentError, "Cannot generate MDX for invalid set operation #{axis_members[0].inspect}"
           end
-        elsif axis_members[0] == :nonempty
-          "NON EMPTY #{members_to_mdx(axis_members[1])}"
-        elsif axis_members[0] == :order
-          set = members_to_mdx(axis_members[1])
-          expression = axis_members[2].is_a?(Array) ? "(#{axis_members[2].join(', ')})" : axis_members[2]
-          order = axis_members[3]
-          "ORDER(#{set}, #{expression}, #{order})"
         else
           "{#{axis_members.join(', ')}}"
         end

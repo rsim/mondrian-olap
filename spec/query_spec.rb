@@ -157,12 +157,12 @@ describe "Query" do
     describe "crossjoin" do
       it "should do crossjoin of several dimensions" do
         @query.rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]')
-        @query.rows.should == [['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+        @query.rows.should == [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
       end
 
       it "should do crossjoin passing array as first argument" do
         @query.rows('[Product].children').crossjoin(['[Customers].[Canada]', '[Customers].[USA]'])
-        @query.rows.should == [['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+        @query.rows.should == [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
       end
     end
 
@@ -188,6 +188,31 @@ describe "Query" do
         @query.rows('[Product].children').order(['[Measures].[Unit Sales]', '[Customers].[USA]'], :basc)
         @query.rows.should == [:order, ['[Product].children'], ['[Measures].[Unit Sales]', '[Customers].[USA]'], 'BASC']
       end
+    end
+
+    describe "hierarchize" do
+      it "should hierarchize simple set" do
+        @query.rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
+        @query.rows.should == [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]
+      end
+
+      it "should hierarchize last set of crossjoin" do
+        @query.rows('[Product].children').crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
+        @query.rows.should == [:crossjoin, ['[Product].children'],
+          [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]]
+      end
+
+      it "should hierarchize all crossjoin" do
+        @query.rows('[Product].children').crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize_all
+        @query.rows.should == [:hierarchize, [:crossjoin, ['[Product].children'],
+          ['[Customers].[Country].Members', '[Customers].[City].Members']]]
+      end
+
+      it "should hierarchize with POST" do
+        @query.rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize(:post)
+        @query.rows.should == [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members'], 'POST']
+      end
+
     end
 
     describe "where" do
@@ -299,6 +324,26 @@ describe "Query" do
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     ORDER([Product].children, ([Measures].[Unit Sales], [Customers].[USA]), ASC) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with hierarchize" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize.
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    HIERARCHIZE({[Customers].[Country].Members, [Customers].[City].Members}) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with hierarchize and order" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize(:post).
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    HIERARCHIZE({[Customers].[Country].Members, [Customers].[City].Members}, POST) ON ROWS
               FROM  [Sales]
           SQL
       end
