@@ -51,6 +51,18 @@ module Mondrian
         self
       end
 
+      def except(*axis_members)
+        raise ArgumentError, "cannot use except method before axis method" unless @current_axis
+        raise ArgumentError, "specify list of members for except method" if axis_members.empty?
+        members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
+        if @axes[@current_axis][0] == :crossjoin
+          @axes[@current_axis][2] = [:except, @axes[@current_axis][2], members]
+        else
+          @axes[@current_axis] = [:except, @axes[@current_axis], members]
+        end
+        self
+      end
+
       def nonempty
         raise ArgumentError, "cannot use crossjoin method before axis method" unless @current_axis
         @axes[@current_axis] = [:nonempty, @axes[@current_axis]]
@@ -159,6 +171,8 @@ module Mondrian
           case axis_members[0]
           when :crossjoin
             "CROSSJOIN(#{members_to_mdx(axis_members[1])}, #{members_to_mdx(axis_members[2])})"
+          when :except
+            "EXCEPT(#{members_to_mdx(axis_members[1])}, #{members_to_mdx(axis_members[2])})"
           when :nonempty
             "NON EMPTY #{members_to_mdx(axis_members[1])}"
           when :order

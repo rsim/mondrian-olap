@@ -215,6 +215,19 @@ describe "Query" do
 
     end
 
+    describe "except" do
+      it "should except one set from other" do
+        @query.rows('[Customers].[Country].Members').except('[Customers].[USA]')
+        @query.rows.should == [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]
+      end
+
+      it "should except from last set of crossjoin" do
+        @query.rows('[Product].children').crossjoin('[Customers].[Country].Members').except('[Customers].[USA]')
+        @query.rows.should == [:crossjoin, ['[Product].children'],
+          [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]]
+      end
+    end
+
     describe "where" do
       it "should accept conditions" do
         @query.where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').should equal(@query)
@@ -344,6 +357,16 @@ describe "Query" do
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     HIERARCHIZE({[Customers].[Country].Members, [Customers].[City].Members}, POST) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with except" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').except('[Customers].[USA]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    EXCEPT([Customers].[Country].Members, [Customers].[USA]) ON ROWS
               FROM  [Sales]
           SQL
       end
