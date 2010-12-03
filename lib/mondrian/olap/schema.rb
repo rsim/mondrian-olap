@@ -70,7 +70,12 @@ module Mondrian
           # Should be set to the level (if such a level exists) at which depth it is known
           # that all members have entirely unique rows, allowing SQL GROUP BY clauses to be completely eliminated from the query.
           :unique_key_level_name
-        elements :table, :level
+        elements :table, :join, :level
+      end
+
+      class Join < SchemaElement
+        attributes :left_key, :right_key
+        elements :table
       end
 
       class Level < SchemaElement

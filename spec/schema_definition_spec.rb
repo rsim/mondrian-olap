@@ -47,7 +47,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name=\"Sales\" defaultMeasure=\"Unit Sales\" description="Sales cube" cache="false" enabled="true"/>
+          <Cube name="Sales" defaultMeasure="Unit Sales" description="Sales cube" cache="false" enabled="true"/>
         </Schema>
         XML
       end
@@ -60,7 +60,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name=\"Sales\" defaultMeasure=\"Unit Sales\" description="Sales cube" cache="false" enabled="true"/>
+          <Cube name="Sales" defaultMeasure="Unit Sales" description="Sales cube" cache="false" enabled="true"/>
         </Schema>
         XML
       end
@@ -76,8 +76,8 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name=\"Sales\">
-            <Table name=\"sales_fact_1997\" alias=\"sales\"/>
+          <Cube name="Sales">
+            <Table name="sales_fact_1997" alias="sales"/>
           </Cube>
         </Schema>
         XML
@@ -103,7 +103,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name=\"Sales\">
+          <Cube name="Sales">
             <Dimension name="Gender" foreignKey="customer_id">
               <Hierarchy hasAll="true" allMemberName="All Genders" primaryKey="customer_id">
                 <Table name="customer"/>
@@ -134,7 +134,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name=\"Sales\">
+          <Cube name="Sales">
             <Dimension name="Time" foreignKey="time_id">
               <Hierarchy hasAll="false" primaryKey="time_id">
                 <Table name="time_by_day"/>
@@ -147,6 +147,44 @@ describe "Schema definition" do
         </Schema>
         XML
       end
+
+      it "should render dimension hierarchy with join" do
+        @schema.define do
+          cube 'Sales' do
+            dimension 'Products', :foreign_key => 'product_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Products',
+                        :primary_key => 'product_id', :primary_key_table => 'product' do
+                join :left_key => 'product_class_id', :right_key => 'product_class_id' do
+                  table 'product'
+                  table 'product_class'
+                end
+                level 'Product Family', :table => 'product_class', :column => 'product_family', :unique_members => true
+                level 'Brand Name', :table => 'product', :column => 'brand_name', :unique_members => false
+                level 'Product Name', :table => 'product', :column => 'product_name', :unique_members => true
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Dimension name="Products" foreignKey="product_id">
+              <Hierarchy hasAll="true" allMemberName="All Products" primaryKey="product_id" primaryKeyTable="product">
+                <Join leftKey="product_class_id" rightKey="product_class_id">
+                  <Table name="product"/>
+                  <Table name="product_class"/>
+                </Join>
+                <Level name="Product Family" table="product_class" column="product_family" uniqueMembers="true"/>
+                <Level name="Brand Name" table="product" column="brand_name" uniqueMembers="false"/>
+                <Level name="Product Name" table="product" column="product_name" uniqueMembers="true"/>
+              </Hierarchy>
+            </Dimension>
+          </Cube>
+        </Schema>
+        XML
+      end
+
     end
 
     describe "Measure" do
@@ -162,7 +200,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name=\"Sales\">
+          <Cube name="Sales">
             <Measure name="Unit Sales" column="unit_sales" aggregator="sum"/>
           </Cube>
         </Schema>
@@ -183,7 +221,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name=\"Sales\">
+          <Cube name="Sales">
             <CalculatedMember name="Profit" dimension="Measures" formula="[Measures].[Store Sales] - [Measures].[Store Cost]"/>
           </Cube>
         </Schema>
