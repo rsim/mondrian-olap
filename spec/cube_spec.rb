@@ -113,9 +113,21 @@ describe "Cube" do
       @cube.dimension('Time').hierarchy.name.should == 'Time'
     end
 
+    it "should get hierarchy levels" do
+      @cube.dimension('Customers').hierarchy.levels.map(&:name).should ==  ['(All)', 'Country', 'State Province', 'City', 'Name']
+    end
+
     it "should get hierarchy level names" do
       @cube.dimension('Time').hierarchy.level_names.should == ['Year', 'Quarter', 'Month']
       @cube.dimension('Customers').hierarchy.level_names.should ==  ['(All)', 'Country', 'State Province', 'City', 'Name']
+    end
+
+    it "should get hierarchy level depths" do
+      @cube.dimension('Customers').hierarchy.levels.map(&:depth).should ==  [0, 1, 2, 3, 4]
+    end
+
+    it "should get hierarchy level members count" do
+      @cube.dimension('Gender').hierarchy.levels.map(&:members_count).should == [1, 2]
     end
   end
 

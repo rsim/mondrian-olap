@@ -100,8 +100,12 @@ module Mondrian
         @name ||= @raw_hierarchy.getName
       end
 
+      def levels
+        @levels = @raw_hierarchy.getLevels.map{|l| Level.new(self, l)}
+      end
+
       def level_names
-        @raw_hierarchy.getLevels.map{|l| l.getName}
+        levels.map{|l| l.name}
       end
 
       def has_all?
@@ -136,6 +140,35 @@ module Mondrian
           @dimension.cube.member_by_segments(*parent_member_segment_names)
         end
         parent_member && parent_member.children.map{|m| m.name}
+      end
+    end
+
+    class Level
+      def initialize(hierarchy, raw_level)
+        @hierarchy = hierarchy
+        @raw_level = raw_level
+      end
+
+      def name
+        @name ||= @raw_level.getName
+      end
+
+      def depth
+        @raw_level.getDepth
+      end
+
+      def cardinality
+        @cardinality = @raw_level.getCardinality
+      end
+
+      def members_count
+        @members_count ||= begin
+          if cardinality >= 0
+            cardinality
+          else
+            @raw_level.getMembers.size
+          end
+        end
       end
     end
 
