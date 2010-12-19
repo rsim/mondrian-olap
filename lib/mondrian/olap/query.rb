@@ -14,7 +14,7 @@ module Mondrian
         @cube = nil
         @axes = []
         @where = []
-        @with_members = []
+        @with = []
       end
 
       # Add new axis(i) to query
@@ -24,11 +24,11 @@ module Mondrian
           @axes[i]
         else
           @axes[i] ||= []
-          @current_axis = i
+          @current_set = @axes[i]
           if axis_members.length == 1 && axis_members[0].is_a?(Array)
-            @axes[i].concat(axis_members[0])
+            @current_set.concat(axis_members[0])
           else
-            @axes[i].concat(axis_members)
+            @current_set.concat(axis_members)
           end
           self
         end
@@ -44,52 +44,52 @@ module Mondrian
       end
 
       def crossjoin(*axis_members)
-        raise ArgumentError, "cannot use crossjoin method before axis method" unless @current_axis
+        raise ArgumentError, "cannot use crossjoin method before axis or with_set method" unless @current_set
         raise ArgumentError, "specify list of members for crossjoin method" if axis_members.empty?
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-        @axes[@current_axis] = [:crossjoin, @axes[@current_axis], members]
+        @current_set.replace [:crossjoin, @current_set.clone, members]
         self
       end
 
       def except(*axis_members)
-        raise ArgumentError, "cannot use except method before axis method" unless @current_axis
+        raise ArgumentError, "cannot use except method before axis or with_set method" unless @current_set
         raise ArgumentError, "specify list of members for except method" if axis_members.empty?
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-        if @axes[@current_axis][0] == :crossjoin
-          @axes[@current_axis][2] = [:except, @axes[@current_axis][2], members]
+        if @current_set[0] == :crossjoin
+          @current_set[2] = [:except, @current_set[2], members]
         else
-          @axes[@current_axis] = [:except, @axes[@current_axis], members]
+          @current_set.replace [:except, @current_set.clone, members]
         end
         self
       end
 
       def nonempty
-        raise ArgumentError, "cannot use crossjoin method before axis method" unless @current_axis
-        @axes[@current_axis] = [:nonempty, @axes[@current_axis]]
+        raise ArgumentError, "cannot use nonempty method before axis or with_set method" unless @current_set
+        @current_set.replace [:nonempty, @current_set.clone]
         self
       end
 
       VALID_ORDERS = ['ASC', 'BASC', 'DESC', 'BDESC']
 
       def order(expression, direction)
-        raise ArgumentError, "cannot use order method before axis method" unless @current_axis
+        raise ArgumentError, "cannot use order method before axis or with_set method" unless @current_set
         direction = direction.to_s.upcase
         raise ArgumentError, "invalid order direction #{direction.inspect}," <<
           " should be one of #{VALID_ORDERS.inspect[1..-2]}" unless VALID_ORDERS.include?(direction)
-        @axes[@current_axis] = [:order, @axes[@current_axis], expression, direction]
+        @current_set.replace [:order, @current_set.clone, expression, direction]
         self
       end
 
       def hierarchize(order=nil, all=nil)
-        raise ArgumentError, "cannot use hierarchize method before axis method" unless @current_axis
+        raise ArgumentError, "cannot use hierarchize method before axis or with_set method" unless @current_set
         order = order && order.to_s.upcase
         raise ArgumentError, "invalid hierarchize order #{order.inspect}" unless order.nil? || order == 'POST'
-        if all.nil? && @axes[@current_axis][0] == :crossjoin
-          @axes[@current_axis][2] = [:hierarchize, @axes[@current_axis][2]]
-          @axes[@current_axis][2] << order if order
+        if all.nil? && @current_set[0] == :crossjoin
+          @current_set[2] = [:hierarchize, @current_set[2]]
+          @current_set[2] << order if order
         else
-          @axes[@current_axis] = [:hierarchize, @axes[@current_axis]]
-          @axes[@current_axis] << order if order
+          @current_set.replace [:hierarchize, @current_set.clone]
+          @current_set << order if order
         end
         self
       end
@@ -114,22 +114,54 @@ module Mondrian
       end
 
       # Add definition of calculated member
-      def with_member(member=nil, options={})
-        if member.nil?
-          @with_members
-        elsif member.is_a?(Array)
-          member.each{|m, o| with_member(m, o)}
-          self
+      def with_member(member_name)
+        @with << [:member, member_name]
+        @current_set = nil
+        self
+      end
+
+      # Add definition of named_set
+      def with_set(set_name)
+        @current_set = []
+        @with << [:set, set_name, @current_set]
+        self
+      end
+
+      # return array of member and set definitions
+      def with
+        @with
+      end
+
+      # Add definition to calculated member or to named set
+      def as(*params)
+        # definition of named set
+        if @current_set
+          if params.empty?
+            raise ArgumentError, "named set cannot be empty"
+          else
+            raise ArgumentError, "cannot use 'as' method before with_set method" unless @current_set.empty?
+            if params.length == 1 && params[0].is_a?(Array)
+              @current_set.concat(params[0])
+            else
+              @current_set.concat(params)
+            end
+          end
+        # definition of calculated member
         else
-          raise ArgumentError, ":as option is mandatory" unless options[:as]
-          @with_members << [member, options]
-          self
+          member_definition = @with.last
+          options = params.last.is_a?(Hash) ? params.pop : nil
+          raise ArgumentError, "cannot use 'as' method before with_member method" unless member_definition &&
+            member_definition[0] == :member && member_definition.length == 2
+          raise ArgumentError, "calculated member definition should be single expression" unless params.length == 1
+          member_definition << params[0]
+          member_definition << options if options
         end
+        self
       end
 
       def to_mdx
         mdx = ""
-        mdx << "WITH #{with_to_mdx}\n" unless @with_members.empty?
+        mdx << "WITH #{with_to_mdx}\n" unless @with.empty?
         mdx << "SELECT #{axis_to_mdx}\n"
         mdx << "FROM #{from_to_mdx}"
         mdx << "\nWHERE #{where_to_mdx}" unless @where.empty?
@@ -142,15 +174,24 @@ module Mondrian
 
       private
 
+      # FIXME: keep original order of WITH MEMBER and WITH SET defitions
       def with_to_mdx
-        @with_members.map do |member, options|
-          options_string = ''
-          options.each do |option, value|
-            unless option == :as
+        @with.map do |definition|
+          case definition[0]
+          when :member
+            member_name = definition[1]
+            expression = definition[2]
+            options = definition[3]
+            options_string = ''
+            options.each do |option, value|
               options_string << ", #{option.to_s.upcase} = #{quote_value(value)}"
             end
+            "MEMBER #{member_name} AS #{quote_value(expression)}#{options_string}"
+          when :set
+            set_name = definition[1]
+            set_members = definition[2]
+            "SET #{set_name} AS #{quote_value(members_to_mdx(set_members))}"
           end
-          "MEMBER #{member} AS #{quote_value(options[:as])}#{options_string}"
         end.join("\n")
       end
 

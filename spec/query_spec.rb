@@ -247,28 +247,47 @@ describe "Query" do
 
     describe "with member" do
       it "should accept definition" do
-        @query.with_member('[Measures].[ProfitPct]',
-          :as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])').
+        @query.with_member('[Measures].[ProfitPct]').
+          as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])').
           should equal(@query)
-        @query.with_member.should == [['[Measures].[ProfitPct]',
-          {:as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])'}]]
-      end
-
-      it "should accept definition as array" do
-        @query.with_member([['[Measures].[ProfitPct]',
-          {:as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])'}]])
-        @query.with_member.should == [['[Measures].[ProfitPct]',
-          {:as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])'}]]
+        @query.with.should == [
+          [ :member, '[Measures].[ProfitPct]',
+            'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])'
+          ]
+        ]
       end
 
       it "should accept definition with additional parameters" do
-        @query.with_member('[Measures].[ProfitPct]',
-          :as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-          :solve_order => 1,
-          :format_string => 'Percent')
-        @query.with_member.should == [['[Measures].[ProfitPct]',
-          {:as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-          :solve_order => 1, :format_string => 'Percent'}]]
+        @query.with_member('[Measures].[ProfitPct]').
+          as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
+            :solve_order => 1,
+            :format_string => 'Percent')
+        @query.with.should == [
+          [ :member, '[Measures].[ProfitPct]',
+            'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
+            {:solve_order => 1, :format_string => 'Percent'}
+          ]
+        ]
+      end
+    end
+
+    describe "with set" do
+      it "should accept simple defition" do
+        @query.with_set('SelectedRows').as('[Product].children')
+        @query.with.should == [
+          [ :set, 'SelectedRows',
+            ['[Product].children']
+          ]
+        ]
+      end
+
+      it "should accept definition with crossjoin" do
+        @query.with_set('SelectedRows').as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]')
+        @query.with.should == [
+          [ :set, 'SelectedRows',
+            [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+          ]
+        ]
       end
     end
 
@@ -372,12 +391,13 @@ describe "Query" do
       end
 
       it "should return query including WITH MEMBER clause" do
-        @query.with_member('[Measures].[ProfitPct]',
-            :as =>  'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-            :solve_order => 1, :format_string => 'Percent').
-          with_member('[Measures].[ProfitValue]',
-            :as => '[Measures].[Store Sales] * [Measures].[ProfitPct]',
-            :solve_order => 2, :format_string => 'Currency').
+        @query.
+          with_member('[Measures].[ProfitPct]').
+            as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
+              :solve_order => 1, :format_string => 'Percent').
+          with_member('[Measures].[ProfitValue]').
+            as('[Measures].[Store Sales] * [Measures].[ProfitPct]',
+              :solve_order => 2, :format_string => 'Currency').
           columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').
@@ -393,6 +413,21 @@ describe "Query" do
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE ([Time].[1997].[Q1], [Customers].[USA].[CA])
+          SQL
+      end
+
+      it "should return query including WITH SET clause" do
+        @query.with_set('SelectedRows').
+            as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('SelectedRows').
+          to_mdx.should be_like <<-SQL
+            WITH
+               SET SelectedRows AS 
+               'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    SelectedRows ON ROWS
+              FROM  [Sales]
           SQL
       end
     end
