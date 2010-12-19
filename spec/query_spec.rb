@@ -190,6 +190,30 @@ describe "Query" do
       end
     end
 
+    %w(top bottom).each do |extreme|
+      describe extreme do
+        it "should select #{extreme} count rows by measure" do
+          @query.rows('[Product].children').send(:"#{extreme}_count", 5, '[Measures].[Unit Sales]')
+          @query.rows.should == [:"#{extreme}_count", ['[Product].children'], 5, '[Measures].[Unit Sales]']
+        end
+
+        it "should select #{extreme} count rows without measure" do
+          @query.rows('[Product].children').send(:"#{extreme}_count", 5)
+          @query.rows.should == [:"#{extreme}_count", ['[Product].children'], 5]
+        end
+
+        it "should select #{extreme} percent rows by measure" do
+          @query.rows('[Product].children').send(:"#{extreme}_percent", 20, '[Measures].[Unit Sales]')
+          @query.rows.should == [:"#{extreme}_percent", ['[Product].children'], 20, '[Measures].[Unit Sales]']
+        end
+
+        it "should select #{extreme} sum rows by measure" do
+          @query.rows('[Product].children').send(:"#{extreme}_sum", 1000, '[Measures].[Unit Sales]')
+          @query.rows.should == [:"#{extreme}_sum", ['[Product].children'], 1000, '[Measures].[Unit Sales]']
+        end
+      end
+    end
+
     describe "hierarchize" do
       it "should hierarchize simple set" do
         @query.rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
@@ -225,6 +249,18 @@ describe "Query" do
         @query.rows('[Product].children').crossjoin('[Customers].[Country].Members').except('[Customers].[USA]')
         @query.rows.should == [:crossjoin, ['[Product].children'],
           [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]]
+      end
+    end
+
+    describe "filter" do
+      it "should filter set by condition" do
+        @query.rows('[Customers].[Country].Members').filter('[Measures].[Unit Sales] > 1000')
+        @query.rows.should == [:filter, ['[Customers].[Country].Members'], '[Measures].[Unit Sales] > 1000']
+      end
+
+      it "should filter using set alias" do
+        @query.rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', :as => 'S')
+        @query.rows.should == [:filter, ['[Customers].[Country].Members'], 'NOT ISEMPTY(S.CURRENT)', 'S']
       end
     end
 
@@ -360,6 +396,58 @@ describe "Query" do
           SQL
       end
 
+      %w(top bottom).each do |extreme|
+        it "should return query with #{extreme} count by one measure" do
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_count", 5, '[Measures].[Unit Sales]').
+            to_mdx.should be_like <<-SQL
+              SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                      #{extreme.upcase}COUNT([Product].children, 5, [Measures].[Unit Sales]) ON ROWS
+                FROM  [Sales]
+            SQL
+        end
+
+        it "should return query with #{extreme} count without measure" do
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_count", 5).
+            to_mdx.should be_like <<-SQL
+              SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                      #{extreme.upcase}COUNT([Product].children, 5) ON ROWS
+                FROM  [Sales]
+            SQL
+        end
+
+        it "should return query with #{extreme} count by measure and other member" do
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_count", 5, ['[Measures].[Unit Sales]', '[Customers].[USA]']).
+            to_mdx.should be_like <<-SQL
+              SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                      #{extreme.upcase}COUNT([Product].children, 5, ([Measures].[Unit Sales], [Customers].[USA])) ON ROWS
+                FROM  [Sales]
+            SQL
+        end
+
+        it "should return query with #{extreme} percent by one measure" do
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_percent", 20, '[Measures].[Unit Sales]').
+            to_mdx.should be_like <<-SQL
+              SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                      #{extreme.upcase}PERCENT([Product].children, 20, [Measures].[Unit Sales]) ON ROWS
+                FROM  [Sales]
+            SQL
+        end
+
+        it "should return query with #{extreme} sum by one measure" do
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_sum", 1000, '[Measures].[Unit Sales]').
+            to_mdx.should be_like <<-SQL
+              SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                      #{extreme.upcase}SUM([Product].children, 1000, [Measures].[Unit Sales]) ON ROWS
+                FROM  [Sales]
+            SQL
+        end
+      end
+
       it "should return query with hierarchize" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize.
@@ -386,6 +474,36 @@ describe "Query" do
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     EXCEPT([Customers].[Country].Members, [Customers].[USA]) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with filter" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').filter('[Measures].[Unit Sales] > 1000').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    FILTER([Customers].[Country].Members, [Measures].[Unit Sales] > 1000) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with filter and set alias" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', :as => 'S').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with filter non-empty" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').filter_nonempty.
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
               FROM  [Sales]
           SQL
       end
@@ -419,13 +537,17 @@ describe "Query" do
       it "should return query including WITH SET clause" do
         @query.with_set('SelectedRows').
             as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-          columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          with_member('[Measures].[Profit]').
+            as('[Measures].[Store Sales] - [Measures].[Store Cost]').
+          columns('[Measures].[Profit]').
           rows('SelectedRows').
           to_mdx.should be_like <<-SQL
             WITH
                SET SelectedRows AS 
                'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
-            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+               MEMBER [Measures].[Profit] AS
+               '[Measures].[Store Sales] - [Measures].[Store Cost]'
+            SELECT  [Measures].[Profit] ON COLUMNS,
                     SelectedRows ON ROWS
               FROM  [Sales]
           SQL

@@ -64,8 +64,22 @@ module Mondrian
       end
 
       def nonempty
-        raise ArgumentError, "cannot use nonempty method before axis or with_set method" unless @current_set
+        raise ArgumentError, "cannot use nonempty method before axis method" unless @current_set
         @current_set.replace [:nonempty, @current_set.clone]
+        self
+      end
+
+      def filter(condition, options={})
+        raise ArgumentError, "cannot use filter method before axis or with_set method" unless @current_set
+        @current_set.replace [:filter, @current_set.clone, condition]
+        @current_set << options[:as] if options[:as]
+        self
+      end
+
+      def filter_nonempty
+        raise ArgumentError, "cannot use filter_nonempty method before axis or with_set method" unless @current_set
+        condition = "NOT ISEMPTY(S.CURRENT)"
+        @current_set.replace [:filter, @current_set.clone, condition, 'S']
         self
       end
 
@@ -78,6 +92,27 @@ module Mondrian
           " should be one of #{VALID_ORDERS.inspect[1..-2]}" unless VALID_ORDERS.include?(direction)
         @current_set.replace [:order, @current_set.clone, expression, direction]
         self
+      end
+
+      %w(top bottom).each do |extreme|
+        class_eval <<-RUBY, __FILE__, __LINE__ + 1
+          def #{extreme}_count(count, expression=nil)
+            raise ArgumentError, "cannot use #{extreme}_count method before axis or with_set method" unless @current_set
+            @current_set.replace [:#{extreme}_count, @current_set.clone, count]
+            @current_set << expression if expression
+            self
+          end
+        RUBY
+
+        %w(percent sum).each do |extreme_name|
+          class_eval <<-RUBY, __FILE__, __LINE__ + 1
+            def #{extreme}_#{extreme_name}(value, expression)
+              raise ArgumentError, "cannot use #{extreme}_#{extreme_name} method before axis or with_set method" unless @current_set
+              @current_set.replace [:#{extreme}_#{extreme_name}, @current_set.clone, value, expression]
+              self
+            end
+          RUBY
+        end
       end
 
       def hierarchize(order=nil, all=nil)
@@ -183,7 +218,7 @@ module Mondrian
             expression = definition[2]
             options = definition[3]
             options_string = ''
-            options.each do |option, value|
+            options && options.each do |option, value|
               options_string << ", #{option.to_s.upcase} = #{quote_value(value)}"
             end
             "MEMBER #{member_name} AS #{quote_value(expression)}#{options_string}"
@@ -205,28 +240,48 @@ module Mondrian
         mdx
       end
 
-      def members_to_mdx(axis_members)
-        if axis_members.length == 1
-          axis_members[0]
-        elsif axis_members[0].is_a?(Symbol)
-          case axis_members[0]
+      MDX_FUNCTIONS = {
+        :top_count => 'TOPCOUNT',
+        :top_percent => 'TOPPERCENT',
+        :top_sum => 'TOPSUM',
+        :bottom_count => 'BOTTOMCOUNT',
+        :bottom_percent => 'BOTTOMPERCENT',
+        :bottom_sum => 'BOTTOMSUM'
+      }
+
+      def members_to_mdx(members)
+        if members.length == 1
+          members[0]
+        elsif members[0].is_a?(Symbol)
+          case members[0]
           when :crossjoin
-            "CROSSJOIN(#{members_to_mdx(axis_members[1])}, #{members_to_mdx(axis_members[2])})"
+            "CROSSJOIN(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])})"
           when :except
-            "EXCEPT(#{members_to_mdx(axis_members[1])}, #{members_to_mdx(axis_members[2])})"
+            "EXCEPT(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])})"
           when :nonempty
-            "NON EMPTY #{members_to_mdx(axis_members[1])}"
+            "NON EMPTY #{members_to_mdx(members[1])}"
+          when :filter
+            as_alias = members[3] ? " AS #{members[3]}" : nil
+            "FILTER(#{members_to_mdx(members[1])}#{as_alias}, #{members[2]})"
           when :order
-            expression = axis_members[2].is_a?(Array) ? "(#{axis_members[2].join(', ')})" : axis_members[2]
-            "ORDER(#{members_to_mdx(axis_members[1])}, #{expression}, #{axis_members[3]})"
+            "ORDER(#{members_to_mdx(members[1])}, #{expression_to_mdx(members[2])}, #{members[3]})"
+          when :top_count, :bottom_count
+            mdx = "#{MDX_FUNCTIONS[members[0]]}(#{members_to_mdx(members[1])}, #{members[2]}"
+            mdx << (members[3] ? ", #{expression_to_mdx(members[3])})" : ")")
+          when :top_percent, :top_sum, :bottom_percent, :bottom_sum
+            "#{MDX_FUNCTIONS[members[0]]}(#{members_to_mdx(members[1])}, #{members[2]}, #{expression_to_mdx(members[3])})"
           when :hierarchize
-            "HIERARCHIZE(#{members_to_mdx(axis_members[1])}#{axis_members[2] && ", #{axis_members[2]}"})"
+            "HIERARCHIZE(#{members_to_mdx(members[1])}#{members[2] && ", #{members[2]}"})"
           else
-            raise ArgumentError, "Cannot generate MDX for invalid set operation #{axis_members[0].inspect}"
+            raise ArgumentError, "Cannot generate MDX for invalid set operation #{members[0].inspect}"
           end
         else
-          "{#{axis_members.join(', ')}}"
+          "{#{members.join(', ')}}"
         end
+      end
+
+      def expression_to_mdx(expression)
+        expression.is_a?(Array) ? "(#{expression.join(', ')})" : expression
       end
 
       def from_to_mdx
