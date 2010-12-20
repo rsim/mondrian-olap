@@ -21,6 +21,10 @@ describe "Cube" do
             level 'Name', :column => 'fullname', :unique_members => true
           end
         end
+        calculated_member 'Non-USA' do
+          dimension 'Customers'
+          formula '[Customers].[All Customers] - [Customers].[USA]'
+        end
         dimension 'Time', :foreign_key => 'time_id', :type => 'TimeDimension' do
           hierarchy :has_all => false, :primary_key => 'time_id' do
             table 'time_by_day'
@@ -213,6 +217,26 @@ describe "Cube" do
 
     it "should not return descendants for member when upper level specified" do
       @cube.member('[Customers].[Mexico].[DF]').descendants_at_level('Country').should be_nil
+    end
+
+    it "should be drillable when member has descendants" do
+      @cube.member('[Customers].[USA]').should be_drillable
+    end
+
+    it "should not be drillable when member has no descendants" do
+      @cube.member('[Gender].[F]').should_not be_drillable
+    end
+
+    it "should not be drillable when member is calculated" do
+      @cube.member('[Customers].[Non-USA]').should_not be_drillable
+    end
+
+    it "should be calculated when member is calculated" do
+      @cube.member('[Customers].[Non-USA]').should be_calculated
+    end
+
+    it "should not be calculated when normal member" do
+      @cube.member('[Customers].[USA]').should_not be_calculated
     end
 
   end

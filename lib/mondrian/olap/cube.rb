@@ -185,7 +185,12 @@ module Mondrian
         @raw_member.getUniqueName
       end
 
+      def calculated?
+        @raw_member.isCalculated
+      end
+
       def drillable?
+        return false if calculated?
         # @raw_member.getChildMemberCount > 0
         # This hopefully is faster than counting actual child members
         raw_level = @raw_member.getLevel
