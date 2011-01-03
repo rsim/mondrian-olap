@@ -178,6 +178,22 @@ describe "Cube" do
 
   end
 
+  describe "level members" do
+    before(:all) do
+      @cube = @olap.cube('Sales')
+    end
+
+    it "should get primary hierarchy level members" do
+      @cube.dimension('Customers').hierarchy.level('Country').members.
+        map(&:name).should == ['Canada', 'Mexico', 'USA']
+    end
+
+    it "should get secondary hierarchy level members" do
+      @cube.dimension('Time').hierarchy('Time.Weekly').level('Year').members.
+        map(&:name).should == ['1997', '1998']
+    end
+  end
+
   describe "members" do
     before(:all) do
       @cube = @olap.cube('Sales')

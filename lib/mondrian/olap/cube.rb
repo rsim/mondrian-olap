@@ -104,6 +104,10 @@ module Mondrian
         @levels = @raw_hierarchy.getLevels.map{|l| Level.new(self, l)}
       end
 
+      def level(name)
+        levels.detect{|l| l.name == name}
+      end
+
       def level_names
         levels.map{|l| l.name}
       end
@@ -169,6 +173,10 @@ module Mondrian
             @raw_level.getMembers.size
           end
         end
+      end
+
+      def members
+        @raw_level.getMembers.map{|m| Member.new(m)}
       end
     end
 
