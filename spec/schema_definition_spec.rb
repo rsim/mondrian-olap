@@ -21,7 +21,7 @@ describe "Schema definition" do
         end
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
-        <Schema name="FoodMart" description="Demo &quot;FoodMart&quot; schema"/>
+        <Schema description="Demo &quot;FoodMart&quot; schema" name="FoodMart"/>
         XML
       end
 
@@ -47,7 +47,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name="Sales" defaultMeasure="Unit Sales" description="Sales cube" cache="false" enabled="true"/>
+          <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
         </Schema>
         XML
       end
@@ -60,7 +60,7 @@ describe "Schema definition" do
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
-          <Cube name="Sales" defaultMeasure="Unit Sales" description="Sales cube" cache="false" enabled="true"/>
+          <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
         </Schema>
         XML
       end
@@ -77,7 +77,7 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <Table name="sales_fact_1997" alias="sales"/>
+            <Table alias="sales" name="sales_fact_1997"/>
           </Cube>
         </Schema>
         XML
@@ -104,10 +104,10 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <Dimension name="Gender" foreignKey="customer_id">
-              <Hierarchy hasAll="true" allMemberName="All Genders" primaryKey="customer_id">
+            <Dimension foreignKey="customer_id" name="Gender">
+              <Hierarchy allMemberName="All Genders" hasAll="true" primaryKey="customer_id">
                 <Table name="customer"/>
-                <Level name="Gender" column="gender" uniqueMembers="true"/>
+                <Level column="gender" name="Gender" uniqueMembers="true"/>
               </Hierarchy>
             </Dimension>
           </Cube>
@@ -135,12 +135,12 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <Dimension name="Time" foreignKey="time_id">
+            <Dimension foreignKey="time_id" name="Time">
               <Hierarchy hasAll="false" primaryKey="time_id">
                 <Table name="time_by_day"/>
-                <Level name="Year" column="the_year" type="Numeric" uniqueMembers="true"/>
-                <Level name="Quarter" column="quarter" uniqueMembers="false"/>
-                <Level name="Month" column="month_of_year" type="Numeric" uniqueMembers="false"/>
+                <Level column="the_year" name="Year" type="Numeric" uniqueMembers="true"/>
+                <Level column="quarter" name="Quarter" uniqueMembers="false"/>
+                <Level column="month_of_year" name="Month" type="Numeric" uniqueMembers="false"/>
               </Hierarchy>
             </Dimension>
           </Cube>
@@ -169,15 +169,15 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <Dimension name="Products" foreignKey="product_id">
-              <Hierarchy hasAll="true" allMemberName="All Products" primaryKey="product_id" primaryKeyTable="product">
+            <Dimension foreignKey="product_id" name="Products">
+              <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="product_id" primaryKeyTable="product">
                 <Join leftKey="product_class_id" rightKey="product_class_id">
                   <Table name="product"/>
                   <Table name="product_class"/>
                 </Join>
-                <Level name="Product Family" table="product_class" column="product_family" uniqueMembers="true"/>
-                <Level name="Brand Name" table="product" column="brand_name" uniqueMembers="false"/>
-                <Level name="Product Name" table="product" column="product_name" uniqueMembers="true"/>
+                <Level column="product_family" name="Product Family" table="product_class" uniqueMembers="true"/>
+                <Level column="brand_name" name="Brand Name" table="product" uniqueMembers="false"/>
+                <Level column="product_name" name="Product Name" table="product" uniqueMembers="true"/>
               </Hierarchy>
             </Dimension>
           </Cube>
@@ -201,7 +201,7 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <Measure name="Unit Sales" column="unit_sales" aggregator="sum"/>
+            <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
           </Cube>
         </Schema>
         XML
@@ -222,7 +222,7 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <CalculatedMember name="Profit" dimension="Measures" formula="[Measures].[Store Sales] - [Measures].[Store Cost]"/>
+            <CalculatedMember dimension="Measures" formula="[Measures].[Store Sales] - [Measures].[Store Cost]" name="Profit"/>
           </Cube>
         </Schema>
         XML
