@@ -61,8 +61,8 @@ module Mondrian
 
       def jdbc_uri
         case @driver
-        when 'mysql'
-          "jdbc:mysql://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}" <<
+        when 'mysql', 'postgresql'
+          "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}" <<
           "?user=#{@params[:username]}&password=#{@params[:password]}"
         else
           raise ArgumentError, 'unknown JDBC driver'
@@ -73,6 +73,8 @@ module Mondrian
         case @driver
         when 'mysql'
           'com.mysql.jdbc.Driver'
+        when 'postgresql'
+          'org.postgresql.Driver'
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
