@@ -52,6 +52,14 @@ module Mondrian
         Cube.get(self, name)
       end
 
+      # Will affect only the next created connection. If it is necessary to clear all schema cache then
+      # flush_schema_cache should be called, then close and then new connection should be created.
+      def flush_schema_cache
+        unwrapped_connection = @raw_connection.unwrap(Java::MondrianOlap::Connection.java_class)
+        raw_cache_control = unwrapped_connection.getCacheControl(nil)
+        raw_cache_control.flushSchemaCache
+      end
+
       private
 
       def connection_string
