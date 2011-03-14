@@ -9,19 +9,19 @@ describe "Query" do
     SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
             {[Product].children} ON ROWS
       FROM  [Sales]
-      WHERE ([Time].[1997].[Q1], [Customers].[USA].[CA])
+      WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
     SQL
 
     @sql_select = <<-SQL
-    SELECT SUM(sales.unit_sales) unit_sales_sum, SUM(sales.store_sales) store_sales_sum
-    FROM sales_fact_1997 AS sales
-      LEFT JOIN product ON sales.product_id = product.product_id
-      LEFT JOIN product_class ON product.product_class_id = product_class.product_class_id
-      LEFT JOIN time_by_day ON sales.time_id = time_by_day.time_id
-      LEFT JOIN customer ON sales.customer_id = customer.customer_id
-    WHERE time_by_day.the_year = 1997 AND time_by_day.quarter = 'Q1'
-      AND customer.country = 'USA' AND customer.state_province = 'CA'
-    GROUP BY product_class.product_family
+    SELECT SUM(unit_sales) unit_sales_sum, SUM(store_sales) store_sales_sum
+    FROM sales
+      LEFT JOIN products ON sales.product_id = products.id
+      LEFT JOIN product_classes ON products.product_class_id = product_classes.id
+      LEFT JOIN time ON sales.time_id = time.id
+      LEFT JOIN customers ON sales.customer_id = customers.id
+    WHERE time.the_year = 2010 AND time.quarter = 'Q1'
+      AND customers.country = 'USA' AND customers.state_province = 'CA'
+    GROUP BY product_classes.product_family
     SQL
 
   end
@@ -42,12 +42,6 @@ describe "Query" do
       @expected_row_names = ["Drink", "Food", "Non-Consumable"]
       @expected_row_full_names = ["[Product].[Drink]", "[Product].[Food]", "[Product].[Non-Consumable]"]
       @expected_drillable_rows = [true, true, true]
-
-      # @expected_result_values = [
-      #   [1654.0, 3309.75],
-      #   [12064.0, 26044.84],
-      #   [3172.0, 6820.61]
-      # ]
 
       # AR JDBC driver always returns strings, need to convert to BigDecimal
       @expected_result_values = sql_select_numbers(@sql_select)
@@ -266,18 +260,18 @@ describe "Query" do
 
     describe "where" do
       it "should accept conditions" do
-        @query.where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').should equal(@query)
-        @query.where.should == ['[Time].[1997].[Q1]', '[Customers].[USA].[CA]']
+        @query.where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').should equal(@query)
+        @query.where.should == ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]']
       end
 
       it "should accept conditions as array" do
-        @query.where(['[Time].[1997].[Q1]', '[Customers].[USA].[CA]'])
-        @query.where.should == ['[Time].[1997].[Q1]', '[Customers].[USA].[CA]']
+        @query.where(['[Time].[2010].[Q1]', '[Customers].[USA].[CA]'])
+        @query.where.should == ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]']
       end
 
       it "should accept conditions with several method calls" do
-        @query.where('[Time].[1997].[Q1]').where('[Customers].[USA].[CA]')
-        @query.where.should == ['[Time].[1997].[Q1]', '[Customers].[USA].[CA]']
+        @query.where('[Time].[2010].[Q1]').where('[Customers].[USA].[CA]')
+        @query.where.should == ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]']
       end
     end
 
@@ -331,35 +325,35 @@ describe "Query" do
       it "should return MDX query" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
-          where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').
+          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
-              WHERE ([Time].[1997].[Q1], [Customers].[USA].[CA])
+              WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
           SQL
       end
 
       it "should return query with crossjoin" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-          where('[Time].[1997].[Q1]').
+          where('[Time].[2010].[Q1]').
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
-              WHERE ([Time].[1997].[Q1])
+              WHERE ([Time].[2010].[Q1])
           SQL
       end
 
       it "should return query with several crossjoins" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-          crossjoin('[Time].[1997].[Q1]', '[Time].[1997].[Q2]').
+          crossjoin('[Time].[2010].[Q1]', '[Time].[2010].[Q2]').
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     CROSSJOIN(CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}),
-                              {[Time].[1997].[Q1], [Time].[1997].[Q2]}) ON ROWS
+                              {[Time].[2010].[Q1], [Time].[2010].[Q2]}) ON ROWS
               FROM  [Sales]
           SQL
       end
@@ -367,12 +361,12 @@ describe "Query" do
       it "should return query with crossjoin and nonempty" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').nonempty.
-          where('[Time].[1997].[Q1]').
+          where('[Time].[2010].[Q1]').
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     NON EMPTY CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
-              WHERE ([Time].[1997].[Q1])
+              WHERE ([Time].[2010].[Q1])
           SQL
       end
 
@@ -518,7 +512,7 @@ describe "Query" do
               :solve_order => 2, :format_string => 'Currency').
           columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
-          where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').
+          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
           to_mdx.should be_like <<-SQL
             WITH
                MEMBER [Measures].[ProfitPct] AS 
@@ -530,7 +524,7 @@ describe "Query" do
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
-              WHERE ([Time].[1997].[Q1], [Customers].[USA].[CA])
+              WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
           SQL
       end
 
@@ -558,7 +552,7 @@ describe "Query" do
       it "should return result" do
         result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
-          where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').
+          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
           execute
         result.values.should == sql_select_numbers(@sql_select)
       end
@@ -568,7 +562,7 @@ describe "Query" do
       it "should format result" do
         result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
-          where('[Time].[1997].[Q1]', '[Customers].[USA].[CA]').
+          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
           execute
         Nokogiri::HTML.fragment(result.to_html).css('tr').size.should == (sql_select_numbers(@sql_select).size + 1)
       end
@@ -577,7 +571,7 @@ describe "Query" do
       #   puts @olap.from('Sales').
       #     columns('[Product].children').
       #     rows('[Customers].[USA].[CA].children').
-      #     where('[Time].[1997].[Q1]', '[Measures].[Store Sales]').
+      #     where('[Time].[2010].[Q1]', '[Measures].[Store Sales]').
       #     execute.to_html
       # end
     end

@@ -19,21 +19,7 @@ describe "Connection" do
 
   describe "create with catalog content" do
     before(:all) do
-      @schema_xml = <<-XML
-<?xml version="1.0"?>
-<Schema name="FoodMart">
-  <Cube name="Sales">
-    <Table name="sales_fact_1997"/>
-    <Dimension name="Gender" foreignKey="customer_id">
-      <Hierarchy hasAll="true" allMemberName="All Genders" primaryKey="customer_id">
-        <Table name="customer"/>
-        <Level name="Gender" column="gender" uniqueMembers="true"/>
-      </Hierarchy>
-    </Dimension>
-    <Measure name="Unit Sales" column="unit_sales" aggregator="sum" formatString="#,###"/>
-  </Cube>
-</Schema>
-XML
+      @schema_xml = File.read(CATALOG_FILE)
     end
     it "should be successful" do
       @olap = Mondrian::OLAP::Connection.new(CONNECTION_PARAMS.merge(

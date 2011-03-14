@@ -70,14 +70,14 @@ describe "Schema definition" do
       it "should render to XML" do
         @schema.define do
           cube 'Sales' do
-            table 'sales_fact_1997', :alias => 'sales'
+            table 'sales_fact', :alias => 'sales'
           end
         end
         @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <Table alias="sales" name="sales_fact_1997"/>
+            <Table alias="sales" name="sales_fact"/>
           </Cube>
         </Schema>
         XML
@@ -235,16 +235,16 @@ describe "Schema definition" do
       @schema = Mondrian::OLAP::Schema.new
       @schema.define do
         cube 'Sales' do
-          table 'sales_fact_1997'
+          table 'sales'
           dimension 'Gender', :foreign_key => 'customer_id' do
-            hierarchy :has_all => true, :primary_key => 'customer_id' do
-              table 'customer'
+            hierarchy :has_all => true, :primary_key => 'id' do
+              table 'customers'
               level 'Gender', :column => 'gender', :unique_members => true
             end
           end
           dimension 'Time', :foreign_key => 'time_id' do
-            hierarchy :has_all => false, :primary_key => 'time_id' do
-              table 'time_by_day'
+            hierarchy :has_all => false, :primary_key => 'id' do
+              table 'time'
               level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true
               level 'Quarter', :column => 'quarter', :unique_members => false
               level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false
@@ -264,7 +264,7 @@ describe "Schema definition" do
     it "should execute query" do
       @olap.from('Sales').
         columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-        rows('descendants([Time].[1997].[Q1])').
+        rows('descendants([Time].[2010].[Q1])').
         where('[Gender].[F]').
         execute.should be_a(Mondrian::OLAP::Result)
     end

@@ -5,16 +5,16 @@ describe "Cube" do
     @schema = Mondrian::OLAP::Schema.new
     @schema.define do
       cube 'Sales' do
-        table 'sales_fact_1997'
+        table 'sales'
         dimension 'Gender', :foreign_key => 'customer_id' do
-          hierarchy :has_all => true, :primary_key => 'customer_id' do
-            table 'customer'
+          hierarchy :has_all => true, :primary_key => 'id' do
+            table 'customers'
             level 'Gender', :column => 'gender', :unique_members => true
           end
         end
         dimension 'Customers', :foreign_key => 'customer_id' do
-          hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'customer_id' do
-            table 'customer'
+          hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+            table 'customers'
             level 'Country', :column => 'country', :unique_members => true
             level 'State Province', :column => 'state_province', :unique_members => true
             level 'City', :column => 'city', :unique_members => false
@@ -26,14 +26,14 @@ describe "Cube" do
           formula '[Customers].[All Customers] - [Customers].[USA]'
         end
         dimension 'Time', :foreign_key => 'time_id', :type => 'TimeDimension' do
-          hierarchy :has_all => false, :primary_key => 'time_id' do
-            table 'time_by_day'
+          hierarchy :has_all => false, :primary_key => 'id' do
+            table 'time'
             level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
             level 'Quarter', :column => 'quarter', :unique_members => false, :level_type => 'TimeQuarters'
             level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeMonths'
           end
-          hierarchy 'Weekly', :has_all => false, :primary_key => 'time_id' do
-            table 'time_by_day'
+          hierarchy 'Weekly', :has_all => false, :primary_key => 'id' do
+            table 'time'
             level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
             level 'Week', :column => 'weak_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
           end
@@ -153,8 +153,8 @@ describe "Cube" do
     it "should get hierarchy root members" do
       @cube.dimension('Gender').hierarchy.root_members.map(&:name).should == ['All Genders']
       @cube.dimension('Gender').hierarchy.root_member_names.should == ['All Genders']
-      @cube.dimension('Time').hierarchy.root_members.map(&:name).should == ['1997', '1998']
-      @cube.dimension('Time').hierarchy.root_member_names.should == ['1997', '1998']
+      @cube.dimension('Time').hierarchy.root_members.map(&:name).should == ['2010', '2011']
+      @cube.dimension('Time').hierarchy.root_member_names.should == ['2010', '2011']
     end
 
     it "should return child members for specified member" do
@@ -190,7 +190,7 @@ describe "Cube" do
 
     it "should get secondary hierarchy level members" do
       @cube.dimension('Time').hierarchy('Time.Weekly').level('Year').members.
-        map(&:name).should == ['1997', '1998']
+        map(&:name).should == ['2010', '2011']
     end
   end
 

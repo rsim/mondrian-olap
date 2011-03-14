@@ -1,6 +1,6 @@
 require "rubygems"
 require "bundler"
-Bundler.setup(:default, :test)
+Bundler.setup(:default, :development)
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
@@ -18,12 +18,12 @@ end
 
 CONNECTION_PARAMS = {
   :driver => 'mysql',
-  :database => 'foodmart',
   :host => 'localhost',
-  :username => 'foodmart',
-  :password => 'foodmart'
+  :database => 'mondrian_test',
+  :username => 'mondrian_test',
+  :password => 'mondrian_test'
 }
-CATALOG_FILE = File.expand_path('../fixtures/FoodMart.xml', __FILE__)
+CATALOG_FILE = File.expand_path('../fixtures/MondrianTest.xml', __FILE__)
 CONNECTION_PARAMS_WITH_CATALOG = CONNECTION_PARAMS.merge(
   :catalog => CATALOG_FILE
 )
