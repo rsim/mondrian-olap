@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<Schema name="MondrianTest">
+  <Dimension name="Time" type="TimeDimension">
+    <Hierarchy hasAll="false" primaryKey="ID">
+      <Table name="TIME"/>
+      <Level name="Year" column="THE_YEAR" type="Numeric" uniqueMembers="true"
+          levelType="TimeYears"/>
+      <Level name="Quarter" column="QUARTER" uniqueMembers="false"
+          levelType="TimeQuarters"/>
+      <Level name="Month" column="MONTH_OF_YEAR" uniqueMembers="false" type="Numeric"
+          levelType="TimeMonths"/>
+    </Hierarchy>
+    <Hierarchy hasAll="true" name="Weekly" primaryKey="ID">
+      <Table name="TIME"/>
+      <Level name="Year" column="THE_YEAR" type="Numeric" uniqueMembers="true"
+          levelType="TimeYears"/>
+      <Level name="Week" column="WEEK_OF_YEAR" type="Numeric" uniqueMembers="false"
+          levelType="TimeWeeks"/>
+      <Level name="Day" column="DAY_OF_MONTH" uniqueMembers="false" type="Numeric"
+          levelType="TimeDays"/>
+    </Hierarchy>
+  </Dimension>
+
+  <Dimension name="Product">
+    <Hierarchy hasAll="true" primaryKey="ID" primaryKeyTable="PRODUCTS">
+      <Join leftKey="PRODUCT_CLASS_ID" rightKey="ID">
+        <Table name="PRODUCTS"/>
+        <Table name="PRODUCT_CLASSES"/>
+      </Join>
+      <Level name="Product Family" table="PRODUCT_CLASSES" column="PRODUCT_FAMILY"
+          uniqueMembers="true"/>
+      <Level name="Product Department" table="PRODUCT_CLASSES" column="PRODUCT_DEPARTMENT"
+          uniqueMembers="false"/>
+      <Level name="Product Category" table="PRODUCT_CLASSES" column="PRODUCT_CATEGORY"
+          uniqueMembers="false"/>
+      <Level name="Product Subcategory" table="PRODUCT_CLASSES" column="PRODUCT_SUBCATEGORY"
+          uniqueMembers="false"/>
+      <Level name="Brand Name" table="PRODUCTS" column="BRAND_NAME" uniqueMembers="false"/>
+      <Level name="Product Name" table="PRODUCTS" column="PRODUCT_NAME"
+          uniqueMembers="true"/>
+    </Hierarchy>
+  </Dimension>
+
+<Cube name="Sales" defaultMeasure="Unit Sales">
+  <Table name="SALES"/>
+  <DimensionUsage name="Time" source="Time" foreignKey="TIME_ID"/>
+  <DimensionUsage name="Product" source="Product" foreignKey="PRODUCT_ID"/>
+  <Dimension name="Customers" foreignKey="CUSTOMER_ID">
+    <Hierarchy hasAll="true" allMemberName="All Customers" primaryKey="ID">
+      <Table name="CUSTOMERS"/>
+      <Level name="Country" column="COUNTRY" uniqueMembers="true"/>
+      <Level name="State Province" column="STATE_PROVINCE" uniqueMembers="true"/>
+      <Level name="City" column="CITY" uniqueMembers="false"/>
+      <Level name="Name" column="ID" type="Numeric" uniqueMembers="true">
+        <NameExpression>
+          <SQL dialect="oracle">
+fname || ' ' || lname
+          </SQL>
+          <SQL dialect="postgres">
+"fname" || ' ' || "lname"
+          </SQL>
+          <SQL dialect="mysql">
+CONCAT(`customer`.`fname`, ' ', `customer`.`lname`)
+          </SQL>
+          <SQL dialect="generic">
+FULLNAME
+          </SQL>
+        </NameExpression>
+        <OrdinalExpression>
+          <SQL dialect="oracle">
+fname || ' ' || lname
+          </SQL>
+          <SQL dialect="postgres">
+"fname" || ' ' || "lname"
+          </SQL>
+          <SQL dialect="mysql">
+CONCAT(`customer`.`fname`, ' ', `customer`.`lname`)
+          </SQL>
+          <SQL dialect="generic">
+FULLNAME
+          </SQL>
+        </OrdinalExpression>
+        <Property name="Gender" column="GENDER"/>
+      </Level>
+    </Hierarchy>
+  </Dimension>
+  <Dimension name="Gender" foreignKey="CUSTOMER_ID">
+    <Hierarchy hasAll="true" allMemberName="All Gender" primaryKey="ID">
+      <Table name="CUSTOMERS"/>
+      <Level name="Gender" column="GENDER" uniqueMembers="true"/>
+    </Hierarchy>
+  </Dimension>
+
+  <Measure name="Unit Sales" column="UNIT_SALES" aggregator="sum"
+      formatString="Standard"/>
+  <Measure name="Store Cost" column="STORE_COST" aggregator="sum"
+      formatString="#,###.00"/>
+  <Measure name="Store Sales" column="STORE_SALES" aggregator="sum"
+      formatString="#,###.00"/>
+  <Measure name="Sales Count" column="PRODUCT_ID" aggregator="count"
+      formatString="#,###"/>
+  <Measure name="Customer Count" column="CUSTOMER_ID"
+      aggregator="distinct-count" formatString="#,###"/>
+  <CalculatedMember
+      name="Profit"
+      dimension="Measures">
+    <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
+    <CalculatedMemberProperty name="FORMAT_STRING" value="$#,##0.00"/>
+  </CalculatedMember>
+  <CalculatedMember
+      name="Profit last Period"
+      dimension="Measures"
+      formula="COALESCEEMPTY((Measures.[Profit], [Time].[Time].PREVMEMBER),    Measures.[Profit])"
+      visible="false">
+    <CalculatedMemberProperty name="FORMAT_STRING" value="$#,##0.00"/>
+    <CalculatedMemberProperty name="MEMBER_ORDINAL" value="18"/>
+  </CalculatedMember>
+  <CalculatedMember
+      name="Profit Growth"
+      dimension="Measures"
+      formula="([Measures].[Profit] - [Measures].[Profit last Period]) / [Measures].[Profit last Period]"
+      visible="true"
+      caption="Gewinn-Wachstum">
+    <CalculatedMemberProperty name="FORMAT_STRING" value="0.0%"/>
+  </CalculatedMember>
+</Cube>
+
+</Schema>

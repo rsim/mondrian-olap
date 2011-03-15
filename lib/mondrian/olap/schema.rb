@@ -36,6 +36,7 @@ module Mondrian
           # If not specified, defaults to the table name, but in any case, must be unique within the schema.
           # (You can use the same table in different hierarchies, but it must have different aliases.)
           :alias
+        data_dictionary_names :name, :schema, :alias # values in XML will be uppercased when using Oracle driver
       end
 
       class Dimension < SchemaElement
@@ -48,6 +49,7 @@ module Mondrian
           # The name of the column in the fact table which joins to the leaf level of this dimension.
           # Required in a private Dimension or a DimensionUsage, but not in a public Dimension.
           :foreign_key
+        data_dictionary_names :foreign_key # values in XML will be uppercased when using Oracle driver
         elements :hierarchy
       end
 
@@ -70,11 +72,13 @@ module Mondrian
           # Should be set to the level (if such a level exists) at which depth it is known
           # that all members have entirely unique rows, allowing SQL GROUP BY clauses to be completely eliminated from the query.
           :unique_key_level_name
+        data_dictionary_names :primary_key, :primary_key_table # values in XML will be uppercased when using Oracle driver
         elements :table, :join, :level
       end
 
       class Join < SchemaElement
         attributes :left_key, :right_key
+        data_dictionary_names :left_key, :right_key # values in XML will be uppercased when using Oracle driver
         elements :table
       end
 
@@ -123,6 +127,7 @@ module Mondrian
           # and IfParentsName (a member appears unless its name matches the parent's.
           # Default value: 'Never'
           :hide_member_if
+        data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column # values in XML will be uppercased when using Oracle driver
       end
 
       class Measure < SchemaElement
@@ -137,6 +142,7 @@ module Mondrian
           :aggregator,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
           :format_string
+        data_dictionary_names :column # values in XML will be uppercased when using Oracle driver
       end
 
       class CalculatedMember < SchemaElement

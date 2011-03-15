@@ -82,6 +82,22 @@ describe "Schema definition" do
         </Schema>
         XML
       end
+
+      it "should render table name in uppercase when using Oracle driver" do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales_fact', :alias => 'sales'
+          end
+        end
+        @schema.to_xml(:driver => 'oracle').should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table alias="SALES" name="SALES_FACT"/>
+          </Cube>
+        </Schema>
+        XML
+      end
     end
 
     describe "Dimension" do
@@ -185,6 +201,43 @@ describe "Schema definition" do
         XML
       end
 
+      it "should render table and column names in uppercase when using Oracle driver" do
+        @schema.define do
+          cube 'Sales' do
+            dimension 'Products', :foreign_key => 'product_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Products',
+                        :primary_key => 'product_id', :primary_key_table => 'product' do
+                join :left_key => 'product_class_id', :right_key => 'product_class_id' do
+                  table 'product'
+                  table 'product_class'
+                end
+                level 'Product Family', :table => 'product_class', :column => 'product_family', :unique_members => true
+                level 'Brand Name', :table => 'product', :column => 'brand_name', :unique_members => false
+                level 'Product Name', :table => 'product', :column => 'product_name', :unique_members => true
+              end
+            end
+          end
+        end
+        @schema.to_xml(:driver => 'oracle').should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Dimension foreignKey="PRODUCT_ID" name="Products">
+              <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="PRODUCT_ID" primaryKeyTable="PRODUCT">
+                <Join leftKey="PRODUCT_CLASS_ID" rightKey="PRODUCT_CLASS_ID">
+                  <Table name="PRODUCT"/>
+                  <Table name="PRODUCT_CLASS"/>
+                </Join>
+                <Level column="PRODUCT_FAMILY" name="Product Family" table="PRODUCT_CLASS" uniqueMembers="true"/>
+                <Level column="BRAND_NAME" name="Brand Name" table="PRODUCT" uniqueMembers="false"/>
+                <Level column="PRODUCT_NAME" name="Product Name" table="PRODUCT" uniqueMembers="true"/>
+              </Hierarchy>
+            </Dimension>
+          </Cube>
+        </Schema>
+        XML
+      end
+
     end
 
     describe "Measure" do
@@ -202,6 +255,25 @@ describe "Schema definition" do
         <Schema name="default">
           <Cube name="Sales">
             <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
+          </Cube>
+        </Schema>
+        XML
+      end
+
+      it "should render column name in uppercase when using Oracle driver" do
+        @schema.define do
+          cube 'Sales' do
+            measure 'Unit Sales' do
+              column 'unit_sales'
+              aggregator 'sum'
+            end
+          end
+        end
+        @schema.to_xml(:driver => 'oracle').should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Measure aggregator="sum" column="UNIT_SALES" name="Unit Sales"/>
           </Cube>
         </Schema>
         XML

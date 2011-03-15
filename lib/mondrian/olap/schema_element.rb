@@ -34,6 +34,12 @@ module Mondrian
         end
       end
 
+      def self.data_dictionary_names(*names)
+        return @data_dictionary_names || [] if names.empty?
+        @data_dictionary_names ||= []
+        @data_dictionary_names.concat(names)
+      end
+
       def self.elements(*names)
         return @elements || [] if names.empty?
 
@@ -50,29 +56,36 @@ module Mondrian
         end
       end
 
-      def to_xml
+      def to_xml(options={})
         Nokogiri::XML::Builder.new do |xml|
-          add_to_xml(xml)
+          add_to_xml(xml, options)
         end.to_xml
       end
 
       protected
 
-      def add_to_xml(xml)
-        xml.send(tag_name(self.class.name), camel_case_attributes) do
+      def add_to_xml(xml, options)
+        xml.send(tag_name(self.class.name), xmlized_attributes(options)) do
           self.class.elements.each do |element|
-            instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml)}
+            instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
           end
         end
       end
 
       private
 
-
-      def camel_case_attributes
+      def xmlized_attributes(options)
+        # data dictionary values should be in uppercase when using Oracle driver
+        upcase_attributes = if options[:driver] == 'oracle'
+          self.class.data_dictionary_names
+        else
+          []
+        end
         hash = {}
         @attributes.each do |attr, value|
+          value = value.upcase if upcase_attributes.include?(attr)
           hash[
+            # camelcase attribute name
             attr.to_s.gsub(/_([^_]+)/){|m| $1.capitalize}
           ] = value
         end

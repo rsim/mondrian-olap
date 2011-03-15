@@ -54,7 +54,7 @@
       <Level name="Name" column="id" type="Numeric" uniqueMembers="true">
         <NameExpression>
           <SQL dialect="oracle">
-"fname" || ' ' || "lname"
+fname || ' ' || lname
           </SQL>
           <SQL dialect="postgres">
 "fname" || ' ' || "lname"
@@ -68,7 +68,7 @@ fullname
         </NameExpression>
         <OrdinalExpression>
           <SQL dialect="oracle">
-"fname" || ' ' || "lname"
+fname || ' ' || lname
           </SQL>
           <SQL dialect="postgres">
 "fname" || ' ' || "lname"

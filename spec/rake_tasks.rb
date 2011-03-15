@@ -1,8 +1,11 @@
-require File.expand_path("../spec_helper", __FILE__)
-
 namespace :db do
+  task :require_spec_helper do
+    require File.expand_path("../spec_helper", __FILE__)
+  end
+
   desc "Create test database tables"
-  task :create_tables do
+  task :create_tables => :require_spec_helper do
+    puts "==> Creating tables for test data"
     ActiveRecord::Schema.define do
 
       create_table :time, :force => true do |t|
@@ -50,7 +53,7 @@ namespace :db do
     end
   end
 
-  task :define_models do
+  task :define_models => :require_spec_helper do
     class TimeDimension < ActiveRecord::Base
       set_table_name "time"
       validates_presence_of :the_date
@@ -83,6 +86,7 @@ namespace :db do
   task :create_data => [:create_tables, :create_time_data, :create_product_data, :create_customer_data, :create_sales_data]
 
   task :create_time_data  => :define_models do
+    puts "==> Creating time dimension"
     TimeDimension.delete_all
     start_time = Time.local(2010,1,1)
     (2*365).times do |i|
@@ -91,6 +95,7 @@ namespace :db do
   end
 
   task :create_product_data => :define_models do
+    puts "==> Creating product data"
     Product.delete_all
     ProductClass.delete_all
     families = ["Drink", "Food", "Non-Consumable"]
@@ -110,6 +115,7 @@ namespace :db do
   end
 
   task :create_customer_data => :define_models do
+    puts "==> Creating customer data"
     Customer.delete_all
     i = 0
     [
@@ -158,11 +164,12 @@ namespace :db do
   end
 
   task :create_sales_data => :define_models do
+    puts "==> Creating sales data"
     Sales.delete_all
     count = 100
-    products = Product.limit(count).all
-    times = TimeDimension.limit(count).all
-    customers = Customer.limit(count).all
+    products = Product.order("id").limit(count).all
+    times = TimeDimension.order("id").limit(count).all
+    customers = Customer.order("id").limit(count).all
     count.times do |i|
       Sales.create!(
         :product_id => products[i].id,

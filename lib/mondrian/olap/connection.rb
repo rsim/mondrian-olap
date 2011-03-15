@@ -72,6 +72,15 @@ module Mondrian
         when 'mysql', 'postgresql'
           "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}" <<
           "?user=#{@params[:username]}&password=#{@params[:password]}"
+        when 'oracle'
+          # connection using TNS alias
+          if @params[:database] && !@params[:host] && !@params[:url] && ENV['TNS_ADMIN']
+            "jdbc:oracle:thin:#{@params[:username]}/#{@params[:password]}@#{@params[:database]}"
+          else
+            @params[:url] ||
+            "jdbc:oracle:thin:#{@params[:username]}/#{@params[:password]}" <<
+            "@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}:#{@params[:database]}"
+          end
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
@@ -83,6 +92,8 @@ module Mondrian
           'com.mysql.jdbc.Driver'
         when 'postgresql'
           'org.postgresql.Driver'
+        when 'oracle'
+          'oracle.jdbc.OracleDriver'
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
@@ -100,7 +111,7 @@ module Mondrian
         if @params[:catalog_content]
           @params[:catalog_content]
         elsif @params[:schema]
-          @params[:schema].to_xml
+          @params[:schema].to_xml(:driver => @driver)
         else
           raise ArgumentError, "Specify catalog with :catalog, :catalog_content or :schema option"
         end

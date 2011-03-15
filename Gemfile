@@ -7,6 +7,8 @@ group :development do
   gem 'rspec', '~> 2.5'
   gem 'autotest'
   gem 'jdbc-mysql'
+  gem 'jdbc-postgres'
   gem 'activerecord', '~> 3.0.3'
   gem 'activerecord-jdbc-adapter'
+  gem 'activerecord-oracle_enhanced-adapter', :require => false
 end

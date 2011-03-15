@@ -22,13 +22,14 @@ describe "Query" do
     WHERE time.the_year = 2010 AND time.quarter = 'Q1'
       AND customers.country = 'USA' AND customers.state_province = 'CA'
     GROUP BY product_classes.product_family
+    ORDER BY product_classes.product_family
     SQL
 
   end
 
   def sql_select_numbers(select_string)
     @sql.select_rows(select_string).map do |rows|
-      rows.map{|col| BigDecimal(col)}
+      rows.map{|col| BigDecimal(col.to_s)}
     end
   end
 
