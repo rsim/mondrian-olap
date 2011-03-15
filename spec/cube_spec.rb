@@ -2,8 +2,7 @@ require "spec_helper"
 
 describe "Cube" do
   before(:all) do
-    @schema = Mondrian::OLAP::Schema.new
-    @schema.define do
+    @schema = Mondrian::OLAP::Schema.define do
       cube 'Sales' do
         table 'sales'
         dimension 'Gender', :foreign_key => 'customer_id' do

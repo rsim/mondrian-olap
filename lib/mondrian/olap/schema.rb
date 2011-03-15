@@ -6,7 +6,7 @@ module Mondrian
     # of Mondrian Schema elements.
     class Schema < SchemaElement
       def self.define(name = nil, attributes = {}, &block)
-        new(name, attributes, &block)
+        new(name || 'default', attributes, &block)
       end
 
       def define(name = nil, &block)
