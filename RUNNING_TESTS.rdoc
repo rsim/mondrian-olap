@@ -1,0 +1,41 @@
+== Creating test database
+
+By default unit tests use MySQL database but PostgreSQL and Oracle databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql" or "oracle" to specify database driver that should be used.
+
+If using MySQL or PostgreSQL database then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
+
+If using Oracle database then create database user mondrian_test with password mondrian_test. By default it is assumed that database orcl is located on localhost (can be overridden with DATABASE_NAME and DATABASE_HOST environment variables).
+
+See spec/spec_helper.rb for details of default connection parameters and how to override them.
+
+== Creating test data
+
+Install necessary gems with
+
+  bundle install
+
+Create tables with test data using
+
+  rake db:create_data
+
+or specify which database driver to use
+
+  rake db:create_data MONDRIAN_DRIVER=mysql
+  rake db:create_data MONDRIAN_DRIVER=postgresql
+  rake db:create_data MONDRIAN_DRIVER=oracle
+
+== Running tests
+
+Run tests with
+
+  rake spec
+
+or specify which database driver to use
+
+  rake spec MONDRIAN_DRIVER=mysql
+  rake spec MONDRIAN_DRIVER=postgresql
+  rake spec MONDRIAN_DRIVER=oracle
+
+== JRuby versions
+
+It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap has been tested with JRuby 1.5 and 1.6 release candidate versions.
