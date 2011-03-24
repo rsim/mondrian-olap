@@ -100,7 +100,7 @@ When schema is defined it is necessary to establish OLAP connection to database.
     :host => 'localhost,
     :database => 'mondrian_test',
     :username => 'mondrian_user',
-    :password => 'secret'
+    :password => 'secret',
     :schema => schema
   )
 
@@ -111,7 +111,7 @@ mondrian-olap allows executing of MDX queries, for example query for "Get sales 
 
   result = olap.execute <<-MDX
     SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
-            {[Product].children} ON ROWS
+            {[Products].children} ON ROWS
       FROM  [Sales]
       WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
   MDX
@@ -135,7 +135,7 @@ and then get axis and cells of result object:
   result.column_names       # => ["Unit Sales", "Store Sales"]
   result.column_full_names  # => ["[Measures].[Unit Sales]", "[Measures].[Store Sales]"]
   result.row_names          # => e.g. ["Drink", "Food", "Non-Consumable"]
-  result.row_full_names     # => e.g. ["[Product].[Drink]", "[Product].[Food]", "[Product].[Non-Consumable]"]
+  result.row_full_names     # => e.g. ["[Products].[Drink]", "[Products].[Food]", "[Products].[Non-Consumable]"]
   result.values             # => [[..., ...], [..., ...], [..., ...]]
                             # (three rows, each row containing value for "unit sales" and "store sales")
 
@@ -146,8 +146,9 @@ Previous MDX query can be executed as:
 
   olap.from('Sales').
   columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-  rows('[Product].children').
-  where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]')
+  rows('[Products].children').
+  where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
+  execute
 
 Here is example of more complex query "Get sales amount and profit % of top 50 products cross-joined with USA and Canada country sales during Q1 of 2010":
 
@@ -156,9 +157,10 @@ Here is example of more complex query "Get sales amount and profit % of top 50 p
     as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
     :format_string => 'Percent').
   columns('[Measures].[Store Sales]', '[Measures].[ProfitPct]').
-  rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+  rows('[Products].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
     top_count(50, '[Measures].[Store Sales]')
-  where('[Time].[2010].[Q1]')
+  where('[Time].[2010].[Q1]').
+  execute
 
 See more examples of queries in spec/query_spec.rb.
 
