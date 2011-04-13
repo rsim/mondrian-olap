@@ -5,7 +5,9 @@ Dir["#{directory}/*.jar"].each do |file|
   require file
 end
 
-java.lang.System.setProperty("log4j.configuration", "file://#{directory}/log4j.properties")
+unless java.lang.System.getProperty("log4j.configuration")
+  java.lang.System.setProperty("log4j.configuration", "file://#{directory}/log4j.properties")
+end
 # register Mondrian olap4j driver
 Java::mondrian.olap4j.MondrianOlap4jDriver
 
