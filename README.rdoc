@@ -158,7 +158,7 @@ Here is example of more complex query "Get sales amount and profit % of top 50 p
     :format_string => 'Percent').
   columns('[Measures].[Store Sales]', '[Measures].[ProfitPct]').
   rows('[Products].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-    top_count(50, '[Measures].[Store Sales]')
+    top_count(50, '[Measures].[Store Sales]').
   where('[Time].[2010].[Q1]').
   execute
 
