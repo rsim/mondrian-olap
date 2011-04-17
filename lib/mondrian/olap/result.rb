@@ -56,7 +56,7 @@ module Mondrian
       end
 
       # format results in simple HTML table
-      def to_html
+      def to_html(options = {})
         case axes_count
         when 1
           builder = Nokogiri::XML::Builder.new do |doc|
@@ -68,7 +68,7 @@ module Mondrian
                 end
               end
               doc.tr do
-                values.each do |value|
+                (options[:formatted] ? formatted_values : values).each do |value|
                   doc.td value, :align => 'right'
                 end
               end
@@ -85,7 +85,7 @@ module Mondrian
                   doc.th column_full_name, :align => 'right'
                 end
               end
-              values.each_with_index do |row, i|
+              (options[:formatted] ? formatted_values : values).each_with_index do |row, i|
                 doc.tr do
                   row_full_name = row_full_names[i].is_a?(Array) ? row_full_names[i].join(',') : row_full_names[i]
                   doc.th row_full_name, :align => 'left'
