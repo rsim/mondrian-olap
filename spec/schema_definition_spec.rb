@@ -287,6 +287,7 @@ describe "Schema definition" do
             calculated_member 'Profit' do
               dimension 'Measures'
               formula '[Measures].[Store Sales] - [Measures].[Store Cost]'
+              format_string '#,##0.00'
             end
           end
         end
@@ -294,7 +295,7 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <CalculatedMember dimension="Measures" formula="[Measures].[Store Sales] - [Measures].[Store Cost]" name="Profit"/>
+            <CalculatedMember dimension="Measures" formatString="#,##0.00" formula="[Measures].[Store Sales] - [Measures].[Store Cost]" name="Profit"/>
           </Cube>
         </Schema>
         XML

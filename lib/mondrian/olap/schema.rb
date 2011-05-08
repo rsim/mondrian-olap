@@ -150,7 +150,19 @@ module Mondrian
           # MDX expression which gives the value of this member. Equivalent to the Formula sub-element.
           :formula,
           # Name of the dimension which this member belongs to.
-          :dimension
+          :dimension,
+          # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
+          :format_string
+        elements :calculated_member_property
+      end
+
+      class CalculatedMemberProperty < SchemaElement
+        attributes :description,
+          # MDX expression which defines the value of this property. If the expression is a constant string, you could enclose it in quotes,
+          # or just specify the 'value' attribute instead.
+          :expression,
+          # Value of this property. If the value is not constant, specify the 'expression' attribute instead.
+          :value
       end
 
     end
