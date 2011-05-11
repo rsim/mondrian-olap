@@ -295,7 +295,9 @@ describe "Schema definition" do
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <CalculatedMember dimension="Measures" formatString="#,##0.00" formula="[Measures].[Store Sales] - [Measures].[Store Cost]" name="Profit"/>
+            <CalculatedMember dimension="Measures" formatString="#,##0.00" name="Profit">
+              <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
+            </CalculatedMember>
           </Cube>
         </Schema>
         XML

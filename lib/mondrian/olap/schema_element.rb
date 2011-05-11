@@ -10,7 +10,13 @@ module Mondrian
           name = nil
         end
         @attributes = {}
-        @attributes[:name] = name if name
+        if name
+          if self.class.content
+            @content = name
+          else
+            @attributes[:name] = name
+          end
+        end
         @attributes.merge!(attributes)
         self.class.elements.each do |element|
           instance_variable_set("@#{pluralize(element)}", [])
@@ -56,6 +62,11 @@ module Mondrian
         end
       end
 
+      def self.content(type=nil)
+        return @content if type.nil?
+        @content = type
+      end
+
       def to_xml(options={})
         Nokogiri::XML::Builder.new do |xml|
           add_to_xml(xml, options)
@@ -65,9 +76,13 @@ module Mondrian
       protected
 
       def add_to_xml(xml, options)
-        xml.send(tag_name(self.class.name), xmlized_attributes(options)) do
-          self.class.elements.each do |element|
-            instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
+        if self.class.content
+          xml.send(tag_name(self.class.name), @content)
+        else
+          xml.send(tag_name(self.class.name), xmlized_attributes(options)) do
+            self.class.elements.each do |element|
+              instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
+            end
           end
         end
       end
