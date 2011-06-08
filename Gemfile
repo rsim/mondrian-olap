@@ -5,6 +5,7 @@ gem 'nokogiri', '~> 1.5.0.beta.4'
 group :development do
   gem 'jruby-openssl'
   gem 'jeweler', '~> 1.5.2'
+  gem 'rdoc'
   gem 'rspec', '~> 2.5'
   gem 'autotest'
   gem 'jdbc-mysql'
