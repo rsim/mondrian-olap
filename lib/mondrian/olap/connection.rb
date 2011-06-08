@@ -64,7 +64,7 @@ module Mondrian
 
       def connection_string
         "jdbc:mondrian:Jdbc=#{jdbc_uri};JdbcDrivers=#{jdbc_driver};" <<
-          (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{catalog_content}")
+          (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
 
       def jdbc_uri
@@ -117,6 +117,10 @@ module Mondrian
         else
           raise ArgumentError, "Specify catalog with :catalog, :catalog_content or :schema option"
         end
+      end
+
+      def quote_string(string)
+        "'#{string.gsub("'","''")}'"
       end
 
     end
