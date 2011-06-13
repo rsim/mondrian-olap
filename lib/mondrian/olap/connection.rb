@@ -17,7 +17,16 @@ module Mondrian
       end
 
       def connect
-        @raw_jdbc_connection = Java::JavaSql::DriverManager.getConnection(connection_string)
+        # hack to call private constructor of MondrianOlap4jDriver
+        # to avoid using DriverManager which fails to load JDBC drivers
+        # because of not seeing JRuby required jar files
+        cons = Java::mondrian.olap4j.MondrianOlap4jDriver.java_class.declared_constructor
+        cons.accessible = true
+        driver = cons.new_instance.to_java
+
+        props = java.util.Properties.new
+        @raw_jdbc_connection = driver.connect(connection_string, props)
+
         @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
         @raw_schema = @raw_connection.getSchema
         @connected = true
