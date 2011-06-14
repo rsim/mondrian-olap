@@ -72,8 +72,10 @@ module Mondrian
       private
 
       def connection_string
-        "jdbc:mondrian:Jdbc=#{jdbc_uri};JdbcDrivers=#{jdbc_driver};" <<
-          (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
+        string = "jdbc:mondrian:Jdbc=#{jdbc_uri};JdbcDrivers=#{jdbc_driver};"
+        # by default use content checksum to reload schema when catalog has changed
+        string << "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
+        string << (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
 
       def jdbc_uri
