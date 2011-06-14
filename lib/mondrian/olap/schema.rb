@@ -15,11 +15,11 @@ module Mondrian
         self
       end
 
-      attributes :description
+      attributes :name, :description
       elements :cube
 
       class Cube < SchemaElement
-        attributes :description,
+        attributes :name, :description,
           # The name of the measure that would be taken as the default measure of the cube.
           :default_measure,
           # Should the Fact table data for this Cube be cached by Mondrian or not.
@@ -31,7 +31,7 @@ module Mondrian
       end
 
       class Table < SchemaElement
-        attributes :schema, # Optional qualifier for table.
+        attributes :name, :schema, # Optional qualifier for table.
           # Alias to be used with this table when it is used to form queries.
           # If not specified, defaults to the table name, but in any case, must be unique within the schema.
           # (You can use the same table in different hierarchies, but it must have different aliases.)
@@ -40,7 +40,7 @@ module Mondrian
       end
 
       class Dimension < SchemaElement
-        attributes :description,
+        attributes :name, :description,
           # The dimension's type may be one of "Standard" or "Time".
           # A time dimension will allow the use of the MDX time functions (WTD, YTD, QTD, etc.).
           # Use a standard dimension if the dimension is not a time-related dimension.
@@ -54,7 +54,7 @@ module Mondrian
       end
 
       class Hierarchy < SchemaElement
-        attributes :description,
+        attributes :name, :description,
           # Whether this hierarchy has an 'all' member.
           :has_all,
           # Name of the 'all' member. If this attribute is not specified,
@@ -83,7 +83,7 @@ module Mondrian
       end
 
       class Level < SchemaElement
-        attributes :description,
+        attributes :name, :description,
           # The name of the table that the column comes from.
           # If this hierarchy is based upon just one table, defaults to the name of that table;
           # otherwise, it is required.
@@ -131,7 +131,7 @@ module Mondrian
       end
 
       class Measure < SchemaElement
-        attributes :description,
+        attributes :name, :description,
           # Column which is source of this measure's values.
           # If not specified, a measure expression must be specified.
           :column,
@@ -146,7 +146,7 @@ module Mondrian
       end
 
       class CalculatedMember < SchemaElement
-        attributes :description,
+        attributes :name, :description,
           # Name of the dimension which this member belongs to.
           :dimension,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
@@ -159,7 +159,7 @@ module Mondrian
       end
 
       class CalculatedMemberProperty < SchemaElement
-        attributes :description,
+        attributes :name, :description,
           # MDX expression which defines the value of this property. If the expression is a constant string, you could enclose it in quotes,
           # or just specify the 'value' attribute instead.
           :expression,
