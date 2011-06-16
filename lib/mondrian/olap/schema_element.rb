@@ -77,7 +77,7 @@ module Mondrian
 
       def add_to_xml(xml, options)
         if self.class.content
-          xml.send(tag_name(self.class.name), @content)
+          xml.send(tag_name(self.class.name), @content, xmlized_attributes(options))
         else
           xml.send(tag_name(self.class.name), xmlized_attributes(options)) do
             self.class.elements.each do |element|

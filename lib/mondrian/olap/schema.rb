@@ -128,6 +128,27 @@ module Mondrian
           # Default value: 'Never'
           :hide_member_if
         data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column # values in XML will be uppercased when using Oracle driver
+        elements :key_expression, :name_expression, :ordinal_expression
+      end
+
+      class KeyExpression < SchemaElement
+        elements :sql
+      end
+
+      class NameExpression < SchemaElement
+        elements :sql
+      end
+
+      class OrdinalExpression < SchemaElement
+        elements :sql
+      end
+
+      class Sql < SchemaElement
+        def self.name
+          'SQL'
+        end
+        attributes :dialect
+        content :text
       end
 
       class Measure < SchemaElement
