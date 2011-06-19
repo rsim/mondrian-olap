@@ -25,6 +25,8 @@ module Mondrian
         driver = cons.new_instance.to_java
 
         props = java.util.Properties.new
+        props.setProperty('JdbcUser', @params[:username])
+        props.setProperty('JdbcPassword', @params[:password])
 
         # workaround for Mondrian ServiceDiscovery
         current_thread = Java::JavaLang::Thread.currentThread
@@ -90,18 +92,16 @@ module Mondrian
       def jdbc_uri
         case @driver
         when 'mysql', 'postgresql'
-          uri = "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}" <<
-          "?user=#{@params[:username]}&password=#{@params[:password]}"
-          uri << "&useUnicode=yes&characterEncoding=UTF-8" if @driver == 'mysql'
+          uri = "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
+          uri << "?useUnicode=yes&characterEncoding=UTF-8" if @driver == 'mysql'
           uri
         when 'oracle'
           # connection using TNS alias
           if @params[:database] && !@params[:host] && !@params[:url] && ENV['TNS_ADMIN']
-            "jdbc:oracle:thin:#{@params[:username]}/#{@params[:password]}@#{@params[:database]}"
+            "jdbc:oracle:thin:@#{@params[:database]}"
           else
             @params[:url] ||
-            "jdbc:oracle:thin:#{@params[:username]}/#{@params[:password]}" <<
-            "@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}:#{@params[:database]}"
+            "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}:#{@params[:database]}"
           end
         else
           raise ArgumentError, 'unknown JDBC driver'
