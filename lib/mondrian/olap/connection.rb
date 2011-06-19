@@ -20,12 +20,21 @@ module Mondrian
         # hack to call private constructor of MondrianOlap4jDriver
         # to avoid using DriverManager which fails to load JDBC drivers
         # because of not seeing JRuby required jar files
-        cons = Java::mondrian.olap4j.MondrianOlap4jDriver.java_class.declared_constructor
+        cons = Java::MondrianOlap4j::MondrianOlap4jDriver.java_class.declared_constructor
         cons.accessible = true
         driver = cons.new_instance.to_java
 
         props = java.util.Properties.new
-        @raw_jdbc_connection = driver.connect(connection_string, props)
+
+        # workaround for Mondrian ServiceDiscovery
+        current_thread = Java::JavaLang::Thread.currentThread
+        class_loader = current_thread.getContextClassLoader
+        begin
+          current_thread.setContextClassLoader(nil)
+          @raw_jdbc_connection = driver.connect(connection_string, props)
+        ensure
+          current_thread.setContextClassLoader(class_loader)
+        end
 
         @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
         @raw_schema = @raw_connection.getSchema
