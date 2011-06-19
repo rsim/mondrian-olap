@@ -28,12 +28,14 @@ module Mondrian
         props.setProperty('JdbcUser', @params[:username])
         props.setProperty('JdbcPassword', @params[:password])
 
+        conn_string = connection_string
+
         # workaround for Mondrian ServiceDiscovery
         current_thread = Java::JavaLang::Thread.currentThread
         class_loader = current_thread.getContextClassLoader
         begin
           current_thread.setContextClassLoader(nil)
-          @raw_jdbc_connection = driver.connect(connection_string, props)
+          @raw_jdbc_connection = driver.connect(conn_string, props)
         ensure
           current_thread.setContextClassLoader(class_loader)
         end
