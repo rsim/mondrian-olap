@@ -25,8 +25,8 @@ module Mondrian
         driver = cons.new_instance.to_java
 
         props = java.util.Properties.new
-        props.setProperty('JdbcUser', @params[:username])
-        props.setProperty('JdbcPassword', @params[:password])
+        props.setProperty('JdbcUser', @params[:username]) if @params[:username]
+        props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
 
         conn_string = connection_string
 
