@@ -105,6 +105,8 @@ module Mondrian
             @params[:url] ||
             "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}:#{@params[:database]}"
           end
+        when 'luciddb'
+          "jdbc:luciddb:http://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
@@ -118,6 +120,8 @@ module Mondrian
           'org.postgresql.Driver'
         when 'oracle'
           'oracle.jdbc.OracleDriver'
+        when 'luciddb'
+          'org.luciddb.jdbc.LucidDbClientDriver'
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
