@@ -44,6 +44,17 @@ or specify which database driver to use
   rake spec MONDRIAN_DRIVER=oracle
   rake spec MONDRIAN_DRIVER=luciddb
 
+or also alternatively with
+
+  rake spec:mysql
+  rake spec:postgresql
+  rake spec:oracle
+  rake spec:luciddb
+
+You can also run all tests on all databases with
+
+  rake spec:all
+
 == JRuby versions
 
 It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.6 on Java 6.
