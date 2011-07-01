@@ -83,20 +83,56 @@ describe "Schema definition" do
         XML
       end
 
-      it "should render table name in uppercase when using Oracle driver" do
+      it "should render table name in uppercase when using Oracle or LucidDB driver" do
         @schema.define do
           cube 'Sales' do
-            table 'sales_fact', :alias => 'sales'
+            table 'sales_fact', :alias => 'sales', :schema => 'facts'
           end
         end
-        @schema.to_xml(:driver => 'oracle').should be_like <<-XML
+        %w(oracle luciddb).each do |driver|
+          @schema.to_xml(:driver => driver).should be_like <<-XML
+          <?xml version="1.0"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table alias="SALES" name="SALES_FACT" schema="FACTS"/>
+            </Cube>
+          </Schema>
+          XML
+        end
+      end
+
+      it "should render table name in uppercase when :upcase_data_dictionary option is set to true" do
+        @schema.define :upcase_data_dictionary => true do
+          cube 'Sales' do
+            table 'sales_fact', :alias => 'sales', :schema => 'facts'
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
         <?xml version="1.0"?>
         <Schema name="default">
           <Cube name="Sales">
-            <Table alias="SALES" name="SALES_FACT"/>
+            <Table alias="SALES" name="SALES_FACT" schema="FACTS"/>
           </Cube>
         </Schema>
         XML
+      end
+
+      it "should render table name in lowercase when using Oracle or LucidDB driver but with :upcase_data_dictionary set to false" do
+        @schema.define :upcase_data_dictionary => false do
+          cube 'Sales' do
+            table 'sales_fact', :alias => 'sales', :schema => 'facts'
+          end
+        end
+        %w(oracle luciddb).each do |driver|
+          @schema.to_xml(:driver => driver).should be_like <<-XML
+          <?xml version="1.0"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table alias="sales" name="sales_fact" schema="facts"/>
+            </Cube>
+          </Schema>
+          XML
+        end
       end
     end
 

@@ -6,26 +6,42 @@ module Mondrian
     # of Mondrian Schema elements.
     class Schema < SchemaElement
       def initialize(name = nil, attributes = {}, &block)
-        unless attributes[:upcase_data_dictionary].nil?
-          @upcase_data_dictionary = attributes.delete(:upcase_data_dictionary)
-        end
+        name, attributes = self.class.pre_process_arguments(name, attributes)
+        pre_process_attributes(attributes)
         super(name, attributes, &block)
       end
 
       def self.define(name = nil, attributes = {}, &block)
-        # if define is called just with attributes hash and without name
-        if name.is_a?(Hash) && attributes.empty?
-          attributes = name
-          name = nil
-        end
+        name, attributes = pre_process_arguments(name, attributes)
         new(name || 'default', attributes, &block)
       end
 
-      def define(name = nil, &block)
+      def define(name = nil, attributes = {}, &block)
+        name, attributes = self.class.pre_process_arguments(name, attributes)
+        pre_process_attributes(attributes)
         @attributes[:name] = name || @attributes[:name] || 'default' # otherwise connection with empty name fails
         instance_eval &block if block
         self
       end
+
+      private
+
+      def self.pre_process_arguments(name, attributes)
+        # if is called just with attributes hash and without name
+        if name.is_a?(Hash) && attributes.empty?
+          attributes = name
+          name = nil
+        end
+        [name, attributes]
+      end
+
+      def pre_process_attributes(attributes)
+        unless attributes[:upcase_data_dictionary].nil?
+          @upcase_data_dictionary = attributes.delete(:upcase_data_dictionary)
+        end
+      end
+
+      public
 
       attributes :name, :description
       elements :cube
