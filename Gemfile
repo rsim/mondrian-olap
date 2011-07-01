@@ -10,6 +10,7 @@ group :development do
   gem 'autotest'
   gem 'jdbc-mysql'
   gem 'jdbc-postgres'
+  gem 'jdbc-luciddb'
   gem 'activerecord', '~> 3.0.5'
   gem 'activerecord-jdbc-adapter'
   gem 'activerecord-oracle_enhanced-adapter', :require => false

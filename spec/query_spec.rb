@@ -1,6 +1,10 @@
 require "spec_helper"
 
 describe "Query" do
+  def quote_table_name(name)
+    ActiveRecord::Base.connection.quote_table_name(name)
+  end
+
   before(:all) do
     @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
     @sql = ActiveRecord::Base.connection
@@ -17,9 +21,9 @@ describe "Query" do
     FROM sales
       LEFT JOIN products ON sales.product_id = products.id
       LEFT JOIN product_classes ON products.product_class_id = product_classes.id
-      LEFT JOIN time ON sales.time_id = time.id
+      LEFT JOIN #{quote_table_name('time')} ON sales.time_id = #{quote_table_name('time')}.id
       LEFT JOIN customers ON sales.customer_id = customers.id
-    WHERE time.the_year = 2010 AND time.quarter = 'Q1'
+    WHERE #{quote_table_name('time')}.the_year = 2010 AND #{quote_table_name('time')}.quarter = 'Q1'
       AND customers.country = 'USA' AND customers.state_province = 'CA'
     GROUP BY product_classes.product_family
     ORDER BY product_classes.product_family

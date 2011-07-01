@@ -68,6 +68,7 @@ module Mondrian
       end
 
       def to_xml(options={})
+        options[:upcase_data_dictionary] = @upcase_data_dictionary unless @upcase_data_dictionary.nil?
         Nokogiri::XML::Builder.new do |xml|
           add_to_xml(xml, options)
         end.to_xml
@@ -90,8 +91,10 @@ module Mondrian
       private
 
       def xmlized_attributes(options)
-        # data dictionary values should be in uppercase when using Oracle driver
-        upcase_attributes = if options[:driver] == 'oracle'
+        # data dictionary values should be in uppercase if schema defined with :upcase_data_dictionary => true
+        # or by default when using Oracle or LucidDB driver (can be overridden by :upcase_data_dictionary => false)
+        upcase_attributes = if options[:upcase_data_dictionary].nil? && %w(oracle luciddb).include?(options[:driver]) ||
+                            options[:upcase_data_dictionary]
           self.class.data_dictionary_names
         else
           []

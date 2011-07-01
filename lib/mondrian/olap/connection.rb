@@ -85,7 +85,7 @@ module Mondrian
       private
 
       def connection_string
-        string = "jdbc:mondrian:Jdbc=#{jdbc_uri};JdbcDrivers=#{jdbc_driver};"
+        string = "jdbc:mondrian:Jdbc=#{quote_string(jdbc_uri)};JdbcDrivers=#{jdbc_driver};"
         # by default use content checksum to reload schema when catalog has changed
         string << "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
         string << (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
@@ -106,7 +106,9 @@ module Mondrian
             "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}:#{@params[:database]}"
           end
         when 'luciddb'
-          "jdbc:luciddb:http://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
+          uri = "jdbc:luciddb:http://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
+          uri << ";schema=#{@params[:database_schema]}" if @params[:database_schema]
+          uri
         else
           raise ArgumentError, 'unknown JDBC driver'
         end

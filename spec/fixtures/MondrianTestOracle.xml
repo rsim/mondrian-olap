@@ -62,6 +62,9 @@ fname || ' ' || lname
           <SQL dialect="mysql">
 CONCAT(`customer`.`fname`, ' ', `customer`.`lname`)
           </SQL>
+          <SQL dialect="luciddb">
+fname || ' ' || lname
+          </SQL>
           <SQL dialect="generic">
 FULLNAME
           </SQL>
@@ -75,6 +78,9 @@ fname || ' ' || lname
           </SQL>
           <SQL dialect="mysql">
 CONCAT(`customer`.`fname`, ' ', `customer`.`lname`)
+          </SQL>
+          <SQL dialect="luciddb">
+fname || ' ' || lname
           </SQL>
           <SQL dialect="generic">
 FULLNAME

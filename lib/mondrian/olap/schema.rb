@@ -5,12 +5,24 @@ module Mondrian
     # See http://mondrian.pentaho.com/documentation/schema.php for more detailed description
     # of Mondrian Schema elements.
     class Schema < SchemaElement
+      def initialize(name = nil, attributes = {}, &block)
+        unless attributes[:upcase_data_dictionary].nil?
+          @upcase_data_dictionary = attributes.delete(:upcase_data_dictionary)
+        end
+        super(name, attributes, &block)
+      end
+
       def self.define(name = nil, attributes = {}, &block)
+        # if define is called just with attributes hash and without name
+        if name.is_a?(Hash) && attributes.empty?
+          attributes = name
+          name = nil
+        end
         new(name || 'default', attributes, &block)
       end
 
       def define(name = nil, &block)
-        @attributes[:name] = name || 'default' # otherwise connection with empty name fails
+        @attributes[:name] = name || @attributes[:name] || 'default' # otherwise connection with empty name fails
         instance_eval &block if block
         self
       end
