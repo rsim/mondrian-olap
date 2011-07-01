@@ -195,7 +195,7 @@ See more examples of dimension and member queries in spec/cube_spec.rb.
 
 mondrian-olap gem is compatible with JRuby versions 1.5 and 1.6 (have not been tested with earlier versions). mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
 
-mondrian-olap currently supports MySQL, PostgreSQL, Oracle and LucidDB databases. When using MySQL or PostgreSQL databases then install jdbc-mysql or jdbc-postgres gem and require "jdbc/mysql" or "jdbc/postgres" to load corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (ojdbc6.jar for Java 6) in CLASSPATH or copy to JRUBY_HOME/lib or require it in application manually. When using LucidDB then copy to your application and require LucidDB JDBC driver (LucidDbClient.jar).
+mondrian-olap currently supports MySQL, PostgreSQL, Oracle and LucidDB databases. When using MySQL, PostgreSQL or LucidDB databases then install jdbc-mysql, jdbc-postgres or jdbc-luciddb gem and require "jdbc/mysql", "jdbc/postgres" or "jdbc/luciddb" to load corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (ojdbc6.jar for Java 6) in CLASSPATH or copy to JRUBY_HOME/lib or require it in application manually.
 
 == INSTALL
 
