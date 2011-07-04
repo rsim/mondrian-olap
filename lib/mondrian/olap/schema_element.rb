@@ -70,9 +70,10 @@ module Mondrian
 
       attr_reader :xml_fragments
       def xml(string)
-        fragment = Nokogiri::XML::DocumentFragment.parse(string.strip)
+        string = string.strip
+        fragment = Nokogiri::XML::DocumentFragment.parse(string)
         raise ArgumentError, "Invalid XML fragment:\n#{string}" if fragment.children.empty?
-        @xml_fragments << fragment
+        @xml_fragments << string
       end
 
       def to_xml(options={})
@@ -93,7 +94,7 @@ module Mondrian
               instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
             end
             @xml_fragments.each do |xml_fragment|
-              xml.send(:insert, xml_fragment)
+              xml.send(:insert, Nokogiri::XML::DocumentFragment.parse(xml_fragment))
             end
           end
         end
