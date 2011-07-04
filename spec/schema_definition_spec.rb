@@ -339,6 +339,89 @@ describe "Schema definition" do
         XML
       end
     end
+
+    describe "Aggregates" do
+      it "should render named aggregate to XML" do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales_fact_1997' do
+              agg_name 'agg_c_special_sales_fact_1997' do
+                agg_fact_count :column => 'fact_count'
+                agg_measure '[Measures].[Store Cost]', :column => 'store_cost_sum'
+                agg_measure '[Measures].[Store Sales]', :column => 'store_sales_sum'
+                agg_level '[Product].[Product Family]', :column => 'product_family'
+                agg_level '[Time].[Quarter]', :column => 'time_quarter'
+                agg_level '[Time].[Year]', :column => 'time_year'
+                agg_level '[Time].[Quarter]', :column => 'time_quarter'
+                agg_level '[Time].[Month]', :column => 'time_month'
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table name="sales_fact_1997">
+              <AggName name="agg_c_special_sales_fact_1997">
+                <AggFactCount column="fact_count"/>
+                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_year" name="[Time].[Year]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_month" name="[Time].[Month]"/>
+              </AggName>
+            </Table>
+          </Cube>
+        </Schema>
+        XML
+      end
+
+      it "should render aggregate pattern to XML" do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales_fact_1997' do
+              agg_pattern :pattern => 'agg_.*_sales_fact_1997' do
+                agg_fact_count :column => 'fact_count'
+                agg_measure '[Measures].[Store Cost]', :column => 'store_cost_sum'
+                agg_measure '[Measures].[Store Sales]', :column => 'store_sales_sum'
+                agg_level '[Product].[Product Family]', :column => 'product_family'
+                agg_level '[Time].[Quarter]', :column => 'time_quarter'
+                agg_level '[Time].[Year]', :column => 'time_year'
+                agg_level '[Time].[Quarter]', :column => 'time_quarter'
+                agg_level '[Time].[Month]', :column => 'time_month'
+                agg_exclude 'agg_c_14_sales_fact_1997'
+                agg_exclude 'agg_lc_100_sales_fact_1997'
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table name="sales_fact_1997">
+              <AggPattern pattern="agg_.*_sales_fact_1997">
+                <AggFactCount column="fact_count"/>
+                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_year" name="[Time].[Year]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_month" name="[Time].[Month]"/>
+                <AggExclude name="agg_c_14_sales_fact_1997"/>
+                <AggExclude name="agg_lc_100_sales_fact_1997"/>
+              </AggPattern>
+            </Table>
+          </Cube>
+        </Schema>
+        XML
+      end
+    end
+
   end
 
   describe "connection with schema" do

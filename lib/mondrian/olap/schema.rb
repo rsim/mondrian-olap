@@ -65,6 +65,7 @@ module Mondrian
           # (You can use the same table in different hierarchies, but it must have different aliases.)
           :alias
         data_dictionary_names :name, :schema, :alias # values in XML will be uppercased when using Oracle driver
+        elements :agg_exclude, :agg_name, :agg_pattern
       end
 
       class Dimension < SchemaElement
@@ -214,6 +215,48 @@ module Mondrian
           :expression,
           # Value of this property. If the value is not constant, specify the 'expression' attribute instead.
           :value
+      end
+
+      class AggName < SchemaElement
+        attributes :name
+        data_dictionary_names :name
+        elements :agg_fact_count, :agg_measure, :agg_level, :agg_foreign_key
+      end
+
+      class AggFactCount < SchemaElement
+        attributes :column
+        data_dictionary_names :column
+      end
+
+      class AggMeasure < SchemaElement
+        attributes :name, :column
+        data_dictionary_names :column
+      end
+
+      class AggLevel < SchemaElement
+        attributes :name, :column
+        data_dictionary_names :column
+      end
+
+      class AggForeignKey < SchemaElement
+        attributes :fact_column, :agg_column
+        data_dictionary_names :fact_column, :agg_column
+      end
+
+      class AggIgnoreColumn < SchemaElement
+        attributes :column
+        data_dictionary_names :column
+      end
+
+      class AggPattern < SchemaElement
+        attributes :pattern
+        data_dictionary_names :pattern
+        elements :agg_fact_count, :agg_measure, :agg_level, :agg_foreign_key, :agg_exclude
+      end
+
+      class AggExclude < SchemaElement
+        attributes :name, :pattern, :ignorecase
+        data_dictionary_names :name, :pattern
       end
 
     end
