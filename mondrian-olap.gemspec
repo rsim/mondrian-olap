@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2011-07-01}
+  s.date = %q{2011-07-04}
   s.description = %q{JRuby gem for performing multidimensional queries of relational database data using Mondrian OLAP Java library
 }
   s.email = %q{raimonds.simanovskis@gmail.com}
@@ -79,7 +79,7 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<nokogiri>, ["~> 1.5.0.beta.4"])
+      s.add_runtime_dependency(%q<nokogiri>, ["~> 1.5.0"])
       s.add_development_dependency(%q<jruby-openssl>, [">= 0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.5.2"])
       s.add_development_dependency(%q<rdoc>, [">= 0"])
@@ -92,7 +92,7 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<activerecord-jdbc-adapter>, [">= 0"])
       s.add_development_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
     else
-      s.add_dependency(%q<nokogiri>, ["~> 1.5.0.beta.4"])
+      s.add_dependency(%q<nokogiri>, ["~> 1.5.0"])
       s.add_dependency(%q<jruby-openssl>, [">= 0"])
       s.add_dependency(%q<jeweler>, ["~> 1.5.2"])
       s.add_dependency(%q<rdoc>, [">= 0"])
@@ -106,7 +106,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
     end
   else
-    s.add_dependency(%q<nokogiri>, ["~> 1.5.0.beta.4"])
+    s.add_dependency(%q<nokogiri>, ["~> 1.5.0"])
     s.add_dependency(%q<jruby-openssl>, [">= 0"])
     s.add_dependency(%q<jeweler>, ["~> 1.5.2"])
     s.add_dependency(%q<rdoc>, [">= 0"])

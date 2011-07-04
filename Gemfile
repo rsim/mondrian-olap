@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem 'nokogiri', '~> 1.5.0.beta.4'
+gem 'nokogiri', '~> 1.5.0'
 
 group :development do
   gem 'jruby-openssl'
