@@ -420,6 +420,71 @@ describe "Schema definition" do
         </Schema>
         XML
       end
+
+      it "should render embedded aggregate XML defintion to XML" do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales_fact_1997' do
+              xml <<-XML
+                <AggName name="agg_c_special_sales_fact_1997">
+                  <AggFactCount column="fact_count"/>
+                  <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                  <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                  <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_year" name="[Time].[Year]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_month" name="[Time].[Month]"/>
+                </AggName>
+                <AggPattern pattern="agg_.*_sales_fact_1997">
+                  <AggFactCount column="fact_count"/>
+                  <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                  <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                  <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_year" name="[Time].[Year]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_month" name="[Time].[Month]"/>
+                  <AggExclude name="agg_c_14_sales_fact_1997"/>
+                  <AggExclude name="agg_lc_100_sales_fact_1997"/>
+                </AggPattern>
+              XML
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table name="sales_fact_1997">
+              <AggName name="agg_c_special_sales_fact_1997">
+                <AggFactCount column="fact_count"/>
+                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_year" name="[Time].[Year]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_month" name="[Time].[Month]"/>
+              </AggName>
+              <AggPattern pattern="agg_.*_sales_fact_1997">
+                <AggFactCount column="fact_count"/>
+                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_year" name="[Time].[Year]"/>
+                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                <AggLevel column="time_month" name="[Time].[Month]"/>
+                <AggExclude name="agg_c_14_sales_fact_1997"/>
+                <AggExclude name="agg_lc_100_sales_fact_1997"/>
+              </AggPattern>
+            </Table>
+          </Cube>
+        </Schema>
+        XML
+      end
+
     end
 
   end

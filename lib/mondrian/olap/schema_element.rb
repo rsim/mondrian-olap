@@ -21,6 +21,7 @@ module Mondrian
         self.class.elements.each do |element|
           instance_variable_set("@#{pluralize(element)}", [])
         end
+        @xml_fragments = []
         instance_eval &block if block
       end
 
@@ -67,6 +68,13 @@ module Mondrian
         @content = type
       end
 
+      attr_reader :xml_fragments
+      def xml(string)
+        fragment = Nokogiri::XML::DocumentFragment.parse(string.strip)
+        raise ArgumentError, "Invalid XML fragment:\n#{string}" if fragment.children.empty?
+        @xml_fragments << fragment
+      end
+
       def to_xml(options={})
         options[:upcase_data_dictionary] = @upcase_data_dictionary unless @upcase_data_dictionary.nil?
         Nokogiri::XML::Builder.new do |xml|
@@ -83,6 +91,9 @@ module Mondrian
           xml.send(tag_name(self.class.name), xmlized_attributes(options)) do
             self.class.elements.each do |element|
               instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
+            end
+            @xml_fragments.each do |xml_fragment|
+              xml.send(:insert, xml_fragment)
             end
           end
         end
