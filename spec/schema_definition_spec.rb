@@ -487,6 +487,57 @@ describe "Schema definition" do
 
     end
 
+    describe "Member properties" do
+      it "should render XML" do
+        @schema.define do
+          cube 'Sales' do
+            dimension 'Employees', :foreign_key => 'employee_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Employees', :primary_key => 'employee_id' do
+                table 'employee'
+                level 'Employee Id', :unique_members => true, :type => 'Numeric', :column => 'employee_id', :name_column => 'full_name',
+                                      :parent_column => 'supervisor_id', :null_parent_value => 0 do
+                  property 'Marital Status', :column => 'marital_status'
+                  property 'Position Title', :column => 'position_title'
+                  property 'Gender', :column => 'gender'
+                  property 'Salary', :column => 'salary'
+                  property 'Education Level', :column => 'education_level'
+                  property 'Management Role' do
+                    property_expression do
+                      sql 'management_role'
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Dimension foreignKey="employee_id" name="Employees">
+              <Hierarchy allMemberName="All Employees" hasAll="true" primaryKey="employee_id">
+                <Table name="employee"/>
+                <Level column="employee_id" name="Employee Id" nameColumn="full_name" nullParentValue="0" parentColumn="supervisor_id" type="Numeric" uniqueMembers="true">
+                  <Property column="marital_status" name="Marital Status"/>
+                  <Property column="position_title" name="Position Title"/>
+                  <Property column="gender" name="Gender"/>
+                  <Property column="salary" name="Salary"/>
+                  <Property column="education_level" name="Education Level"/>
+                  <Property name="Management Role">
+                    <PropertyExpression>
+                      <SQL>management_role</SQL>
+                    </PropertyExpression>
+                  </Property>
+                </Level>
+              </Hierarchy>
+            </Dimension>
+          </Cube>
+        </Schema>
+        XML
+      end
+    end
+
   end
 
   describe "connection with schema" do

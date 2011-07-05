@@ -102,7 +102,7 @@ module Mondrian
           # that all members have entirely unique rows, allowing SQL GROUP BY clauses to be completely eliminated from the query.
           :unique_key_level_name
         data_dictionary_names :primary_key, :primary_key_table # values in XML will be uppercased when using Oracle driver
-        elements :table, :join, :level
+        elements :table, :join, :property, :level
       end
 
       class Join < SchemaElement
@@ -157,7 +157,7 @@ module Mondrian
           # Default value: 'Never'
           :hide_member_if
         data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column # values in XML will be uppercased when using Oracle driver
-        elements :key_expression, :name_expression, :ordinal_expression
+        elements :key_expression, :name_expression, :ordinal_expression, :property
       end
 
       class KeyExpression < SchemaElement
@@ -178,6 +178,23 @@ module Mondrian
         end
         attributes :dialect
         content :text
+      end
+
+      class Property < SchemaElement
+        attributes :name, :description,
+          :column,
+          # Data type of this property: String, Numeric, Integer, Boolean, Date, Time or Timestamp.
+          :type,
+          # Should be set to true if the value of the property is functionally dependent on the level value.
+          # This permits the associated property column to be omitted from the GROUP BY clause
+          # (if the database permits columns in the SELECT that are not in the GROUP BY).
+          # This can be a significant performance enhancement on some databases, such as MySQL.
+          :depends_on_level_value
+        elements :property_expression
+      end
+
+      class PropertyExpression < SchemaElement
+        elements :sql
       end
 
       class Measure < SchemaElement
