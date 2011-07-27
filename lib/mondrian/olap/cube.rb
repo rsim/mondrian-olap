@@ -197,6 +197,10 @@ module Mondrian
         @raw_member.isCalculated
       end
 
+      def all_member?
+        @raw_member.isAll
+      end
+
       def drillable?
         return false if calculated?
         # @raw_member.getChildMemberCount > 0
@@ -208,6 +212,17 @@ module Mondrian
 
       def depth
         @raw_member.getDepth
+      end
+
+      def dimension_type
+        case @raw_member.getDimension.getDimensionType
+        when Java::OrgOlap4jMetadata::Dimension::Type::TIME
+          :time
+        when Java::OrgOlap4jMetadata::Dimension::Type::MEASURE
+          :measures
+        else
+          :standard
+        end
       end
 
       def children

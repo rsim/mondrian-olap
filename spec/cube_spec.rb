@@ -254,6 +254,26 @@ describe "Cube" do
       @cube.member('[Customers].[USA]').should_not be_calculated
     end
 
+    it "should be all member when member is all member" do
+      @cube.member('[Customers].[All Customers]').should be_all_member
+    end
+
+    it "should not be all member when member is not all member" do
+      @cube.member('[Customers].[USA]').should_not be_all_member
+    end
+
+    it "should get dimension type of standard dimension member" do
+      @cube.member('[Customers].[USA]').dimension_type.should == :standard
+    end
+
+    it "should get dimension type of measure" do
+      @cube.member('[Measures].[Unit Sales]').dimension_type.should == :measures
+    end
+
+    it "should get dimension type of time dimension member" do
+      @cube.member('[Time].[2011]').dimension_type.should == :time
+    end
+
   end
 
 end
