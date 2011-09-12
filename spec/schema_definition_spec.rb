@@ -134,6 +134,26 @@ describe "Schema definition" do
           XML
         end
       end
+
+      it "should render table with where condition" do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales_fact', :alias => 'sales' do
+              sql 'customer_id IS NOT NULL'
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table alias="sales" name="sales_fact">
+              <SQL>customer_id IS NOT NULL</SQL>
+            </Table>
+          </Cube>
+        </Schema>
+        XML
+      end
     end
 
     describe "Dimension" do

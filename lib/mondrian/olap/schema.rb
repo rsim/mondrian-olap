@@ -65,7 +65,7 @@ module Mondrian
           # (You can use the same table in different hierarchies, but it must have different aliases.)
           :alias
         data_dictionary_names :name, :schema, :alias # values in XML will be uppercased when using Oracle driver
-        elements :agg_exclude, :agg_name, :agg_pattern
+        elements :agg_exclude, :agg_name, :agg_pattern, :sql
       end
 
       class Dimension < SchemaElement
