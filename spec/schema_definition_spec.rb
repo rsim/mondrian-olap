@@ -156,6 +156,28 @@ describe "Schema definition" do
       end
     end
 
+    describe "View" do
+      it "should render to XML" do
+        @schema.define do
+          cube 'Sales' do
+            view :alias => 'sales' do
+              sql 'select * from sales_fact'
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <View alias="sales">
+              <SQL>select * from sales_fact</SQL>
+            </View>
+          </Cube>
+        </Schema>
+        XML
+      end
+    end
+
     describe "Dimension" do
       it "should render to XML" do
         @schema.define do

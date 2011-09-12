@@ -55,7 +55,7 @@ module Mondrian
           :cache,
           # Whether element is enabled - if true, then the Cube is realized otherwise it is ignored.
           :enabled
-        elements :table, :dimension, :measure, :calculated_member
+        elements :table, :view, :dimension, :measure, :calculated_member
       end
 
       class Table < SchemaElement
@@ -66,6 +66,12 @@ module Mondrian
           :alias
         data_dictionary_names :name, :schema, :alias # values in XML will be uppercased when using Oracle driver
         elements :agg_exclude, :agg_name, :agg_pattern, :sql
+      end
+
+      class View < SchemaElement
+        attributes :alias
+        # Defines a "table" using SQL query which can have different variants for different underlying databases
+        elements :sql
       end
 
       class Dimension < SchemaElement
