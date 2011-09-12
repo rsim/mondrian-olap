@@ -501,11 +501,6 @@ describe "Schema definition" do
                   property 'Gender', :column => 'gender'
                   property 'Salary', :column => 'salary'
                   property 'Education Level', :column => 'education_level'
-                  property 'Management Role' do
-                    property_expression do
-                      sql 'management_role'
-                    end
-                  end
                 end
               end
             end
@@ -524,11 +519,6 @@ describe "Schema definition" do
                   <Property column="gender" name="Gender"/>
                   <Property column="salary" name="Salary"/>
                   <Property column="education_level" name="Education Level"/>
-                  <Property name="Management Role">
-                    <PropertyExpression>
-                      <SQL>management_role</SQL>
-                    </PropertyExpression>
-                  </Property>
                 </Level>
               </Hierarchy>
             </Dimension>

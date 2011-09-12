@@ -190,11 +190,6 @@ module Mondrian
           # (if the database permits columns in the SELECT that are not in the GROUP BY).
           # This can be a significant performance enhancement on some databases, such as MySQL.
           :depends_on_level_value
-        elements :property_expression
-      end
-
-      class PropertyExpression < SchemaElement
-        elements :sql
       end
 
       class Measure < SchemaElement
