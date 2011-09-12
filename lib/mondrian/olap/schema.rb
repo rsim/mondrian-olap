@@ -211,6 +211,11 @@ module Mondrian
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
           :format_string
         data_dictionary_names :column # values in XML will be uppercased when using Oracle driver
+        elements :measure_expression
+      end
+
+      class MeasureExpression < SchemaElement
+        elements :sql
       end
 
       class CalculatedMember < SchemaElement

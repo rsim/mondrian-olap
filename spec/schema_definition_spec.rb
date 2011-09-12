@@ -356,6 +356,30 @@ describe "Schema definition" do
         </Schema>
         XML
       end
+
+      it "should render with measure expression" do
+        @schema.define do
+          cube 'Sales' do
+            measure 'Double Unit Sales', :aggregator => 'sum' do
+              measure_expression do
+                sql 'unit_sales * 2'
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Measure aggregator="sum" name="Double Unit Sales">
+              <MeasureExpression>
+                <SQL>unit_sales * 2</SQL>
+              </MeasureExpression>
+            </Measure>
+          </Cube>
+        </Schema>
+        XML
+      end
     end
 
     describe "Calculated Member" do
