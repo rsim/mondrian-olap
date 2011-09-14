@@ -134,6 +134,48 @@ describe "Schema definition" do
           XML
         end
       end
+
+      it "should render table with where condition" do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales_fact', :alias => 'sales' do
+              sql 'customer_id IS NOT NULL'
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table alias="sales" name="sales_fact">
+              <SQL>customer_id IS NOT NULL</SQL>
+            </Table>
+          </Cube>
+        </Schema>
+        XML
+      end
+    end
+
+    describe "View" do
+      it "should render to XML" do
+        @schema.define do
+          cube 'Sales' do
+            view :alias => 'sales' do
+              sql 'select * from sales_fact'
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <View alias="sales">
+              <SQL>select * from sales_fact</SQL>
+            </View>
+          </Cube>
+        </Schema>
+        XML
+      end
     end
 
     describe "Dimension" do
@@ -310,6 +352,30 @@ describe "Schema definition" do
         <Schema name="default">
           <Cube name="Sales">
             <Measure aggregator="sum" column="UNIT_SALES" name="Unit Sales"/>
+          </Cube>
+        </Schema>
+        XML
+      end
+
+      it "should render with measure expression" do
+        @schema.define do
+          cube 'Sales' do
+            measure 'Double Unit Sales', :aggregator => 'sum' do
+              measure_expression do
+                sql 'unit_sales * 2'
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Measure aggregator="sum" name="Double Unit Sales">
+              <MeasureExpression>
+                <SQL>unit_sales * 2</SQL>
+              </MeasureExpression>
+            </Measure>
           </Cube>
         </Schema>
         XML
@@ -501,11 +567,6 @@ describe "Schema definition" do
                   property 'Gender', :column => 'gender'
                   property 'Salary', :column => 'salary'
                   property 'Education Level', :column => 'education_level'
-                  property 'Management Role' do
-                    property_expression do
-                      sql 'management_role'
-                    end
-                  end
                 end
               end
             end
@@ -524,11 +585,6 @@ describe "Schema definition" do
                   <Property column="gender" name="Gender"/>
                   <Property column="salary" name="Salary"/>
                   <Property column="education_level" name="Education Level"/>
-                  <Property name="Management Role">
-                    <PropertyExpression>
-                      <SQL>management_role</SQL>
-                    </PropertyExpression>
-                  </Property>
                 </Level>
               </Hierarchy>
             </Dimension>

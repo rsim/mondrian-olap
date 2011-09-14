@@ -55,7 +55,7 @@ module Mondrian
           :cache,
           # Whether element is enabled - if true, then the Cube is realized otherwise it is ignored.
           :enabled
-        elements :table, :dimension, :measure, :calculated_member
+        elements :table, :view, :dimension, :measure, :calculated_member
       end
 
       class Table < SchemaElement
@@ -65,7 +65,13 @@ module Mondrian
           # (You can use the same table in different hierarchies, but it must have different aliases.)
           :alias
         data_dictionary_names :name, :schema, :alias # values in XML will be uppercased when using Oracle driver
-        elements :agg_exclude, :agg_name, :agg_pattern
+        elements :agg_exclude, :agg_name, :agg_pattern, :sql
+      end
+
+      class View < SchemaElement
+        attributes :alias
+        # Defines a "table" using SQL query which can have different variants for different underlying databases
+        elements :sql
       end
 
       class Dimension < SchemaElement
@@ -190,11 +196,6 @@ module Mondrian
           # (if the database permits columns in the SELECT that are not in the GROUP BY).
           # This can be a significant performance enhancement on some databases, such as MySQL.
           :depends_on_level_value
-        elements :property_expression
-      end
-
-      class PropertyExpression < SchemaElement
-        elements :sql
       end
 
       class Measure < SchemaElement
@@ -210,6 +211,11 @@ module Mondrian
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
           :format_string
         data_dictionary_names :column # values in XML will be uppercased when using Oracle driver
+        elements :measure_expression
+      end
+
+      class MeasureExpression < SchemaElement
+        elements :sql
       end
 
       class CalculatedMember < SchemaElement
