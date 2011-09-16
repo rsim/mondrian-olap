@@ -1,8 +1,8 @@
 == Creating test database
 
-By default unit tests use MySQL database but PostgreSQL and Oracle databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql", "oracle" or "luciddb" to specify database driver that should be used.
+By default unit tests use MySQL database but PostgreSQL, Oracle and SQL Server databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql", "oracle", "luciddb", "mssql" (jTDS) or "sqlserver" (Microsoft JDBC) to specify database driver that should be used.
 
-If using MySQL or PostgreSQL database then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
+If using MySQL, PostgreSQL or SQL Server database then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
 
 If using Oracle database then create database user mondrian_test with password mondrian_test. By default it is assumed that database orcl is located on localhost (can be overridden with DATABASE_NAME and DATABASE_HOST environment variables).
 
@@ -20,11 +20,13 @@ Create tables with test data using
 
   rake db:create_data
 
-or specify which database driver to use
+or specify which database driver to use 
 
   rake db:create_data MONDRIAN_DRIVER=mysql
   rake db:create_data MONDRIAN_DRIVER=postgresql
   rake db:create_data MONDRIAN_DRIVER=oracle
+  rake db:create_data MONDRIAN_DRIVER=mssql 
+  rake db:create_data MONDRIAN_DRIVER=sqlserver
 
 In case of LucidDB data are not generated and inserted directly into database but are imported from MySQL mondrian_test database (because inserting individual records into LucidDB is very inefficient). Therefore at first generate test data with mysql (using default database settings) and then run data creation task for LucidDB.
 
@@ -43,6 +45,8 @@ or specify which database driver to use
   rake spec MONDRIAN_DRIVER=postgresql
   rake spec MONDRIAN_DRIVER=oracle
   rake spec MONDRIAN_DRIVER=luciddb
+  rake spec MONDRIAN_DRIVER=mssql
+  rake spec MONDRIAN_DRIVER=sqlserver
 
 or also alternatively with
 
@@ -50,6 +54,8 @@ or also alternatively with
   rake spec:postgresql
   rake spec:oracle
   rake spec:luciddb
+  rake spec:mssql
+  rake spec:sqlserver
 
 You can also run all tests on all databases with
 
