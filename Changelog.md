@@ -2,6 +2,7 @@
 
 * New features
   * support for LucidDB database
+  * support for SQL Server (jTDS and Microsoft drivers)
 * Improvements
   * only set log4j configuration file if not set already (possible to override e.g. Mondrian debugging settings)
   * `result.to_html(:formatted=>true)` will return formatted results

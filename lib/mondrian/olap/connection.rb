@@ -109,6 +109,19 @@ module Mondrian
           uri = "jdbc:luciddb:http://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
           uri << ";schema=#{@params[:database_schema]}" if @params[:database_schema]
           uri
+        when 'mssql'
+          uri = "jdbc:jtds:sqlserver://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
+          uri << ";instance=#{@params[:instance]}" if @params[:instance]
+          uri << ";domain=#{@params[:domain]}" if @params[:domain]
+          uri << ";appname=#{@params[:appname]}" if @params[:appname]
+          uri
+        when 'sqlserver'
+          uri = "jdbc:sqlserver://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
+          uri << ";databaseName=#{@params[:database]}" if @params[:database]
+          uri << ";integratedSecurity=#{@params[:integrated_security]}" if @params[:integrated_security]
+          uri << ";applicationName=#{@params[:application_name]}" if @params[:application_name]
+          uri << ";instanceName=#{@params[:instance_name]}" if @params[:instance_name]
+          uri
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
@@ -124,6 +137,10 @@ module Mondrian
           'oracle.jdbc.OracleDriver'
         when 'luciddb'
           'org.luciddb.jdbc.LucidDbClientDriver'
+        when 'mssql'
+          'net.sourceforge.jtds.jdbc.Driver'
+        when 'sqlserver'
+          'com.microsoft.sqlserver.jdbc.SQLServerDriver'
         else
           raise ArgumentError, 'unknown JDBC driver'
         end

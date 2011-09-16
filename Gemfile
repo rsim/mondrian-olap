@@ -11,6 +11,7 @@ group :development do
   gem 'jdbc-mysql'
   gem 'jdbc-postgres'
   gem 'jdbc-luciddb'
+  gem 'jdbc-jtds'
   gem 'activerecord', '~> 3.0.5'
   gem 'activerecord-jdbc-adapter'
   gem 'activerecord-oracle_enhanced-adapter', :require => false
