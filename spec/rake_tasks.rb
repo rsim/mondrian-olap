@@ -242,7 +242,7 @@ namespace :db do
 end
 
 namespace :spec do
-  %w(mysql postgresql oracle luciddb).each do |driver|
+  %w(mysql postgresql oracle luciddb mssql sqlserver).each do |driver|
     desc "Run specs with #{driver} driver"
     task driver do
       ENV['MONDRIAN_DRIVER'] = driver
@@ -253,7 +253,7 @@ namespace :spec do
 
   desc "Run specs with all database drivers"
   task :all do
-    %w(mysql postgresql oracle luciddb).each do |driver|
+    %w(mysql postgresql oracle luciddb mssql sqlserver).each do |driver|
       Rake::Task["spec:#{driver}"].invoke
     end
   end
