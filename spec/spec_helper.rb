@@ -18,13 +18,13 @@ case MONDRIAN_DRIVER
 when 'mysql'
   require 'jdbc/mysql'
   JDBC_DRIVER = 'com.mysql.jdbc.Driver'
-  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
 when 'postgresql'
   require 'jdbc/postgres'
   JDBC_DRIVER = 'org.postgresql.Driver'
 when 'oracle'
   require 'active_record/connection_adapters/oracle_enhanced_adapter'
   DATABASE_NAME = ENV['DATABASE_NAME'] || 'orcl'
+  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
 when 'mssql'
   require 'jdbc/jtds'
   JDBC_DRIVER = 'net.sourceforge.jtds.jdbc.Driver'
@@ -70,7 +70,7 @@ RSpec.configure do |config|
   config.include Matchers
 end
 
-CATALOG_FILE = File.expand_path('../fixtures/MondrianTest.xml', __FILE__)
+CATALOG_FILE = File.expand_path('../fixtures/MondrianTest.xml', __FILE__) unless defined?(CATALOG_FILE)
 
 CONNECTION_PARAMS = {
   :driver   => MONDRIAN_DRIVER,
