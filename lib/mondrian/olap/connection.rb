@@ -7,7 +7,7 @@ module Mondrian
         connection
       end
 
-      attr_reader :raw_connection, :raw_schema, :raw_schema_reader
+      attr_reader :raw_connection, :raw_catalog, :raw_schema
 
       def initialize(params={})
         @params = params
@@ -41,7 +41,9 @@ module Mondrian
         end
 
         @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
-        @raw_schema = @raw_connection.getSchema
+        @raw_catalog = @raw_connection.getOlapCatalog
+        # currently it is assumed that there is just one schema per connection catalog
+        @raw_schema = @raw_catalog.getSchemas.first
         @connected = true
         true
       end
