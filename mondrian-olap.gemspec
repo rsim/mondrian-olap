@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{mondrian-olap}
-  s.version = "0.2.0"
+  s.version = "0.3.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Raimonds Simanovskis"]
-  s.date = %q{2011-07-04}
+  s.authors = [%q{Raimonds Simanovskis}]
+  s.date = %q{2011-11-12}
   s.description = %q{JRuby gem for performing multidimensional queries of relational database data using Mondrian OLAP Java library
 }
   s.email = %q{raimonds.simanovskis@gmail.com}
@@ -62,8 +62,8 @@ Gem::Specification.new do |s|
     "spec/support/matchers/be_like.rb"
   ]
   s.homepage = %q{http://github.com/rsim/mondrian-olap}
-  s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.5.1}
+  s.require_paths = [%q{lib}]
+  s.rubygems_version = %q{1.8.9}
   s.summary = %q{JRuby API for Mondrian OLAP Java library}
   s.test_files = [
     "spec/connection_spec.rb",
@@ -88,8 +88,9 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<jdbc-mysql>, [">= 0"])
       s.add_development_dependency(%q<jdbc-postgres>, [">= 0"])
       s.add_development_dependency(%q<jdbc-luciddb>, [">= 0"])
-      s.add_development_dependency(%q<activerecord>, ["~> 3.0.5"])
-      s.add_development_dependency(%q<activerecord-jdbc-adapter>, [">= 0"])
+      s.add_development_dependency(%q<jdbc-jtds>, [">= 0"])
+      s.add_development_dependency(%q<activerecord>, ["= 3.0.10"])
+      s.add_development_dependency(%q<activerecord-jdbc-adapter>, ["= 1.1.1"])
       s.add_development_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
     else
       s.add_dependency(%q<nokogiri>, ["~> 1.5.0"])
@@ -101,8 +102,9 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<jdbc-mysql>, [">= 0"])
       s.add_dependency(%q<jdbc-postgres>, [">= 0"])
       s.add_dependency(%q<jdbc-luciddb>, [">= 0"])
-      s.add_dependency(%q<activerecord>, ["~> 3.0.5"])
-      s.add_dependency(%q<activerecord-jdbc-adapter>, [">= 0"])
+      s.add_dependency(%q<jdbc-jtds>, [">= 0"])
+      s.add_dependency(%q<activerecord>, ["= 3.0.10"])
+      s.add_dependency(%q<activerecord-jdbc-adapter>, ["= 1.1.1"])
       s.add_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
     end
   else
@@ -115,8 +117,9 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<jdbc-mysql>, [">= 0"])
     s.add_dependency(%q<jdbc-postgres>, [">= 0"])
     s.add_dependency(%q<jdbc-luciddb>, [">= 0"])
-    s.add_dependency(%q<activerecord>, ["~> 3.0.5"])
-    s.add_dependency(%q<activerecord-jdbc-adapter>, [">= 0"])
+    s.add_dependency(%q<jdbc-jtds>, [">= 0"])
+    s.add_dependency(%q<activerecord>, ["= 3.0.10"])
+    s.add_dependency(%q<activerecord-jdbc-adapter>, ["= 1.1.1"])
     s.add_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
   end
 end

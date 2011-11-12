@@ -12,7 +12,7 @@ group :development do
   gem 'jdbc-postgres'
   gem 'jdbc-luciddb'
   gem 'jdbc-jtds'
-  gem 'activerecord', '~> 3.0.5'
-  gem 'activerecord-jdbc-adapter'
+  gem 'activerecord', '= 3.0.10'
+  gem 'activerecord-jdbc-adapter', '= 1.1.1'
   gem 'activerecord-oracle_enhanced-adapter', :require => false
 end
