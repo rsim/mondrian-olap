@@ -20,6 +20,7 @@ EOS
   gem.email = "raimonds.simanovskis@gmail.com"
   gem.homepage = "http://github.com/rsim/mondrian-olap"
   gem.authors = ["Raimonds Simanovskis"]
+  gem.extra_rdoc_files = ['README.md']
 end
 Jeweler::RubygemsDotOrgTasks.new
 

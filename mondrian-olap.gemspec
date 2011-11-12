@@ -14,9 +14,7 @@ Gem::Specification.new do |s|
 }
   s.email = %q{raimonds.simanovskis@gmail.com}
   s.extra_rdoc_files = [
-    "LICENSE-Mondrian.html",
-    "LICENSE.txt",
-    "README.rdoc"
+    "README.md"
   ]
   s.files = [
     ".rspec",
@@ -24,7 +22,7 @@ Gem::Specification.new do |s|
     "Gemfile",
     "LICENSE-Mondrian.html",
     "LICENSE.txt",
-    "README.rdoc",
+    "README.md",
     "RUNNING_TESTS.rdoc",
     "Rakefile",
     "VERSION",
