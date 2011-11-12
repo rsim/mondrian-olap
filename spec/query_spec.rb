@@ -278,6 +278,11 @@ describe "Query" do
         @query.where('[Time].[2010].[Q1]').where('[Customers].[USA].[CA]')
         @query.where.should == ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]']
       end
+
+      it "should do crossjoin of where conditions" do
+        @query.where('[Customers].[USA]').crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]')
+        @query.where.should == [:crossjoin, ['[Customers].[USA]'], ['[Time].[2011].[Q1]', '[Time].[2011].[Q2]']]
+      end
     end
 
     describe "with member" do
@@ -372,6 +377,30 @@ describe "Query" do
                     NON EMPTY CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1])
+          SQL
+      end
+
+      it "should return query with where with several same dimension members" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Customers].[Canada]', '[Customers].[USA]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    [Product].children ON ROWS
+              FROM  [Sales]
+              WHERE {[Customers].[Canada], [Customers].[USA]}
+          SQL
+      end
+
+      it "should return query with where with crossjoin" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Customers].[USA]').crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    [Product].children ON ROWS
+              FROM  [Sales]
+              WHERE CROSSJOIN([Customers].[USA], {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           SQL
       end
 

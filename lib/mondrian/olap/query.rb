@@ -139,6 +139,7 @@ module Mondrian
         if members.empty?
           @where
         else
+          @current_set = @where
           if members.length == 1 && members[0].is_a?(Array)
             @where.concat(members[0])
           else
@@ -289,6 +290,17 @@ module Mondrian
       end
 
       def where_to_mdx
+        # generate set MDX expression
+        if @where[0].is_a?(Symbol) ||
+            @where.length > 1 && @where.map{|full_name| extract_dimension_name(full_name)}.uniq.length == 1
+          members_to_mdx(@where)
+        # generate tupple MDX expression
+        else
+          where_to_mdx_tupple
+        end
+      end
+
+      def where_to_mdx_tupple
         mdx = '('
         mdx << @where.map do |condition|
           condition
@@ -306,6 +318,12 @@ module Mondrian
           'NULL'
         else
           "#{value}"
+        end
+      end
+
+      def extract_dimension_name(full_name)
+        if full_name =~ /\A\[([^\]]+)\]/
+          $1
         end
       end
     end
