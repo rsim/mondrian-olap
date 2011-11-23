@@ -39,6 +39,22 @@ describe "Connection" do
       @olap.should be_connected
     end
 
+    # to check that correct database dialect is loaded by ServiceDiscovery detected class loader
+    it "should use corresponding Mondrian dialect" do
+      # read private "schema" field
+      schema_field = @olap.raw_schema.getClass.getDeclaredField("schema")
+      schema_field.setAccessible(true)
+      private_schema = schema_field.get(@olap.raw_schema)
+      private_schema.getDialect.java_class.name.should == case MONDRIAN_DRIVER
+        when 'mysql' then 'mondrian.spi.impl.MySqlDialect'
+        when 'postgresql' then 'mondrian.spi.impl.PostgreSqlDialect'
+        when 'oracle' then 'mondrian.spi.impl.OracleDialect'
+        when 'luciddb' then 'mondrian.spi.impl.LucidDbDialect'
+        when 'mssql' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
+        when 'sqlserver' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
+        end
+    end
+
   end
 
   describe "close" do

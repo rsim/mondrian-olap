@@ -30,15 +30,9 @@ module Mondrian
 
         conn_string = connection_string
 
-        # workaround for Mondrian ServiceDiscovery
-        current_thread = Java::JavaLang::Thread.currentThread
-        class_loader = current_thread.getContextClassLoader
-        begin
-          current_thread.setContextClassLoader(nil)
-          @raw_jdbc_connection = driver.connect(conn_string, props)
-        ensure
-          current_thread.setContextClassLoader(class_loader)
-        end
+        # TODO: removed workaround for Mondrian ServiceDiscovery
+        # need to check if database dialects are always loaded by ServiceDiscovery detected class loader
+        @raw_jdbc_connection = driver.connect(conn_string, props)
 
         @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
         @raw_catalog = @raw_connection.getOlapCatalog
