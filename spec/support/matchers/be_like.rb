@@ -1,11 +1,11 @@
 module Matchers
   class BeLike
     def initialize(expected)
-      @expected = expected.gsub(/>\s*\n\s*/, '>').gsub(/\s+/, ' ').strip
+      @expected = expected.gsub(/>\s*\n\s*/, '> ').gsub(/\s+/, ' ').strip
     end
 
     def matches?(actual)
-      @actual = actual.gsub(/>\s*\n\s*/, '>').gsub(/\s+/, ' ').strip
+      @actual = actual.gsub(/>\s*\n\s*/, '> ').gsub(/\s+/, ' ').strip
       @expected == @actual
     end
 

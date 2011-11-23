@@ -193,6 +193,10 @@ module Mondrian
         @raw_member.getUniqueName
       end
 
+      def caption
+        @raw_member.getCaption
+      end
+
       def calculated?
         @raw_member.isCalculated
       end
@@ -244,6 +248,18 @@ module Mondrian
           end.flatten
         end
         members
+      end
+
+      def property_value(name)
+        if property = @raw_member.getProperties.get(name)
+          @raw_member.getPropertyValue(property)
+        end
+      end
+
+      def property_formatted_value(name)
+        if property = @raw_member.getProperties.get(name)
+          @raw_member.getPropertyFormattedValue(property)
+        end
       end
 
     end

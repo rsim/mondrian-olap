@@ -44,7 +44,7 @@ module Mondrian
       public
 
       attributes :name, :description
-      elements :cube
+      elements :cube, :user_defined_function
 
       class Cube < SchemaElement
         attributes :name, :description,
@@ -163,7 +163,7 @@ module Mondrian
           # Default value: 'Never'
           :hide_member_if
         data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column # values in XML will be uppercased when using Oracle driver
-        elements :key_expression, :name_expression, :ordinal_expression, :property
+        elements :key_expression, :name_expression, :ordinal_expression, :member_formatter, :property
       end
 
       class KeyExpression < SchemaElement
@@ -196,6 +196,7 @@ module Mondrian
           # (if the database permits columns in the SELECT that are not in the GROUP BY).
           # This can be a significant performance enhancement on some databases, such as MySQL.
           :depends_on_level_value
+        elements :property_formatter
       end
 
       class Measure < SchemaElement
@@ -211,7 +212,7 @@ module Mondrian
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
           :format_string
         data_dictionary_names :column # values in XML will be uppercased when using Oracle driver
-        elements :measure_expression
+        elements :measure_expression, :cell_formatter
       end
 
       class MeasureExpression < SchemaElement
@@ -224,7 +225,7 @@ module Mondrian
           :dimension,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
           :format_string
-        elements :formula, :calculated_member_property
+        elements :formula, :calculated_member_property, :cell_formatter
       end
 
       class Formula < SchemaElement
@@ -280,6 +281,46 @@ module Mondrian
       class AggExclude < SchemaElement
         attributes :name, :pattern, :ignorecase
         data_dictionary_names :name, :pattern
+      end
+
+      module ScriptElements
+        def javascript(text)
+          script text, :language => 'JavaScript'
+        end
+      end
+
+      class UserDefinedFunction < SchemaElement
+        include ScriptElements
+        attributes :name, # Name with which the user-defined function will be referenced in MDX expressions.
+          # Name of the class which implemenets this user-defined function.
+          # Must implement the mondrian.spi.UserDefinedFunction  interface.
+          :class_name
+        elements :script
+      end
+
+      class Script < SchemaElement
+        attributes :language
+        content :text
+      end
+
+      class CellFormatter < SchemaElement
+        include ScriptElements
+        # Name of a formatter class for the appropriate cell being displayed.
+        # The class must implement the mondrian.olap.CellFormatter interface.
+        attributes :class_name
+        elements :script
+      end
+
+      class MemberFormatter < SchemaElement
+        include ScriptElements
+        attributes :class_name
+        elements :script
+      end
+
+      class PropertyFormatter < SchemaElement
+        include ScriptElements
+        attributes :class_name
+        elements :script
       end
 
     end
