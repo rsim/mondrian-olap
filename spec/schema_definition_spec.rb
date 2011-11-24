@@ -1,4 +1,5 @@
 require "spec_helper"
+require "coffee-script"
 
 describe "Schema definition" do
 
@@ -707,6 +708,68 @@ describe "Schema definition" do
           </UserDefinedFunction>
         </Schema>
         XML
+      end
+
+      it "should execute user defined function" do
+        result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
+        value = 1*2*3*4*5*6
+        result.values.should == [value]
+        result.formatted_values.should == ["%020d" % value]
+      end
+
+      it "should format members and properties" do
+        result = @olap.from('Sales').columns('[Measures].[City]').rows('[Customers].[All Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          member.caption.should == member.name.upcase
+          city = member.property_value('City')
+          result.formatted_values[i].first.should == city
+          member.property_formatted_value('City').should == city.upcase
+        end
+      end
+    end
+
+    describe "User defined functions and formatters in CoffeeScript" do
+      before(:each) do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales'
+            dimension 'Customers', :foreign_key => 'customer_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+                table 'customers'
+                level 'Name', :column => 'fullname' do
+                  member_formatter { coffeescript "member.getName().toUpperCase()" }
+                  property 'City', :column => 'city' do
+                    property_formatter { coffeescript "propertyValue.toUpperCase()" }
+                  end
+                end
+              end
+            end
+            calculated_member 'Factorial' do
+              dimension 'Measures'
+              formula 'Factorial(6)'
+              cell_formatter do
+                coffeescript <<-JS
+                  s = value.toString()
+                  s = "0" + s while s.length < 20
+                  s
+                JS
+              end
+            end
+            calculated_member 'City' do
+              dimension 'Measures'
+              formula "[Customers].CurrentMember.Properties('City')"
+            end
+          end
+          user_defined_function 'Factorial' do
+            coffeescript <<-JS
+              parameters: ["Numeric"]
+              returns: "Numeric"
+              execute: (n) ->
+                if n <= 1 then 1 else n * @execute(n - 1)
+            JS
+          end
+        end
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
       end
 
       it "should execute user defined function" do

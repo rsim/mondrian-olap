@@ -287,6 +287,17 @@ module Mondrian
         def javascript(text)
           script text, :language => 'JavaScript'
         end
+
+        private
+
+        def coffeescript_function(arguments_string, text)
+          # construct function to ensure that last expression is returned
+          coffee_text = "#{arguments_string} ->\n" << text.gsub(/^/,'  ')
+          javascript_text = CoffeeScript.compile(coffee_text, :bare => true)
+          # remove function definition first and last lines
+          javascript_text = javascript_text.strip.lines.to_a[1..-2].join
+          javascript javascript_text
+        end
       end
 
       class UserDefinedFunction < SchemaElement
@@ -296,6 +307,44 @@ module Mondrian
           # Must implement the mondrian.spi.UserDefinedFunction  interface.
           :class_name
         elements :script
+
+        def coffeescript(text)
+          coffee_text = "__udf__ = {\n" << text << "}\n"
+          javascript_text = CoffeeScript.compile(coffee_text, :bare => true)
+          javascript_text << <<-JS
+
+__udf__.parameters || (__udf__.parameters = []);
+__udf__.returns || (__udf__.returns = "Scalar");
+var __scalarTypes__ = {"Numeric":true,"String":true,"Boolean":true,"DateTime":true,"Decimal":true,"Scalar":true};
+function getParameterTypes() {
+  var parameters = __udf__.parameters || [],
+      types = [];
+  for (var i = 0, len = parameters.length; i < len; i++) {
+    types.push(new mondrian.olap.type[parameters[i]+"Type"]);
+  }
+  return types;
+}
+function getReturnType(parameterTypes) {
+  var returns = __udf__.returns || "Scalar";
+  return new mondrian.olap.type[returns+"Type"];
+}
+function execute(evaluator, args) {
+  var parameters = __udf__.parameters || [],
+      values = [],
+      value;
+  for (var i = 0, len = parameters.length; i < len; i++) {
+    if (__scalarTypes__[parameters[i]]) {
+      value = args[i].evaluateScalar(evaluator);
+    } else {
+      value = args[i].evaluate(evaluator);
+    }
+    values.push(value);
+  }
+  return __udf__.execute.apply(__udf__, values);
+}
+JS
+          javascript javascript_text
+        end
       end
 
       class Script < SchemaElement
@@ -309,18 +358,30 @@ module Mondrian
         # The class must implement the mondrian.olap.CellFormatter interface.
         attributes :class_name
         elements :script
+
+        def coffeescript(text)
+          coffeescript_function('(value)', text)
+        end
       end
 
       class MemberFormatter < SchemaElement
         include ScriptElements
         attributes :class_name
         elements :script
+
+        def coffeescript(text)
+          coffeescript_function('(member)', text)
+        end
       end
 
       class PropertyFormatter < SchemaElement
         include ScriptElements
         attributes :class_name
         elements :script
+
+        def coffeescript(text)
+          coffeescript_function('(member,propertyName,propertyValue)', text)
+        end
       end
 
     end
