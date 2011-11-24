@@ -768,6 +768,24 @@ describe "Schema definition" do
                 if n <= 1 then 1 else n * @execute(n - 1)
             JS
           end
+          user_defined_function 'UpperName' do
+            coffeescript <<-JS
+              parameters: ["Member"]
+              returns: "String"
+              syntax: "Property"
+              execute: (member) ->
+                member.getName().toUpperCase()
+            JS
+          end
+          user_defined_function 'toUpperName' do
+            coffeescript <<-JS
+              parameters: ["Member", "String"]
+              returns: "String"
+              syntax: "Method"
+              execute: (member, dummy) ->
+                member.getName().toUpperCase()
+            JS
+          end
         end
         @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
       end
@@ -786,6 +804,24 @@ describe "Schema definition" do
           city = member.property_value('City')
           result.formatted_values[i].first.should == city
           member.property_formatted_value('City').should == city.upcase
+        end
+      end
+
+      it "should execute user defined property on member" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as('[Customers].CurrentMember.UpperName').
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [member.name.upcase]
+        end
+      end
+
+      it "should execute user defined method on member" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as("[Customers].CurrentMember.toUpperName('dummy')").
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [member.name.upcase]
         end
       end
     end

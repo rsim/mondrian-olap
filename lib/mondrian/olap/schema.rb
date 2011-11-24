@@ -316,17 +316,31 @@ module Mondrian
 __udf__.parameters || (__udf__.parameters = []);
 __udf__.returns || (__udf__.returns = "Scalar");
 var __scalarTypes__ = {"Numeric":true,"String":true,"Boolean":true,"DateTime":true,"Decimal":true,"Scalar":true};
+function __getType__(type) {
+  if (__scalarTypes__[type]) {
+    return new mondrian.olap.type[type+"Type"];
+  } else if (type === "Member") {
+    return mondrian.olap.type.MemberType.Unknown;
+  } else {
+    return null;
+  }
+}
 function getParameterTypes() {
   var parameters = __udf__.parameters || [],
       types = [];
   for (var i = 0, len = parameters.length; i < len; i++) {
-    types.push(new mondrian.olap.type[parameters[i]+"Type"]);
+    types.push(__getType__(parameters[i]))
   }
   return types;
 }
 function getReturnType(parameterTypes) {
   var returns = __udf__.returns || "Scalar";
-  return new mondrian.olap.type[returns+"Type"];
+  return __getType__(returns);
+}
+if (__udf__.syntax) {
+  function getSyntax() {
+    return mondrian.olap.Syntax[__udf__.syntax];
+  }
 }
 function execute(evaluator, args) {
   var parameters = __udf__.parameters || [],
