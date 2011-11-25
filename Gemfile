@@ -16,5 +16,5 @@ group :development do
   gem 'activerecord-jdbc-adapter', '= 1.1.1'
   gem 'activerecord-oracle_enhanced-adapter', :require => false
   gem 'coffee-script'
-  gem 'therubyrhino', :git => 'git://github.com/atambo/therubyrhino.git'
+  gem 'therubyrhino', :git => 'git://github.com/rsim/therubyrhino.git'
 end
