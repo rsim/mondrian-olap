@@ -826,6 +826,101 @@ describe "Schema definition" do
       end
     end
 
+    describe "User defined functions and formatters in Ruby" do
+      before(:each) do
+        @schema.define do
+          cube 'Sales' do
+            table 'sales'
+            dimension 'Customers', :foreign_key => 'customer_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+                table 'customers'
+                level 'Name', :column => 'fullname' do
+                  member_formatter { ruby {|member| member.getName().upcase } }
+                  property 'City', :column => 'city' do
+                    property_formatter { ruby {|member, property_name, property_value| property_value.upcase} }
+                  end
+                end
+              end
+            end
+            calculated_member 'Factorial' do
+              dimension 'Measures'
+              formula 'Factorial(6)'
+              cell_formatter { ruby {|value| "%020d" % value} }
+            end
+            calculated_member 'City' do
+              dimension 'Measures'
+              formula "[Customers].CurrentMember.Properties('City')"
+            end
+          end
+          user_defined_function 'Factorial' do
+            ruby do
+              parameters :numeric
+              returns :numeric
+              def call(n)
+                n <= 1 ? 1 : n * call(n - 1)
+              end
+            end
+          end
+          user_defined_function 'UpperName' do
+            ruby do
+              parameters :member
+              returns :string
+              syntax :property
+              def call(member)
+                member.getName.upcase
+              end
+            end
+          end
+          user_defined_function 'toUpperName' do
+            ruby do
+              parameters :member, :string
+              returns :string
+              syntax :method
+              def call(member, dummy)
+                member.getName.upcase
+              end
+            end
+          end
+        end
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      end
+
+      it "should execute user defined function" do
+        result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
+        value = 1*2*3*4*5*6
+        result.values.should == [value]
+        result.formatted_values.should == ["%020d" % value]
+      end
+
+      it "should format members and properties" do
+        result = @olap.from('Sales').columns('[Measures].[City]').rows('[Customers].[All Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          member.caption.should == member.name.upcase
+          city = member.property_value('City')
+          result.formatted_values[i].first.should == city
+          member.property_formatted_value('City').should == city.upcase
+        end
+      end
+
+      it "should execute user defined property on member" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as('[Customers].CurrentMember.UpperName').
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [member.name.upcase]
+        end
+      end
+
+      it "should execute user defined method on member" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as("[Customers].CurrentMember.toUpperName('dummy')").
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [member.name.upcase]
+        end
+      end
+    end
+
   end
 
   describe "connection with schema" do
