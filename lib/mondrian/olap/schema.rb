@@ -24,6 +24,12 @@ module Mondrian
         self
       end
 
+      def include_schema(shared_schema)
+        shared_schema.class.elements.each do |element|
+          instance_variable_get("@#{pluralize(element)}").concat shared_schema.send(pluralize(element))
+        end
+      end
+
       private
 
       def self.pre_process_arguments(name, attributes)

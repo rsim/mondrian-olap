@@ -921,6 +921,90 @@ describe "Schema definition" do
       end
     end
 
+    describe "Shared user defined functions in Ruby" do
+      before(:each) do
+        shared_schema = Mondrian::OLAP::Schema.define do
+          user_defined_function 'Factorial' do
+            ruby :shared do
+              parameters :numeric
+              returns :numeric
+              def call(n)
+                n <= 1 ? 1 : n * call(n - 1)
+              end
+            end
+          end
+          user_defined_function 'UpperName' do
+            ruby :shared do
+              parameters :member
+              returns :string
+              syntax :property
+              def call(member)
+                member.getName.upcase
+              end
+            end
+          end
+          user_defined_function 'toUpperName' do
+            ruby :shared do
+              parameters :member, :string
+              returns :string
+              syntax :method
+              def call(member, dummy)
+                member.getName.upcase
+              end
+            end
+          end
+        end
+
+        @schema.define do
+          include_schema shared_schema
+
+          cube 'Sales' do
+            table 'sales'
+            dimension 'Customers', :foreign_key => 'customer_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+                table 'customers'
+                level 'Name', :column => 'fullname'
+              end
+            end
+            calculated_member 'Factorial' do
+              dimension 'Measures'
+              formula 'Factorial(6)'
+            end
+          end
+        end
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      end
+
+      it "should render XML" do
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table name="sales"/>
+            <Dimension foreignKey="customer_id" name="Customers">
+              <Hierarchy allMemberName="All Customers" hasAll="true" primaryKey="id">
+                <Table name="customers"/>
+                <Level column="fullname" name="Name"/>
+              </Hierarchy>
+            </Dimension>
+            <CalculatedMember dimension="Measures" name="Factorial">
+              <Formula>Factorial(6)</Formula>
+            </CalculatedMember>
+          </Cube>
+          <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.FactorialUdf" name="Factorial"/>
+          <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.UppernameUdf" name="UpperName"/>
+          <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.TouppernameUdf" name="toUpperName"/>
+        </Schema>
+        XML
+      end
+
+      it "should execute user defined function" do
+        result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
+        value = 1*2*3*4*5*6
+        result.values.should == [value]
+      end
+
+    end
   end
 
   describe "connection with schema" do

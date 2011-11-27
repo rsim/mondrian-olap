@@ -92,13 +92,13 @@ JS
           javascript javascript_text
         end
 
-        class RubyUdf
+        class RubyUdfBase
           include Java::mondrian.spi.UserDefinedFunction
-          def self.name=(name); @name = name; end
-          def self.name; @name; end
+          def self.function_name=(name); @function_name = name; end
+          def self.function_name; @function_name; end
 
           def getName
-            self.class.name
+            self.class.function_name
           end
           add_method_signature("getName", [java.lang.String])
 
@@ -202,9 +202,17 @@ JS
           end
         end
 
-        def ruby(&block)
-          udf_class = Class.new(RubyUdf)
-          udf_class.name = name
+        def ruby(*options, &block)
+          udf_class_name = if options.include?(:shared)
+            "#{name.capitalize}Udf"
+          end
+          if udf_class_name && self.class.const_defined?(udf_class_name)
+            udf_class = self.class.const_get(udf_class_name)
+          else
+            udf_class = Class.new(RubyUdfBase)
+            self.class.const_set(udf_class_name, udf_class) if udf_class_name
+          end
+          udf_class.function_name = name
           udf_class.class_eval &block
           udf_java_class = udf_class.become_java!(false)
 
