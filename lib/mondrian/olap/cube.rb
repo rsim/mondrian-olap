@@ -16,6 +16,10 @@ module Mondrian
         @name ||= @raw_cube.getName
       end
 
+      def description
+        @description ||= @raw_cube.getDescription
+      end
+
       def dimensions
         @dimenstions ||= @raw_cube.getDimensions.map{|d| Dimension.new(self, d)}
       end
@@ -55,6 +59,10 @@ module Mondrian
 
       def name
         @name ||= @raw_dimension.getName
+      end
+
+      def description
+        @description ||= @raw_dimension.getDescription
       end
 
       def full_name
@@ -98,6 +106,10 @@ module Mondrian
 
       def name
         @name ||= @raw_hierarchy.getName
+      end
+
+      def description
+        @description ||= @raw_hierarchy.getDescription
       end
 
       def levels
@@ -155,6 +167,10 @@ module Mondrian
 
       def name
         @name ||= @raw_level.getName
+      end
+
+      def description
+        @description ||= @raw_level.getDescription
       end
 
       def depth

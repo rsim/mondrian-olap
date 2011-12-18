@@ -4,11 +4,14 @@ describe "Cube" do
   before(:all) do
     @schema = Mondrian::OLAP::Schema.define do
       cube 'Sales' do
+        description 'Sales description'
         table 'sales'
         dimension 'Gender', :foreign_key => 'customer_id' do
+          description 'Gender description'
           hierarchy :has_all => true, :primary_key => 'id' do
+            description 'Gender hierarchy description'
             table 'customers'
-            level 'Gender', :column => 'gender', :unique_members => true
+            level 'Gender', :column => 'gender', :unique_members => true, :description => 'Gender level description'
           end
         end
         dimension 'Customers', :foreign_key => 'customer_id' do
@@ -60,6 +63,10 @@ describe "Cube" do
     @olap.cube('Sales').name.should == 'Sales'
   end
 
+  it "should get cube description" do
+    @olap.cube('Sales').description.should == 'Sales description'
+  end
+
   describe "dimensions" do
     before(:all) do
       @cube = @olap.cube('Sales')
@@ -76,6 +83,10 @@ describe "Cube" do
 
     it "should get dimension by name" do
       @cube.dimension('Gender').name.should == 'Gender'
+    end
+
+    it "should get dimension description" do
+      @cube.dimension('Gender').description.should == 'Gender description'
     end
 
     it "should get dimension full name" do
@@ -102,6 +113,10 @@ describe "Cube" do
       hierarchies = @cube.dimension('Gender').hierarchies
       hierarchies.size.should == 1
       hierarchies[0].name.should == 'Gender'
+    end
+
+    it "should get hierarchy description" do
+      hierarchies = @cube.dimension('Gender').hierarchies.first.description.should == 'Gender hierarchy description'
     end
 
     it "should get hierarchy names" do
@@ -180,6 +195,10 @@ describe "Cube" do
   describe "level members" do
     before(:all) do
       @cube = @olap.cube('Sales')
+    end
+
+    it "should get level description" do
+      @cube.dimension('Gender').hierarchy.level('Gender').description.should == 'Gender level description'
     end
 
     it "should get primary hierarchy level members" do
