@@ -6,10 +6,11 @@
 Gem::Specification.new do |s|
   s.name = %q{mondrian-olap}
   s.version = "0.3.0"
+  s.platform = %q{java}
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = [%q{Raimonds Simanovskis}]
-  s.date = %q{2011-11-12}
+  s.date = %q{2012-01-12}
   s.description = %q{JRuby gem for performing multidimensional queries of relational database data using Mondrian OLAP Java library
 }
   s.email = %q{raimonds.simanovskis@gmail.com}
@@ -48,11 +49,13 @@ Gem::Specification.new do |s|
     "lib/mondrian/olap/result.rb",
     "lib/mondrian/olap/schema.rb",
     "lib/mondrian/olap/schema_element.rb",
+    "lib/mondrian/olap/schema_udf.rb",
     "mondrian-olap.gemspec",
     "spec/connection_spec.rb",
     "spec/cube_spec.rb",
     "spec/fixtures/MondrianTest.xml",
     "spec/fixtures/MondrianTestOracle.xml",
+    "spec/mondrian_spec.rb",
     "spec/query_spec.rb",
     "spec/rake_tasks.rb",
     "spec/schema_definition_spec.rb",
@@ -66,6 +69,7 @@ Gem::Specification.new do |s|
   s.test_files = [
     "spec/connection_spec.rb",
     "spec/cube_spec.rb",
+    "spec/mondrian_spec.rb",
     "spec/query_spec.rb",
     "spec/rake_tasks.rb",
     "spec/schema_definition_spec.rb",
@@ -90,6 +94,8 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<activerecord>, ["= 3.0.10"])
       s.add_development_dependency(%q<activerecord-jdbc-adapter>, ["= 1.1.1"])
       s.add_development_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
+      s.add_development_dependency(%q<coffee-script>, [">= 0"])
+      s.add_development_dependency(%q<therubyrhino>, [">= 0"])
     else
       s.add_dependency(%q<nokogiri>, ["~> 1.5.0"])
       s.add_dependency(%q<jruby-openssl>, [">= 0"])
@@ -104,6 +110,8 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<activerecord>, ["= 3.0.10"])
       s.add_dependency(%q<activerecord-jdbc-adapter>, ["= 1.1.1"])
       s.add_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
+      s.add_dependency(%q<coffee-script>, [">= 0"])
+      s.add_dependency(%q<therubyrhino>, [">= 0"])
     end
   else
     s.add_dependency(%q<nokogiri>, ["~> 1.5.0"])
@@ -119,6 +127,8 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<activerecord>, ["= 3.0.10"])
     s.add_dependency(%q<activerecord-jdbc-adapter>, ["= 1.1.1"])
     s.add_dependency(%q<activerecord-oracle_enhanced-adapter>, [">= 0"])
+    s.add_dependency(%q<coffee-script>, [">= 0"])
+    s.add_dependency(%q<therubyrhino>, [">= 0"])
   end
 end
 
