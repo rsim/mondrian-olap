@@ -42,6 +42,7 @@ describe "Cube" do
         end
         measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
         measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
+        measure 'Store Cost', :column => 'store_cost', :aggregator => 'sum', :visible => false
       end
     end
     @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
@@ -293,6 +294,13 @@ describe "Cube" do
       @cube.member('[Time].[2011]').dimension_type.should == :time
     end
 
+    it "should be visble when member is visible" do
+      @cube.member('[Measures].[Store Sales]').should be_visible
+    end
+
+    it "should not be visble when member is not visible" do
+      @cube.member('[Measures].[Store Cost]').should_not be_visible
+    end
   end
 
 end

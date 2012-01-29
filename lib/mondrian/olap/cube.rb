@@ -217,6 +217,10 @@ module Mondrian
         @raw_member.isCalculated
       end
 
+      def visible?
+        @raw_member.isVisible
+      end
+
       def all_member?
         @raw_member.isAll
       end

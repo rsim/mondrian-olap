@@ -216,7 +216,9 @@ module Mondrian
           # Aggregation function. Allowed values are "sum", "count", "min", "max", "avg", and "distinct-count".
           :aggregator,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
-          :format_string
+          :format_string,
+          # Whether this member is visible in the user-interface. Default true.
+          :visible
         data_dictionary_names :column # values in XML will be uppercased when using Oracle driver
         elements :measure_expression, :cell_formatter
       end
@@ -230,7 +232,9 @@ module Mondrian
           # Name of the dimension which this member belongs to.
           :dimension,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
-          :format_string
+          :format_string,
+          # Whether this member is visible in the user-interface. Default true.
+          :visible
         elements :formula, :calculated_member_property, :cell_formatter
       end
 
