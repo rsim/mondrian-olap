@@ -154,7 +154,7 @@ JS
           def getParameterTypes
             @parameterTypes ||= self.class.parameters.map{|p| get_java_type(p)}
           end
-          class_loader = java.lang.Thread.currentThread.getContextClassLoader
+          class_loader = JRuby.runtime.jruby_class_loader
           type_array_class = java.lang.Class.forName "[Lmondrian.olap.type.Type;", true, class_loader
           add_method_signature("getParameterTypes", [type_array_class])
 
