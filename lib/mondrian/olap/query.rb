@@ -43,19 +43,23 @@ module Mondrian
         RUBY
       end
 
-      def crossjoin(*axis_members)
-        raise ArgumentError, "cannot use crossjoin method before axis or with_set method" unless @current_set
-        raise ArgumentError, "specify list of members for crossjoin method" if axis_members.empty?
-        members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-        @current_set.replace [:crossjoin, @current_set.clone, members]
-        self
+      %w(crossjoin nonempty_crossjoin).each do |method|
+        class_eval <<-RUBY, __FILE__, __LINE__ + 1
+          def #{method}(*axis_members)
+            raise ArgumentError, "cannot use #{method} method before axis or with_set method" unless @current_set
+            raise ArgumentError, "specify list of members for #{method} method" if axis_members.empty?
+            members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
+            @current_set.replace [:#{method}, @current_set.clone, members]
+            self
+          end
+        RUBY
       end
 
       def except(*axis_members)
         raise ArgumentError, "cannot use except method before axis or with_set method" unless @current_set
         raise ArgumentError, "specify list of members for except method" if axis_members.empty?
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-        if @current_set[0] == :crossjoin
+        if [:crossjoin, :nonempty_crossjoin].include? @current_set[0]
           @current_set[2] = [:except, @current_set[2], members]
         else
           @current_set.replace [:except, @current_set.clone, members]
@@ -119,7 +123,7 @@ module Mondrian
         raise ArgumentError, "cannot use hierarchize method before axis or with_set method" unless @current_set
         order = order && order.to_s.upcase
         raise ArgumentError, "invalid hierarchize order #{order.inspect}" unless order.nil? || order == 'POST'
-        if all.nil? && @current_set[0] == :crossjoin
+        if all.nil? && [:crossjoin, :nonempty_crossjoin].include?(@current_set[0])
           @current_set[2] = [:hierarchize, @current_set[2]]
           @current_set[2] << order if order
         else
@@ -257,6 +261,8 @@ module Mondrian
           case members[0]
           when :crossjoin
             "CROSSJOIN(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])})"
+          when :nonempty_crossjoin
+            "NONEMPTYCROSSJOIN(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])})"
           when :except
             "EXCEPT(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])})"
           when :nonempty

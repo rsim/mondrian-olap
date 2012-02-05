@@ -165,6 +165,13 @@ describe "Query" do
       end
     end
 
+    describe "nonempty_crossjoin" do
+      it "should do nonempty_crossjoin of several dimensions" do
+        @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]')
+        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+      end
+    end
+
     describe "nonempty" do
       it "should limit to set of members with nonempty values" do
         @query.rows('[Product].children').nonempty
@@ -225,6 +232,12 @@ describe "Query" do
           [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]]
       end
 
+      it "should hierarchize last set of nonempty_crossjoin" do
+        @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
+        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'],
+          [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]]
+      end
+
       it "should hierarchize all crossjoin" do
         @query.rows('[Product].children').crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize_all
         @query.rows.should == [:hierarchize, [:crossjoin, ['[Product].children'],
@@ -247,6 +260,12 @@ describe "Query" do
       it "should except from last set of crossjoin" do
         @query.rows('[Product].children').crossjoin('[Customers].[Country].Members').except('[Customers].[USA]')
         @query.rows.should == [:crossjoin, ['[Product].children'],
+          [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]]
+      end
+
+      it "should except from last set of nonempty_crossjoin" do
+        @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members').except('[Customers].[USA]')
+        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'],
           [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]]
       end
     end
@@ -282,6 +301,11 @@ describe "Query" do
       it "should do crossjoin of where conditions" do
         @query.where('[Customers].[USA]').crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]')
         @query.where.should == [:crossjoin, ['[Customers].[USA]'], ['[Time].[2011].[Q1]', '[Time].[2011].[Q2]']]
+      end
+
+      it "should do nonempty_crossjoin of where conditions" do
+        @query.where('[Customers].[USA]').nonempty_crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]')
+        @query.where.should == [:nonempty_crossjoin, ['[Customers].[USA]'], ['[Time].[2011].[Q1]', '[Time].[2011].[Q2]']]
       end
     end
 
@@ -326,6 +350,15 @@ describe "Query" do
         @query.with.should == [
           [ :set, 'SelectedRows',
             [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+          ]
+        ]
+      end
+
+      it "should accept definition with nonempty_crossjoin" do
+        @query.with_set('SelectedRows').as('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]')
+        @query.with.should == [
+          [ :set, 'SelectedRows',
+            [:nonempty_crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
           ]
         ]
       end
@@ -380,6 +413,18 @@ describe "Query" do
           SQL
       end
 
+      it "should return query with nonempty_crossjoin" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          where('[Time].[2010].[Q1]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    NONEMPTYCROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
+              FROM  [Sales]
+              WHERE ([Time].[2010].[Q1])
+          SQL
+      end
+
       it "should return query with where with several same dimension members" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
@@ -401,6 +446,18 @@ describe "Query" do
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE CROSSJOIN([Customers].[USA], {[Time].[2011].[Q1], [Time].[2011].[Q2]})
+          SQL
+      end
+
+      it "should return query with where with nonempty_crossjoin" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Customers].[USA]').nonempty_crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    [Product].children ON ROWS
+              FROM  [Sales]
+              WHERE NONEMPTYCROSSJOIN([Customers].[USA], {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           SQL
       end
 
