@@ -108,6 +108,10 @@ module Mondrian
         @name ||= @raw_hierarchy.getName
       end
 
+      def full_name
+        @full_name ||= @raw_hierarchy.getUniqueName
+      end
+
       def description
         @description ||= @raw_hierarchy.getDescription
       end
@@ -167,6 +171,10 @@ module Mondrian
 
       def name
         @name ||= @raw_level.getName
+      end
+
+      def full_name
+        @full_name ||= @raw_level.getUniqueName
       end
 
       def description

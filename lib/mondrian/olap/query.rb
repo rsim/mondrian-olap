@@ -43,7 +43,7 @@ module Mondrian
         RUBY
       end
 
-      %w(crossjoin nonempty_crossjoin).each do |method|
+      %w(crossjoin nonempty_crossjoin union).each do |method|
         class_eval <<-RUBY, __FILE__, __LINE__ + 1
           def #{method}(*axis_members)
             raise ArgumentError, "cannot use #{method} method before axis or with_set method" unless @current_set
@@ -279,6 +279,8 @@ module Mondrian
             "#{MDX_FUNCTIONS[members[0]]}(#{members_to_mdx(members[1])}, #{members[2]}, #{expression_to_mdx(members[3])})"
           when :hierarchize
             "HIERARCHIZE(#{members_to_mdx(members[1])}#{members[2] && ", #{members[2]}"})"
+          when :union
+            "UNION(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])})"
           else
             raise ArgumentError, "Cannot generate MDX for invalid set operation #{members[0].inspect}"
           end
