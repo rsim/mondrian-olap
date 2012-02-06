@@ -881,6 +881,46 @@ describe "Schema definition" do
               end
             end
           end
+          user_defined_function 'firstUpperName' do
+            ruby do
+              parameters :set
+              returns :string
+              syntax :property
+              def call(set)
+                set.first.getName.upcase
+              end
+            end
+          end
+          user_defined_function 'firstToUpperName' do
+            ruby do
+              parameters :set, :string
+              returns :string
+              syntax :method
+              def call(set, dummy)
+                set.first.getName.upcase
+              end
+            end
+          end
+          user_defined_function 'firstChildUpperName' do
+            ruby do
+              parameters :hierarchy
+              returns :string
+              syntax :property
+              def call_with_evaluator(evaluator, hierarchy)
+                evaluator.getSchemaReader.getMemberChildren(hierarchy.getDefaultMember).first.getName.upcase
+              end
+            end
+          end
+          user_defined_function 'firstLevelChildUpperName' do
+            ruby do
+              parameters :level
+              returns :string
+              syntax :property
+              def call_with_evaluator(evaluator, level)
+                evaluator.getSchemaReader.getLevelMembers(level, false).first.getName.upcase
+              end
+            end
+          end
         end
         @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
       end
@@ -917,6 +957,44 @@ describe "Schema definition" do
           columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
         result.row_members.each_with_index do |member, i|
           result.values[i].should == [member.name.upcase]
+        end
+      end
+
+      it "should execute user defined property on set" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as("{[Customers].CurrentMember}.firstUpperName").
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [member.name.upcase]
+        end
+      end
+
+      it "should execute user defined method on set" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as("{[Customers].CurrentMember}.firstToUpperName('dummy')").
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [member.name.upcase]
+        end
+      end
+
+      it "should execute user defined property on hierarchy" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as("[Customers].firstChildUpperName").
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        first_member = result.row_members.first
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [first_member.name.upcase]
+        end
+      end
+
+      it "should execute user defined property on level" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Upper Name]').as("[Customers].[Name].firstLevelChildUpperName").
+          columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
+        first_member = result.row_members.first
+        result.row_members.each_with_index do |member, i|
+          result.values[i].should == [first_member.name.upcase]
         end
       end
     end

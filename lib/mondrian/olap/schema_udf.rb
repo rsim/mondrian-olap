@@ -148,7 +148,10 @@ JS
             "Scalar" => Java::mondrian.olap.type.ScalarType
           }
           UDF_OTHER_TYPES = {
-            "Member" => Java::mondrian.olap.type.MemberType::Unknown
+            "Member" => Java::mondrian.olap.type.MemberType::Unknown,
+            "Set" => Java::mondrian.olap.type.SetType.new(Java::mondrian.olap.type.MemberType::Unknown),
+            "Hierarchy" => Java::mondrian.olap.type.HierarchyType.new(nil, nil),
+            "Level" => Java::mondrian.olap.type.LevelType::Unknown
           }
 
           def getParameterTypes
@@ -175,10 +178,15 @@ JS
               value = UDF_SCALAR_TYPES[p] ? arguments[i].evaluateScalar(evaluator) : arguments[i].evaluate(evaluator)
               values << value
             end
-            call(*values)
+            call_with_evaluator(evaluator, *values)
           end
           arguments_array_class = java.lang.Class.forName "[Lmondrian.spi.UserDefinedFunction$Argument;", true, class_loader
           add_method_signature("execute", [java.lang.Object, Java::mondrian.olap.Evaluator, arguments_array_class])
+
+          # Override this metho if evaluator is needed
+          def call_with_evaluator(evaluator, *values)
+            call(*values)
+          end
 
           private
 
