@@ -445,7 +445,7 @@ describe "Query" do
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
-              WHERE CROSSJOIN([Customers].[USA], {[Time].[2011].[Q1], [Time].[2011].[Q2]})
+              WHERE CROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           SQL
       end
 
@@ -457,7 +457,7 @@ describe "Query" do
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
-              WHERE NONEMPTYCROSSJOIN([Customers].[USA], {[Time].[2011].[Q1], [Time].[2011].[Q2]})
+              WHERE NONEMPTYCROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           SQL
       end
 
@@ -558,7 +558,7 @@ describe "Query" do
           rows('[Customers].[Country].Members').except('[Customers].[USA]').
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
-                    EXCEPT([Customers].[Country].Members, [Customers].[USA]) ON ROWS
+                    EXCEPT([Customers].[Country].Members, {[Customers].[USA]}) ON ROWS
               FROM  [Sales]
           SQL
       end
@@ -632,7 +632,7 @@ describe "Query" do
                'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
                MEMBER [Measures].[Profit] AS
                '[Measures].[Store Sales] - [Measures].[Store Cost]'
-            SELECT  [Measures].[Profit] ON COLUMNS,
+            SELECT  {[Measures].[Profit]} ON COLUMNS,
                     SelectedRows ON ROWS
               FROM  [Sales]
           SQL

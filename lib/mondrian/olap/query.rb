@@ -255,7 +255,10 @@ module Mondrian
       }
 
       def members_to_mdx(members)
-        if members.length == 1
+        # if only one member which does not end with ]
+        # then assume it is expression which returns set
+        # TODO: maybe always include also single expressions in {...} to avoid some edge cases?
+        if members.length == 1 && members[0][-1,1] != ']'
           members[0]
         elsif members[0].is_a?(Symbol)
           case members[0]
