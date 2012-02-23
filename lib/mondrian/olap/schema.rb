@@ -76,6 +76,7 @@ module Mondrian
 
       class View < SchemaElement
         attributes :alias
+        data_dictionary_names :alias
         # Defines a "table" using SQL query which can have different variants for different underlying databases
         elements :sql
       end
@@ -118,9 +119,9 @@ module Mondrian
       end
 
       class Join < SchemaElement
-        attributes :left_key, :right_key
-        data_dictionary_names :left_key, :right_key # values in XML will be uppercased when using Oracle driver
-        elements :table
+        attributes :left_key, :right_key, :left_alias, :right_alias
+        data_dictionary_names :left_key, :right_key, :left_alias, :right_alias # values in XML will be uppercased when using Oracle driver
+        elements :table, :join
       end
 
       class Level < SchemaElement

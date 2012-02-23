@@ -317,6 +317,51 @@ describe "Schema definition" do
         XML
       end
 
+      it "should render dimension hierarchy with nested joins" do
+        @schema.define do
+          cube 'Sales' do
+            dimension 'Products', :foreign_key => 'product_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Products',
+                        :primary_key => 'product_id', :primary_key_table => 'product' do
+                join :left_key => 'product_class_id', :right_alias => 'product_class', :right_key => 'product_class_id' do
+                  table 'product'
+                  join :left_key  => 'product_type_id', :right_key => 'product_type_id' do
+                    table 'product_class'
+                    table 'product_type'
+                  end
+                end
+                level 'Product Family', :table => 'product_type', :column => 'product_family', :unique_members => true
+                level 'Product Category', :table => 'product_class', :column => 'product_category', :unique_members => false
+                level 'Brand Name', :table => 'product', :column => 'brand_name', :unique_members => false
+                level 'Product Name', :table => 'product', :column => 'product_name', :unique_members => true
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Dimension foreignKey="product_id" name="Products">
+              <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="product_id" primaryKeyTable="product">
+                <Join leftKey="product_class_id" rightAlias="product_class" rightKey="product_class_id">
+                  <Table name="product"/>
+                  <Join leftKey="product_type_id" rightKey="product_type_id">
+                    <Table name="product_class"/>
+                    <Table name="product_type"/>
+                  </Join>
+                </Join>
+                <Level column="product_family" name="Product Family" table="product_type" uniqueMembers="true"/>
+                <Level column="product_category" name="Product Category" table="product_class" uniqueMembers="false"/>
+                <Level column="brand_name" name="Brand Name" table="product" uniqueMembers="false"/>
+                <Level column="product_name" name="Product Name" table="product" uniqueMembers="true"/>
+              </Hierarchy>
+            </Dimension>
+          </Cube>
+        </Schema>
+        XML
+      end
+
     end
 
     describe "Measure" do
