@@ -303,13 +303,13 @@ module Mondrian
         if @where[0].is_a?(Symbol) ||
             @where.length > 1 && @where.map{|full_name| extract_dimension_name(full_name)}.uniq.length == 1
           members_to_mdx(@where)
-        # generate tupple MDX expression
+        # generate tuple MDX expression
         else
-          where_to_mdx_tupple
+          where_to_mdx_tuple
         end
       end
 
-      def where_to_mdx_tupple
+      def where_to_mdx_tuple
         mdx = '('
         mdx << @where.map do |condition|
           condition
@@ -331,7 +331,7 @@ module Mondrian
       end
 
       def extract_dimension_name(full_name)
-        if full_name =~ /\A\[([^\]]+)\]/
+        if full_name =~ /\A[^\[]*\[([^\]]+)\]/
           $1
         end
       end

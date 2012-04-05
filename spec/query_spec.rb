@@ -437,6 +437,18 @@ describe "Query" do
           SQL
       end
 
+      it "should return query with where with several different dimension members returned by function" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('Head([Customers].Members).Item(0)', 'Head([Gender].Members).Item(0)').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    [Product].children ON ROWS
+              FROM  [Sales]
+              WHERE (Head([Customers].Members).Item(0), Head([Gender].Members).Item(0))
+          SQL
+      end
+
       it "should return query with where with crossjoin" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
