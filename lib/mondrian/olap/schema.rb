@@ -50,7 +50,7 @@ module Mondrian
       public
 
       attributes :name, :description
-      elements :cube, :dimension, :user_defined_function
+      elements :dimension, :cube, :user_defined_function
 
       class Cube < SchemaElement
         attributes :name, :description,
