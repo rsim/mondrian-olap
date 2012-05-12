@@ -1170,4 +1170,44 @@ describe "Schema definition" do
 
   end
 
+  describe "errors" do
+    before(:each) do
+      @schema = Mondrian::OLAP::Schema.new
+    end
+
+    it "should raise error when invalid schema" do
+      @schema.define do
+        cube 'Sales' do
+        end
+      end
+      expect {
+        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Internal error: Must specify fact table of cube 'Sales'"
+        e.root_cause_message.should == "Internal error: Must specify fact table of cube 'Sales'"
+      }
+    end
+
+    it "should raise error when invalid calculated member formula" do
+      @schema.define do
+        cube 'Sales' do
+          table 'sales'
+          calculated_member 'Dummy' do
+            dimension 'Measures'
+            formula 'Dummy(123)'
+          end
+        end
+      end
+      expect {
+        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Named set in cube 'Sales' has bad formula"
+        e.root_cause_message.should == "No function matches signature 'Dummy(<Numeric Expression>)'"
+      }
+    end
+
+  end
+
 end

@@ -681,4 +681,42 @@ describe "Query" do
 
   end
 
+  describe "errors" do
+    before(:each) do
+      @query = @olap.from('Sales')
+    end
+
+    it "should raise error when invalid MDX statement" do
+      expect {
+        @olap.execute "SELECT dummy FROM"
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
+        e.root_cause_message.should == "Syntax error at line 1, column 14, token 'FROM'"
+      }
+    end
+
+    it "should raise error when invalid MDX object" do
+      expect {
+        @query.columns('[Measures].[Dummy]').execute
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
+        e.root_cause_message.should == "MDX object '[Measures].[Dummy]' not found in cube 'Sales'"
+      }
+    end
+
+    it "should raise error when invalid formula" do
+      expect {
+        @query.with_member('[Measures].[Dummy]').as('Dummy(123)').
+          columns('[Measures].[Dummy]').execute
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
+        e.root_cause_message.should == "No function matches signature 'Dummy(<Numeric Expression>)'"
+      }
+    end
+
+  end
+
 end

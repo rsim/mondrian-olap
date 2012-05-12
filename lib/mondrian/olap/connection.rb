@@ -40,6 +40,12 @@ module Mondrian
         @raw_schema = @raw_catalog.getSchemas.first
         @connected = true
         true
+      rescue NativeException => e
+        if e.message =~ NATIVE_ERROR_REGEXP
+          raise Mondrian::OLAP::Error.new(e)
+        else
+          raise
+        end
       end
 
       def connected?
@@ -56,6 +62,12 @@ module Mondrian
       def execute(query_string)
         statement = @raw_connection.prepareOlapStatement(query_string)
         Result.new(self, statement.executeQuery())
+      rescue NativeException => e
+        if e.message =~ NATIVE_ERROR_REGEXP
+          raise Mondrian::OLAP::Error.new(e)
+        else
+          raise
+        end
       end
 
       def from(cube_name)

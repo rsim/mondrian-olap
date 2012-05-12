@@ -210,6 +210,12 @@ module Mondrian
 
       def execute
         @connection.execute to_mdx
+      rescue NativeException => e
+        if e.message =~ NATIVE_ERROR_REGEXP
+          raise Mondrian::OLAP::Error.new(e)
+        else
+          raise
+        end
       end
 
       private
