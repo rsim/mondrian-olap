@@ -4,9 +4,9 @@ gem 'nokogiri', '~> 1.5.0'
 
 group :development do
   gem 'jruby-openssl'
-  gem 'jeweler', '~> 1.5.2'
+  gem 'jeweler', '~> 1.8.3'
   gem 'rdoc'
-  gem 'rspec', '~> 2.5'
+  gem 'rspec', '~> 2.10'
   gem 'autotest'
   gem 'jdbc-mysql'
   gem 'jdbc-postgres'
@@ -16,5 +16,5 @@ group :development do
   gem 'activerecord-jdbc-adapter', '= 1.1.1'
   gem 'activerecord-oracle_enhanced-adapter', :require => false
   gem 'coffee-script'
-  gem 'therubyrhino', :git => 'git://github.com/rsim/therubyrhino.git'
+  gem 'therubyrhino', '= 1.73.0'
 end
