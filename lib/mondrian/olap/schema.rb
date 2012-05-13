@@ -203,6 +203,7 @@ module Mondrian
           # (if the database permits columns in the SELECT that are not in the GROUP BY).
           # This can be a significant performance enhancement on some databases, such as MySQL.
           :depends_on_level_value
+        data_dictionary_names :column
         elements :property_formatter
       end
 
