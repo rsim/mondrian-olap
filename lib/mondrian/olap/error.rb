@@ -33,6 +33,10 @@ module Mondrian
       def add_root_cause_to_backtrace
         bt = @native_error.backtrace
         if @root_cause
+          root_cause_bt = Array(@root_cause.backtrace)
+          root_cause_bt[0,5].reverse.each do |bt_line|
+            bt.unshift "root cause:   #{bt_line}"
+          end
           bt.unshift "root cause: #{@root_cause.java_class.name}: #{@root_cause.message.chomp}"
         end
         set_backtrace bt
