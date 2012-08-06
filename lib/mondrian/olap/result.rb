@@ -106,6 +106,7 @@ module Mondrian
 
       # specify drill through cell position, for example, as
       #   :row => 0, :cell => 1
+      # specify max returned rows with :max_rows parameter
       def drill_through(position_params = {})
         cell_params = []
         axes_count.times do |i|
@@ -126,7 +127,14 @@ module Mondrian
       class DrillThrough
         def self.from_raw_cell(raw_cell, params = {})
           max_rows = params[:max_rows] || -1
-          if raw_result_set = raw_cell.drillThroughInternal(max_rows, -1, nil, true, nil, nil)
+          # workaround to avoid calling raw_cell.drillThroughInternal private method
+          # which fails when running inside TorqueBox
+          cell_field = raw_cell.java_class.declared_field('cell')
+          cell_field.accessible = true
+          rolap_cell = cell_field.value(raw_cell)
+          if rolap_cell.canDrillThrough
+            sql_statement = rolap_cell.drillThroughInternal(max_rows, -1, nil, true, nil)
+            raw_result_set = sql_statement.getWrappedResultSet
             new(raw_result_set)
           end
         end
