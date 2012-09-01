@@ -149,13 +149,15 @@ module Mondrian
       end
 
       def child_names(*parent_member_segment_names)
-        parent_member = if parent_member_segment_names.empty?
-          return root_member_names unless has_all?
-          all_member
-        else
-          @dimension.cube.member_by_segments(*parent_member_segment_names)
+        Error.wrap_native_exception do
+          parent_member = if parent_member_segment_names.empty?
+            return root_member_names unless has_all?
+            all_member
+          else
+            @dimension.cube.member_by_segments(*parent_member_segment_names)
+          end
+          parent_member && parent_member.children.map{|m| m.name}
         end
-        parent_member && parent_member.children.map{|m| m.name}
       end
     end
 
@@ -186,13 +188,17 @@ module Mondrian
           if cardinality >= 0
             cardinality
           else
-            @raw_level.getMembers.size
+            Error.wrap_native_exception do
+              @raw_level.getMembers.size
+            end
           end
         end
       end
 
       def members
-        @raw_level.getMembers.map{|m| Member.new(m)}
+        Error.wrap_native_exception do
+          @raw_level.getMembers.map{|m| Member.new(m)}
+        end
       end
     end
 
@@ -250,24 +256,28 @@ module Mondrian
       end
 
       def children
-        @raw_member.getChildMembers.map{|m| Member.new(m)}
+        Error.wrap_native_exception do
+          @raw_member.getChildMembers.map{|m| Member.new(m)}
+        end
       end
 
       def descendants_at_level(level)
-        raw_level = @raw_member.getLevel
-        raw_levels = raw_level.getHierarchy.getLevels
-        current_level_index = raw_levels.indexOf(raw_level)
-        descendants_level_index = raw_levels.indexOfName(level)
+        Error.wrap_native_exception do
+          raw_level = @raw_member.getLevel
+          raw_levels = raw_level.getHierarchy.getLevels
+          current_level_index = raw_levels.indexOf(raw_level)
+          descendants_level_index = raw_levels.indexOfName(level)
 
-        return nil unless descendants_level_index > current_level_index
+          return nil unless descendants_level_index > current_level_index
 
-        members = [self]
-        (descendants_level_index - current_level_index).times do
-          members = members.map do |member|
-            member.children
-          end.flatten
+          members = [self]
+          (descendants_level_index - current_level_index).times do
+            members = members.map do |member|
+              member.children
+            end.flatten
+          end
+          members
         end
-        members
       end
 
       def property_value(name)

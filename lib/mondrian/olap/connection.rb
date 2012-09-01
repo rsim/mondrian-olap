@@ -17,34 +17,30 @@ module Mondrian
       end
 
       def connect
-        # hack to call private constructor of MondrianOlap4jDriver
-        # to avoid using DriverManager which fails to load JDBC drivers
-        # because of not seeing JRuby required jar files
-        cons = Java::MondrianOlap4j::MondrianOlap4jDriver.java_class.declared_constructor
-        cons.accessible = true
-        driver = cons.new_instance.to_java
+        Error.wrap_native_exception do
+          # hack to call private constructor of MondrianOlap4jDriver
+          # to avoid using DriverManager which fails to load JDBC drivers
+          # because of not seeing JRuby required jar files
+          cons = Java::MondrianOlap4j::MondrianOlap4jDriver.java_class.declared_constructor
+          cons.accessible = true
+          driver = cons.new_instance.to_java
 
-        props = java.util.Properties.new
-        props.setProperty('JdbcUser', @params[:username]) if @params[:username]
-        props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
+          props = java.util.Properties.new
+          props.setProperty('JdbcUser', @params[:username]) if @params[:username]
+          props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
 
-        conn_string = connection_string
+          conn_string = connection_string
 
-        # TODO: removed workaround for Mondrian ServiceDiscovery
-        # need to check if database dialects are always loaded by ServiceDiscovery detected class loader
-        @raw_jdbc_connection = driver.connect(conn_string, props)
+          # TODO: removed workaround for Mondrian ServiceDiscovery
+          # need to check if database dialects are always loaded by ServiceDiscovery detected class loader
+          @raw_jdbc_connection = driver.connect(conn_string, props)
 
-        @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
-        @raw_catalog = @raw_connection.getOlapCatalog
-        # currently it is assumed that there is just one schema per connection catalog
-        @raw_schema = @raw_catalog.getSchemas.first
-        @connected = true
-        true
-      rescue NativeException => e
-        if e.message =~ NATIVE_ERROR_REGEXP
-          raise Mondrian::OLAP::Error.new(e)
-        else
-          raise
+          @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
+          @raw_catalog = @raw_connection.getOlapCatalog
+          # currently it is assumed that there is just one schema per connection catalog
+          @raw_schema = @raw_catalog.getSchemas.first
+          @connected = true
+          true
         end
       end
 
@@ -60,13 +56,9 @@ module Mondrian
       end
 
       def execute(query_string)
-        statement = @raw_connection.prepareOlapStatement(query_string)
-        Result.new(self, statement.executeQuery())
-      rescue NativeException => e
-        if e.message =~ NATIVE_ERROR_REGEXP
-          raise Mondrian::OLAP::Error.new(e)
-        else
-          raise
+        Error.wrap_native_exception do
+          statement = @raw_connection.prepareOlapStatement(query_string)
+          Result.new(self, statement.executeQuery())
         end
       end
 

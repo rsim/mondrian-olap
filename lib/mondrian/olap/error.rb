@@ -1,7 +1,7 @@
 module Mondrian
   module OLAP
 
-    NATIVE_ERROR_REGEXP = /^(org\.olap4j\.|mondrian\.)/
+    NATIVE_ERROR_REGEXP = /^(org\.olap4j\.|mondrian\.|java\.lang\.reflect\.UndeclaredThrowableException\: Mondrian Error\:)/
 
     class Error < StandardError
       # root_cause will be nil if there is no cause for wrapped native error
@@ -13,6 +13,16 @@ module Mondrian
         get_root_cause
         super(native_error.message)
         add_root_cause_to_backtrace
+      end
+
+      def self.wrap_native_exception
+        yield
+      rescue NativeException => e
+        if e.message =~ NATIVE_ERROR_REGEXP
+          raise Mondrian::OLAP::Error.new(e)
+        else
+          raise
+        end
       end
 
       private

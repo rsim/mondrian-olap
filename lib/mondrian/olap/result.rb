@@ -108,19 +108,15 @@ module Mondrian
       #   :row => 0, :cell => 1
       # specify max returned rows with :max_rows parameter
       def drill_through(position_params = {})
-        cell_params = []
-        axes_count.times do |i|
-          axis_symbol = AXIS_SYMBOLS[i]
-          raise ArgumentError, "missing position #{axis_symbol.inspect}" unless axis_position = position_params[axis_symbol]
-          cell_params << Java::JavaLang::Integer.new(axis_position)
-        end
-        raw_cell = @raw_cell_set.getCell(cell_params)
-        DrillThrough.from_raw_cell(raw_cell, position_params)
-      rescue NativeException => e
-        if e.message =~ NATIVE_ERROR_REGEXP
-          raise Mondrian::OLAP::Error.new(e)
-        else
-          raise
+        Error.wrap_native_exception do
+          cell_params = []
+          axes_count.times do |i|
+            axis_symbol = AXIS_SYMBOLS[i]
+            raise ArgumentError, "missing position #{axis_symbol.inspect}" unless axis_position = position_params[axis_symbol]
+            cell_params << Java::JavaLang::Integer.new(axis_position)
+          end
+          raw_cell = @raw_cell_set.getCell(cell_params)
+          DrillThrough.from_raw_cell(raw_cell, position_params)
         end
       end
 
