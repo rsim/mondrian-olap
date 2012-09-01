@@ -147,11 +147,11 @@ module Mondrian
           # When generating SQL statements, Mondrian encloses values for String columns in quotation marks,
           # but leaves values for Integer and Numeric columns un-quoted.
           # Date, Time, and Timestamp values are quoted according to the SQL dialect.
-          # For a SQL-compliant dialect, the values appear prefixed by their typename, 
+          # For a SQL-compliant dialect, the values appear prefixed by their typename,
           # for example, "DATE '2006-06-01'".
           # Default value: 'String'
           :type,
-          # Whether members are unique across all parents. 
+          # Whether members are unique across all parents.
           # For example, zipcodes are unique across all states.
           # The first level's members are always unique.
           # Default value: false
@@ -168,7 +168,10 @@ module Mondrian
           # IfBlankName (a member doesn't appear if its name is null, empty or all whitespace);
           # and IfParentsName (a member appears unless its name matches the parent's.
           # Default value: 'Never'
-          :hide_member_if
+          :hide_member_if,
+          # The estimated number of members in this level. Setting this property improves the performance of
+          # MDSCHEMA_LEVELS, MDSCHEMA_HIERARCHIES and MDSCHEMA_DIMENSIONS XMLA requests
+          :approx_row_count
         data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column # values in XML will be uppercased when using Oracle driver
         elements :key_expression, :name_expression, :ordinal_expression, :member_formatter, :property
       end
