@@ -22,7 +22,7 @@ module Mondrian
           instance_variable_set("@#{pluralize(element)}", [])
         end
         @xml_fragments = []
-        instance_eval &block if block
+        instance_eval(&block) if block
       end
 
       def self.attributes(*names)

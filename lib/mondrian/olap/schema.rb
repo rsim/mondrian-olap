@@ -20,7 +20,7 @@ module Mondrian
         name, attributes = self.class.pre_process_arguments(name, attributes)
         pre_process_attributes(attributes)
         @attributes[:name] = name || @attributes[:name] || 'default' # otherwise connection with empty name fails
-        instance_eval &block if block
+        instance_eval(&block) if block
         self
       end
 

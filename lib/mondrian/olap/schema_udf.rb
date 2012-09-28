@@ -221,7 +221,7 @@ JS
             self.class.const_set(udf_class_name, udf_class) if udf_class_name
           end
           udf_class.function_name = name
-          udf_class.class_eval &block
+          udf_class.class_eval(&block)
           udf_java_class = udf_class.become_java!(false)
 
           class_name udf_java_class.getName
