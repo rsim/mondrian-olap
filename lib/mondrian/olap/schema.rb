@@ -50,7 +50,7 @@ module Mondrian
       public
 
       attributes :name, :description
-      elements :cube, :user_defined_function
+      elements :cube, :user_defined_function, :role
 
       class Cube < SchemaElement
         attributes :name, :description,
@@ -296,6 +296,81 @@ module Mondrian
       class AggExclude < SchemaElement
         attributes :name, :pattern, :ignorecase
         data_dictionary_names :name, :pattern
+      end
+
+      class Role < SchemaElement
+        attributes :name
+        elements :schema_grant, :union
+      end
+
+      class SchemaGrant < SchemaElement
+        # access may be "all", "all_dimensions", "custom" or "none".
+        # If access is "all_dimensions", the role has access to all dimensions but still needs explicit access to cubes.
+        # If access is "custom", no access will be inherited by cubes for which no explicit rule is set.
+        # If access is "all_dimensions", an implicut access is given to all dimensions of the schema's cubes,
+        # provided the cube's access attribute is either "custom" or "all"
+        attributes :access
+        elements :cube_grant
+      end
+
+      class CubeGrant < SchemaElement
+        # access may be "all", "custom", or "none".
+        # If access is "custom", no access will be inherited by the dimensions of this cube,
+        # unless the parent SchemaGrant is set to "all_dimensions"
+        attributes :access,
+          # The unique name of the cube
+          :cube
+        elements :dimension_grant, :hierarchy_grant
+      end
+
+      class DimensionGrant < SchemaElement
+        # access may be "all", "custom" or "none".
+        # Note that a role is implicitly given access to a dimension when it is given "all" acess to a cube.
+        # If access is "custom", no access will be inherited by the hierarchies of this dimension.
+        # If the parent schema access is "all_dimensions", this timension will inherit access "all".
+        # See also the "all_dimensions" option of the "SchemaGrant" element.
+        attributes :access,
+          # The unique name of the dimension
+          :dimension
+      end
+
+      class HierarchyGrant < SchemaElement
+        # access may be "all", "custom" or "none".
+        # If access is "custom", you may also specify the attributes :top_level, :bottom_level, and the member grants.
+        # If access is "custom", the child levels of this hierarchy will not inherit access rights from this hierarchy,
+        # should there be no explicit rules defined for the said child level.
+        attributes :access,
+          # The unique name of the hierarchy
+          :hierarchy,
+          # Unique name of the highest level of the hierarchy from which this role is allowed to see members.
+          # May only be specified if the HierarchyGrant.access is "custom".
+          # If not specified, role can see members up to the top level.
+          :top_level,
+          # Unique name of the lowest level of the hierarchy from which this role is allowed to see members.
+          # May only be specified if the HierarchyGrant.access is "custom".
+          # If not specified, role can see members down to the leaf level.
+          :bottom_level,
+          # Policy which determines how cell values are calculated if not all of the children of the current cell
+          # are visible to the current role.
+          # Allowable values are "full" (the default), "partial", and "hidden".
+          :rollup_policy
+        elements :member_grant
+      end
+
+      class MemberGrant < SchemaElement
+        # The children of this member inherit that access.
+        # You can implicitly see a member if you can see any of its children.
+        attributes :access,
+          # The unique name of the member
+          :member
+      end
+
+      class Union < SchemaElement
+        elements :role_usage
+      end
+
+      class RoleUsage < SchemaElement
+        attributes :role_name
       end
 
     end

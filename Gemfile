@@ -17,4 +17,5 @@ group :development do
   gem 'activerecord-oracle_enhanced-adapter', :require => false
   gem 'coffee-script', '~> 2.2.0'
   gem 'therubyrhino', '~> 1.73.1'
+  gem 'pry', :require => false
 end

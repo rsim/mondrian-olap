@@ -82,12 +82,40 @@ module Mondrian
         raw_cache_control.flushSchemaCache
       end
 
+      def available_role_names
+        @raw_connection.getAvailableRoleNames.map
+      end
+
+      def role_name
+        @raw_connection.getRoleName
+      end
+
+      def role_names
+        @raw_connection.getRoleNames.map
+      end
+
+      def role_name=(name)
+        Error.wrap_native_exception do
+          @raw_connection.setRoleName(name)
+        end
+      end
+
+      def role_names=(names)
+        Error.wrap_native_exception do
+          @raw_connection.setRoleNames(Array(names))
+        end
+      end
+
       private
 
       def connection_string
         string = "jdbc:mondrian:Jdbc=#{quote_string(jdbc_uri)};JdbcDrivers=#{jdbc_driver};"
         # by default use content checksum to reload schema when catalog has changed
         string << "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
+        if role = @params[:role] || @params[:roles]
+          roles = Array(role).map{|r| r && r.to_s.gsub(',', ',,')}.compact
+          string << "Role=#{quote_string(roles.join(','))};" unless roles.empty?
+        end
         string << (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
 
