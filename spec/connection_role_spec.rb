@@ -48,6 +48,17 @@ describe "Connection role" do
           end
         end
         role role_name2
+
+        # to test that Role elements are generated before UserDefinedFunction
+        user_defined_function 'Factorial' do
+          ruby do
+            parameters :numeric
+            returns :numeric
+            def call(n)
+              n <= 1 ? 1 : n * call(n - 1)
+            end
+          end
+        end
       end
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
     end
