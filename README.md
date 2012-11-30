@@ -86,7 +86,7 @@ Here is example how to define OLAP schema and its mapping to relational database
           hierarchy 'Weekly', :has_all => false, :primary_key => 'id' do
             table 'time'
             level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
-            level 'Week', :column => 'weak_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
+            level 'Week', :column => 'week_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
           end
         end
         measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
