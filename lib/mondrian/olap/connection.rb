@@ -83,7 +83,7 @@ module Mondrian
       end
 
       def available_role_names
-        @raw_connection.getAvailableRoleNames.map
+        @raw_connection.getAvailableRoleNames.to_a
       end
 
       def role_name
@@ -91,7 +91,7 @@ module Mondrian
       end
 
       def role_names
-        @raw_connection.getRoleNames.map
+        @raw_connection.getRoleNames.to_a
       end
 
       def role_name=(name)
