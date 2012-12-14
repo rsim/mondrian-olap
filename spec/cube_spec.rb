@@ -86,6 +86,10 @@ describe "Cube" do
       @cube.dimension('Gender').name.should == 'Gender'
     end
 
+    it "should return nil when getting dimension with invalid name" do
+      @cube.dimension('invalid').should be_nil
+    end
+
     it "should get dimension description" do
       @cube.dimension('Gender').description.should == 'Gender description'
     end
@@ -126,6 +130,10 @@ describe "Cube" do
 
     it "should get hierarchy by name" do
       @cube.dimension('Time').hierarchy('Time.Weekly').name.should == 'Time.Weekly'
+    end
+
+    it "should return nil when getting hierarchy with invalid name" do
+      @cube.dimension('Time').hierarchy('invalid').should be_nil
     end
 
     it "should get default hierarchy" do
@@ -200,6 +208,10 @@ describe "Cube" do
 
     it "should get level description" do
       @cube.dimension('Gender').hierarchy.level('Gender').description.should == 'Gender level description'
+    end
+
+    it "should return nil when getting level with invalid name" do
+      @cube.dimension('Gender').hierarchy.level('invalid').should be_nil
     end
 
     it "should get primary hierarchy level members" do

@@ -49,77 +49,83 @@ Read more about about [defining Mondrian OLAP schema](http://mondrian.pentaho.co
 
 Here is example how to define OLAP schema and its mapping to relational database tables and columns using mondrian-olap:
 
-    require "rubygems"
-    require "mondrian-olap"
+```ruby
+require "rubygems"
+require "mondrian-olap"
 
-    schema = Mondrian::OLAP::Schema.define do
-      cube 'Sales' do
-        table 'sales'
-        dimension 'Customers', :foreign_key => 'customer_id' do
-          hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
-            table 'customers'
-            level 'Country', :column => 'country', :unique_members => true
-            level 'State Province', :column => 'state_province', :unique_members => true
-            level 'City', :column => 'city', :unique_members => false
-            level 'Name', :column => 'fullname', :unique_members => true
-          end
-        end
-        dimension 'Products', :foreign_key => 'product_id' do
-          hierarchy :has_all => true, :all_member_name => 'All Products',
-                    :primary_key => 'id', :primary_key_table => 'products' do
-            join :left_key => 'product_class_id', :right_key => 'id' do
-              table 'products'
-              table 'product_classes'
-            end
-            level 'Product Family', :table => 'product_classes', :column => 'product_family', :unique_members => true
-            level 'Brand Name', :table => 'products', :column => 'brand_name', :unique_members => false
-            level 'Product Name', :table => 'products', :column => 'product_name', :unique_members => true
-          end
-        end
-        dimension 'Time', :foreign_key => 'time_id', :type => 'TimeDimension' do
-          hierarchy :has_all => false, :primary_key => 'id' do
-            table 'time'
-            level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
-            level 'Quarter', :column => 'quarter', :unique_members => false, :level_type => 'TimeQuarters'
-            level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeMonths'
-          end
-          hierarchy 'Weekly', :has_all => false, :primary_key => 'id' do
-            table 'time'
-            level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
-            level 'Week', :column => 'weak_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
-          end
-        end
-        measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
-        measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
+schema = Mondrian::OLAP::Schema.define do
+  cube 'Sales' do
+    table 'sales'
+    dimension 'Customers', :foreign_key => 'customer_id' do
+      hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+        table 'customers'
+        level 'Country', :column => 'country', :unique_members => true
+        level 'State Province', :column => 'state_province', :unique_members => true
+        level 'City', :column => 'city', :unique_members => false
+        level 'Name', :column => 'fullname', :unique_members => true
       end
     end
+    dimension 'Products', :foreign_key => 'product_id' do
+      hierarchy :has_all => true, :all_member_name => 'All Products',
+                :primary_key => 'id', :primary_key_table => 'products' do
+        join :left_key => 'product_class_id', :right_key => 'id' do
+          table 'products'
+          table 'product_classes'
+        end
+        level 'Product Family', :table => 'product_classes', :column => 'product_family', :unique_members => true
+        level 'Brand Name', :table => 'products', :column => 'brand_name', :unique_members => false
+        level 'Product Name', :table => 'products', :column => 'product_name', :unique_members => true
+      end
+    end
+    dimension 'Time', :foreign_key => 'time_id', :type => 'TimeDimension' do
+      hierarchy :has_all => false, :primary_key => 'id' do
+        table 'time'
+        level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
+        level 'Quarter', :column => 'quarter', :unique_members => false, :level_type => 'TimeQuarters'
+        level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeMonths'
+      end
+      hierarchy 'Weekly', :has_all => false, :primary_key => 'id' do
+        table 'time'
+        level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
+        level 'Week', :column => 'week_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
+      end
+    end
+    measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
+    measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
+  end
+end
+```
 
 ### Connection creation
 
 When schema is defined it is necessary to establish OLAP connection to database. Here is example how to connect to MySQL database using the schema object that was defined previously:
 
-    require "jdbc/mysql"
+```ruby
+require "jdbc/mysql"
 
-    olap = Mondrian::OLAP::Connection.create(
-      :driver => 'mysql',
-      :host => 'localhost,
-      :database => 'mondrian_test',
-      :username => 'mondrian_user',
-      :password => 'secret',
-      :schema => schema
-    )
+olap = Mondrian::OLAP::Connection.create(
+  :driver => 'mysql',
+  :host => 'localhost,
+  :database => 'mondrian_test',
+  :username => 'mondrian_user',
+  :password => 'secret',
+  :schema => schema
+)
+```
 
 ### MDX queries
 
 Mondrian OLAP provides MDX query language. [Read more about MDX](http://mondrian.pentaho.com/documentation/mdx.php).
 mondrian-olap allows executing of MDX queries, for example query for "Get sales amount and number of units (on columns) of all product families (on rows) sold in California during Q1 of 2010":
 
-    result = olap.execute <<-MDX
-      SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
-              {[Products].children} ON ROWS
-        FROM  [Sales]
-        WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
-    MDX
+```ruby
+result = olap.execute <<-MDX
+  SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+          {[Products].children} ON ROWS
+    FROM  [Sales]
+    WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
+MDX
+```
 
 which would correspond to the following SQL query:
 
@@ -136,36 +142,42 @@ which would correspond to the following SQL query:
 
 and then get axis and cells of result object:
 
-    result.axes_count         # => 2
-    result.column_names       # => ["Unit Sales", "Store Sales"]
-    result.column_full_names  # => ["[Measures].[Unit Sales]", "[Measures].[Store Sales]"]
-    result.row_names          # => e.g. ["Drink", "Food", "Non-Consumable"]
-    result.row_full_names     # => e.g. ["[Products].[Drink]", "[Products].[Food]", "[Products].[Non-Consumable]"]
-    result.values             # => [[..., ...], [..., ...], [..., ...]]
-                              # (three rows, each row containing value for "unit sales" and "store sales")
+```ruby
+result.axes_count         # => 2
+result.column_names       # => ["Unit Sales", "Store Sales"]
+result.column_full_names  # => ["[Measures].[Unit Sales]", "[Measures].[Store Sales]"]
+result.row_names          # => e.g. ["Drink", "Food", "Non-Consumable"]
+result.row_full_names     # => e.g. ["[Products].[Drink]", "[Products].[Food]", "[Products].[Non-Consumable]"]
+result.values             # => [[..., ...], [..., ...], [..., ...]]
+                          # (three rows, each row containing value for "unit sales" and "store sales")
+```
 
 ### Query builder methods
 
 MDX queries could be built and executed also using Ruby methods in a similar way as ActiveRecord/Arel queries are made.
 Previous MDX query can be executed as:
 
-    olap.from('Sales').
-    columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-    rows('[Products].children').
-    where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
-    execute
+```ruby
+olap.from('Sales').
+columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+rows('[Products].children').
+where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
+execute
+```
 
 Here is example of more complex query "Get sales amount and profit % of top 50 products cross-joined with USA and Canada country sales during Q1 of 2010":
 
-    olap.from('Sales').
-    with_member('[Measures].[ProfitPct]').
-      as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-      :format_string => 'Percent').
-    columns('[Measures].[Store Sales]', '[Measures].[ProfitPct]').
-    rows('[Products].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-      top_count(50, '[Measures].[Store Sales]').
-    where('[Time].[2010].[Q1]').
-    execute
+```ruby
+olap.from('Sales').
+with_member('[Measures].[ProfitPct]').
+  as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
+  :format_string => 'Percent').
+columns('[Measures].[Store Sales]', '[Measures].[ProfitPct]').
+rows('[Products].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+  top_count(50, '[Measures].[Store Sales]').
+where('[Time].[2010].[Q1]').
+execute
+```
 
 See more examples of queries in `spec/query_spec.rb`.
 
@@ -175,33 +187,92 @@ Currently there are query builder methods just for most frequently used MDX func
 
 mondrian-olap provides also methods for querying dimensions and members:
 
-    cube = olap.cube('Sales')
-    cube.dimension_names                    # => ['Measures', 'Customers', 'Products', 'Time']
-    cube.dimensions                         # => array of dimension objects
-    cube.dimension('Customers')             # => customers dimension object
-    cube.dimension('Time').hierarchy_names  # => ['Time', 'Time.Weekly']
-    cube.dimension('Time').hierarchies      # => array of hierarchy objects
-    cube.dimension('Customers').hierarchy   # => default customers dimension hierarchy
-    cube.dimension('Customers').hierarchy.level_names
-                                            # => ['(All)', 'Country', 'State Province', 'City', 'Name']
-    cube.dimension('Customers').hierarchy.levels
-                                            # => array of hierarchy level objects
-    cube.dimension('Customers').hierarchy.level('Country').members
-                                            # => array of all level members
-    cube.member('[Customers].[USA].[CA]')   # => lookup member by full name
-    cube.member('[Customers].[USA].[CA]').children
-                                            # => get all children of member in deeper hierarchy level
-    cube.member('[Customers].[USA]').descendants_at_level('City')
-                                            # => get all descendants of member in specified hierarchy level
+```ruby
+cube = olap.cube('Sales')
+cube.dimension_names                    # => ['Measures', 'Customers', 'Products', 'Time']
+cube.dimensions                         # => array of dimension objects
+cube.dimension('Customers')             # => customers dimension object
+cube.dimension('Time').hierarchy_names  # => ['Time', 'Time.Weekly']
+cube.dimension('Time').hierarchies      # => array of hierarchy objects
+cube.dimension('Customers').hierarchy   # => default customers dimension hierarchy
+cube.dimension('Customers').hierarchy.level_names
+                                        # => ['(All)', 'Country', 'State Province', 'City', 'Name']
+cube.dimension('Customers').hierarchy.levels
+                                        # => array of hierarchy level objects
+cube.dimension('Customers').hierarchy.level('Country').members
+                                        # => array of all level members
+cube.member('[Customers].[USA].[CA]')   # => lookup member by full name
+cube.member('[Customers].[USA].[CA]').children
+                                        # => get all children of member in deeper hierarchy level
+cube.member('[Customers].[USA]').descendants_at_level('City')
+                                        # => get all descendants of member in specified hierarchy level
+```
 
 See more examples of dimension and member queries in `spec/cube_spec.rb`.
+
+### User defined MDX functions
+
+You can define new MDX functions using JavaScript, CoffeeScript or Ruby language that you can later use
+either in calculated member formulas or in MDX queries. Here are examples of user defined functions in Ruby:
+
+```ruby
+schema = Mondrian::OLAP::Schema.define do
+  # ... cube definitions ...
+  user_defined_function 'Factorial' do
+    ruby do
+      parameters :numeric
+      returns :numeric
+      def call(n)
+        n <= 1 ? 1 : n * call(n - 1)
+      end
+    end
+  end
+  user_defined_function 'UpperName' do
+    ruby do
+      parameters :member
+      returns :string
+      syntax :property
+      def call(member)
+        member.getName.upcase
+      end
+    end
+  end
+end
+```
+
+See more examples of user defined functions in `spec/schema_definition_spec.rb`.
+
+### Data access roles
+
+In schema you can define data access roles which can be selected for connection and which will limit access just to
+subset of measures and dimension members. Here is example of data access role definition:
+
+```ruby
+schema = Mondrian::OLAP::Schema.define do
+  # ... cube definitions ...
+  role 'California manager' do
+    schema_grant :access => 'none' do
+      cube_grant :cube => 'Sales', :access => 'all' do
+        dimension_grant :dimension => '[Measures]', :access => 'all'
+        hierarchy_grant :hierarchy => '[Customers]', :access => 'custom',
+                        :top_level => '[Customers].[State Province]', :bottom_level => '[Customers].[City]' do
+          member_grant :member => '[Customers].[USA].[CA]', :access => 'all'
+          member_grant :member => '[Customers].[USA].[CA].[Los Angeles]', :access => 'none'
+        end
+      end
+    end
+  end
+end
+```
+
+See more examples of data access roles in `spec/connection_role_spec.rb`.
 
 REQUIREMENTS
 ------------
 
-mondrian-olap gem is compatible with JRuby versions 1.5 and 1.6 (have not been tested with earlier versions). mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
+mondrian-olap gem is compatible with JRuby versions 1.6 and 1.7 and Java 6 and 7 VM. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
 
-mondrian-olap currently supports MySQL, PostgreSQL, Oracle, LucidDB and SQL Server databases. When using MySQL, PostgreSQL or LucidDB databases then install jdbc-mysql, jdbc-postgres or jdbc-luciddb gem and require "jdbc/mysql", "jdbc/postgres" or "jdbc/luciddb" to load the corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (`ojdbc6.jar` for Java 6) in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually. When using SQL Server you can choose between the jTDS or Microsoft JDBC drivers. If you use jTDS require "jdbc/jtds". If you use the Microsoft JDBC driver include `sqljdbc.jar` or `sqljdbc4.jar` in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually.
+mondrian-olap currently supports MySQL, PostgreSQL, Oracle, LucidDB and Microsoft SQL Server databases. When using MySQL, PostgreSQL or LucidDB databases then install jdbc-mysql, jdbc-postgres or jdbc-luciddb gem and require "jdbc/mysql", "jdbc/postgres" or "jdbc/luciddb" to load the corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (`ojdbc6.jar` for Java 6) in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually. When using SQL Server you can choose between the jTDS or Microsoft JDBC drivers. If you use jTDS require "jdbc/jtds". If you use the Microsoft JDBC driver include `sqljdbc.jar` or `sqljdbc4.jar` in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually.
 
 INSTALL
 -------

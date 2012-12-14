@@ -12,6 +12,6 @@ end
 # register Mondrian olap4j driver
 Java::mondrian.olap4j.MondrianOlap4jDriver
 
-%w(connection query result schema schema_udf cube).each do |file|
+%w(error connection query result schema schema_udf cube).each do |file|
   require "mondrian/olap/#{file}"
 end

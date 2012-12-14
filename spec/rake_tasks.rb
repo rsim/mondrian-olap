@@ -82,7 +82,7 @@ namespace :db do
   task :define_models => :require_spec_helper do
     unless MONDRIAN_DRIVER == 'luciddb'
       class TimeDimension < ActiveRecord::Base
-        set_table_name "time"
+        self.table_name = "time"
         validates_presence_of :the_date
         before_create do
           self.the_day = the_date.strftime("%A")
@@ -102,7 +102,7 @@ namespace :db do
       class Customer < ActiveRecord::Base
       end
       class Sales < ActiveRecord::Base
-        set_table_name "sales"
+        self.table_name = "sales"
         belongs_to :time_by_day
         belongs_to :product
         belongs_to :customer

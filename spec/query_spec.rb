@@ -437,6 +437,18 @@ describe "Query" do
           SQL
       end
 
+      it "should return query with where with several different dimension members returned by function" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('Head([Customers].Members).Item(0)', 'Head([Gender].Members).Item(0)').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    [Product].children ON ROWS
+              FROM  [Sales]
+              WHERE (Head([Customers].Members).Item(0), Head([Gender].Members).Item(0))
+          SQL
+      end
+
       it "should return query with where with crossjoin" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
@@ -445,7 +457,7 @@ describe "Query" do
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
-              WHERE CROSSJOIN([Customers].[USA], {[Time].[2011].[Q1], [Time].[2011].[Q2]})
+              WHERE CROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           SQL
       end
 
@@ -457,7 +469,7 @@ describe "Query" do
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
-              WHERE NONEMPTYCROSSJOIN([Customers].[USA], {[Time].[2011].[Q1], [Time].[2011].[Q2]})
+              WHERE NONEMPTYCROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           SQL
       end
 
@@ -558,7 +570,7 @@ describe "Query" do
           rows('[Customers].[Country].Members').except('[Customers].[USA]').
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
-                    EXCEPT([Customers].[Country].Members, [Customers].[USA]) ON ROWS
+                    EXCEPT([Customers].[Country].Members, {[Customers].[USA]}) ON ROWS
               FROM  [Sales]
           SQL
       end
@@ -606,10 +618,10 @@ describe "Query" do
           where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
           to_mdx.should be_like <<-SQL
             WITH
-               MEMBER [Measures].[ProfitPct] AS 
+               MEMBER [Measures].[ProfitPct] AS
                'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
                SOLVE_ORDER = 1, FORMAT_STRING = 'Percent'
-               MEMBER [Measures].[ProfitValue] AS 
+               MEMBER [Measures].[ProfitValue] AS
                '[Measures].[Store Sales] * [Measures].[ProfitPct]',
                SOLVE_ORDER = 2, FORMAT_STRING = 'Currency'
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
@@ -628,11 +640,11 @@ describe "Query" do
           rows('SelectedRows').
           to_mdx.should be_like <<-SQL
             WITH
-               SET SelectedRows AS 
+               SET SelectedRows AS
                'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
                MEMBER [Measures].[Profit] AS
                '[Measures].[Store Sales] - [Measures].[Store Cost]'
-            SELECT  [Measures].[Profit] ON COLUMNS,
+            SELECT  {[Measures].[Profit]} ON COLUMNS,
                     SelectedRows ON ROWS
               FROM  [Sales]
           SQL
@@ -668,5 +680,128 @@ describe "Query" do
     end
 
   end
+
+  describe "errors" do
+    before(:each) do
+      @query = @olap.from('Sales')
+    end
+
+    it "should raise error when invalid MDX statement" do
+      expect {
+        @olap.execute "SELECT dummy FROM"
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
+        e.root_cause_message.should == "Syntax error at line 1, column 14, token 'FROM'"
+      }
+    end
+
+    it "should raise error when invalid MDX object" do
+      expect {
+        @query.columns('[Measures].[Dummy]').execute
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
+        e.root_cause_message.should == "MDX object '[Measures].[Dummy]' not found in cube 'Sales'"
+      }
+    end
+
+    it "should raise error when invalid formula" do
+      expect {
+        @query.with_member('[Measures].[Dummy]').as('Dummy(123)').
+          columns('[Measures].[Dummy]').execute
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
+        e.root_cause_message.should == "No function matches signature 'Dummy(<Numeric Expression>)'"
+      }
+    end
+
+  end
+
+  describe "drill through" do
+    before(:all) do
+      @query = @olap.from('Sales')
+      @result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        rows('[Product].children').
+        where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
+        execute
+      @drill_through = @result.drill_through(:row => 0, :column => 0)
+    end
+
+    it "should return column types" do
+      @drill_through.column_types.should == [
+        :INT, :VARCHAR, :INT, :INT, :INT,
+        :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR,
+        :VARCHAR, :VARCHAR, :VARCHAR, :INT,
+        :VARCHAR,
+        :DECIMAL
+      ]
+    end if MONDRIAN_DRIVER == 'mysql'
+
+    it "should return column names" do
+      # ignore calculated customer full name column name which is shown differently on each database
+      @drill_through.column_names[0..12].should == %w(
+        the_year quarter month_of_year week_of_year day_of_month
+        product_family product_department product_category product_subcategory brand_name product_name
+        state_province city
+      )
+      @drill_through.column_names[14..16].should == %w(
+        id gender unit_sales
+      )
+    end if %w(mysql postgresql).include? MONDRIAN_DRIVER
+
+    it "should return table names" do
+      @drill_through.table_names.should == [
+        "time", "time", "time", "time", "time",
+        "product_classes", "product_classes", "product_classes", "product_classes", "products", "products",
+        "customers", "customers", "", "customers",
+        "customers",
+        "sales"
+      ]
+    end if %w(mysql postgresql).include? MONDRIAN_DRIVER
+
+    it "should return column labels" do
+      @drill_through.column_labels.should == [
+        "Year", "Quarter", "Month", "Week", "Day",
+        "Product Family", "Product Department", "Product Category", "Product Subcategory", "Brand Name", "Product Name",
+        "State Province", "City", "Name", "Name (Key)",
+        "Gender",
+        "Unit Sales"
+      ]
+    end
+
+    it "should return row values" do
+      @drill_through.rows.size.should == 15 # number of generated test rows
+    end
+
+    it "should return correct row value types" do
+      @drill_through.rows.first.map(&:class).should ==
+        case MONDRIAN_DRIVER
+        when "oracle"
+          [
+            BigDecimal, String, BigDecimal, BigDecimal, BigDecimal,
+            String, String, String, String, String, String,
+            String, String, String, BigDecimal,
+            String,
+            BigDecimal
+          ]
+        else
+          [
+            Fixnum, String, Fixnum, Fixnum, Fixnum,
+            String, String, String, String, String, String,
+            String, String, String, Fixnum,
+            String,
+            BigDecimal
+          ]
+        end
+    end
+
+    it "should return only specified max rows" do
+      drill_through = @result.drill_through(:row => 0, :column => 0, :max_rows => 10)
+      drill_through.rows.size.should == 10
+    end
+  end
+
 
 end

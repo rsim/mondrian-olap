@@ -17,29 +17,31 @@ module Mondrian
       end
 
       def connect
-        # hack to call private constructor of MondrianOlap4jDriver
-        # to avoid using DriverManager which fails to load JDBC drivers
-        # because of not seeing JRuby required jar files
-        cons = Java::MondrianOlap4j::MondrianOlap4jDriver.java_class.declared_constructor
-        cons.accessible = true
-        driver = cons.new_instance.to_java
+        Error.wrap_native_exception do
+          # hack to call private constructor of MondrianOlap4jDriver
+          # to avoid using DriverManager which fails to load JDBC drivers
+          # because of not seeing JRuby required jar files
+          cons = Java::MondrianOlap4j::MondrianOlap4jDriver.java_class.declared_constructor
+          cons.accessible = true
+          driver = cons.new_instance.to_java
 
-        props = java.util.Properties.new
-        props.setProperty('JdbcUser', @params[:username]) if @params[:username]
-        props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
+          props = java.util.Properties.new
+          props.setProperty('JdbcUser', @params[:username]) if @params[:username]
+          props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
 
-        conn_string = connection_string
+          conn_string = connection_string
 
-        # TODO: removed workaround for Mondrian ServiceDiscovery
-        # need to check if database dialects are always loaded by ServiceDiscovery detected class loader
-        @raw_jdbc_connection = driver.connect(conn_string, props)
+          # TODO: removed workaround for Mondrian ServiceDiscovery
+          # need to check if database dialects are always loaded by ServiceDiscovery detected class loader
+          @raw_jdbc_connection = driver.connect(conn_string, props)
 
-        @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
-        @raw_catalog = @raw_connection.getOlapCatalog
-        # currently it is assumed that there is just one schema per connection catalog
-        @raw_schema = @raw_catalog.getSchemas.first
-        @connected = true
-        true
+          @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
+          @raw_catalog = @raw_connection.getOlapCatalog
+          # currently it is assumed that there is just one schema per connection catalog
+          @raw_schema = @raw_catalog.getSchemas.first
+          @connected = true
+          true
+        end
       end
 
       def connected?
@@ -54,8 +56,10 @@ module Mondrian
       end
 
       def execute(query_string)
-        statement = @raw_connection.prepareOlapStatement(query_string)
-        Result.new(self, statement.executeQuery())
+        Error.wrap_native_exception do
+          statement = @raw_connection.prepareOlapStatement(query_string)
+          Result.new(self, statement.executeQuery())
+        end
       end
 
       def from(cube_name)
@@ -78,12 +82,40 @@ module Mondrian
         raw_cache_control.flushSchemaCache
       end
 
+      def available_role_names
+        @raw_connection.getAvailableRoleNames.to_a
+      end
+
+      def role_name
+        @raw_connection.getRoleName
+      end
+
+      def role_names
+        @raw_connection.getRoleNames.to_a
+      end
+
+      def role_name=(name)
+        Error.wrap_native_exception do
+          @raw_connection.setRoleName(name)
+        end
+      end
+
+      def role_names=(names)
+        Error.wrap_native_exception do
+          @raw_connection.setRoleNames(Array(names))
+        end
+      end
+
       private
 
       def connection_string
         string = "jdbc:mondrian:Jdbc=#{quote_string(jdbc_uri)};JdbcDrivers=#{jdbc_driver};"
         # by default use content checksum to reload schema when catalog has changed
         string << "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
+        if role = @params[:role] || @params[:roles]
+          roles = Array(role).map{|r| r && r.to_s.gsub(',', ',,')}.compact
+          string << "Role=#{quote_string(roles.join(','))};" unless roles.empty?
+        end
         string << (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
 

@@ -317,6 +317,51 @@ describe "Schema definition" do
         XML
       end
 
+      it "should render dimension hierarchy with nested joins" do
+        @schema.define do
+          cube 'Sales' do
+            dimension 'Products', :foreign_key => 'product_id' do
+              hierarchy :has_all => true, :all_member_name => 'All Products',
+                        :primary_key => 'product_id', :primary_key_table => 'product' do
+                join :left_key => 'product_class_id', :right_alias => 'product_class', :right_key => 'product_class_id' do
+                  table 'product'
+                  join :left_key  => 'product_type_id', :right_key => 'product_type_id' do
+                    table 'product_class'
+                    table 'product_type'
+                  end
+                end
+                level 'Product Family', :table => 'product_type', :column => 'product_family', :unique_members => true
+                level 'Product Category', :table => 'product_class', :column => 'product_category', :unique_members => false
+                level 'Brand Name', :table => 'product', :column => 'brand_name', :unique_members => false
+                level 'Product Name', :table => 'product', :column => 'product_name', :unique_members => true
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Dimension foreignKey="product_id" name="Products">
+              <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="product_id" primaryKeyTable="product">
+                <Join leftKey="product_class_id" rightAlias="product_class" rightKey="product_class_id">
+                  <Table name="product"/>
+                  <Join leftKey="product_type_id" rightKey="product_type_id">
+                    <Table name="product_class"/>
+                    <Table name="product_type"/>
+                  </Join>
+                </Join>
+                <Level column="product_family" name="Product Family" table="product_type" uniqueMembers="true"/>
+                <Level column="product_category" name="Product Category" table="product_class" uniqueMembers="false"/>
+                <Level column="brand_name" name="Brand Name" table="product" uniqueMembers="false"/>
+                <Level column="product_name" name="Product Name" table="product" uniqueMembers="true"/>
+              </Hierarchy>
+            </Dimension>
+          </Cube>
+        </Schema>
+        XML
+      end
+
     end
 
     describe "Measure" do
@@ -1083,6 +1128,42 @@ describe "Schema definition" do
       end
 
     end
+
+    describe "Roles" do
+      it "should render XML" do
+        @schema.define do
+          role 'California manager' do
+            schema_grant :access => 'none' do
+              cube_grant :cube => 'Sales', :access => 'all' do
+                dimension_grant :dimension => '[Measures]', :access => 'all'
+                hierarchy_grant :hierarchy => '[Customers]', :access => 'custom',
+                                :top_level => '[Customers].[State Province]', :bottom_level => '[Customers].[City]' do
+                  member_grant :member => '[Customers].[USA].[CA]', :access => 'all'
+                  member_grant :member => '[Customers].[USA].[CA].[Los Angeles]', :access => 'none'
+                end
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Role name="California manager">
+            <SchemaGrant access="none">
+              <CubeGrant access="all" cube="Sales">
+                <DimensionGrant access="all" dimension="[Measures]"/>
+                <HierarchyGrant access="custom" bottomLevel="[Customers].[City]" hierarchy="[Customers]" topLevel="[Customers].[State Province]">
+                  <MemberGrant access="all" member="[Customers].[USA].[CA]"/>
+                  <MemberGrant access="none" member="[Customers].[USA].[CA].[Los Angeles]"/>
+                </HierarchyGrant>
+              </CubeGrant>
+            </SchemaGrant>
+          </Role>
+        </Schema>
+        XML
+      end
+    end
+
   end
 
   describe "connection with schema" do
@@ -1121,6 +1202,46 @@ describe "Schema definition" do
         rows('descendants([Time].[2010].[Q1])').
         where('[Gender].[F]').
         execute.should be_a(Mondrian::OLAP::Result)
+    end
+
+  end
+
+  describe "errors" do
+    before(:each) do
+      @schema = Mondrian::OLAP::Schema.new
+    end
+
+    it "should raise error when invalid schema" do
+      @schema.define do
+        cube 'Sales' do
+        end
+      end
+      expect {
+        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Internal error: Must specify fact table of cube 'Sales'"
+        e.root_cause_message.should == "Internal error: Must specify fact table of cube 'Sales'"
+      }
+    end
+
+    it "should raise error when invalid calculated member formula" do
+      @schema.define do
+        cube 'Sales' do
+          table 'sales'
+          calculated_member 'Dummy' do
+            dimension 'Measures'
+            formula 'Dummy(123)'
+          end
+        end
+      end
+      expect {
+        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Named set in cube 'Sales' has bad formula"
+        e.root_cause_message.should == "No function matches signature 'Dummy(<Numeric Expression>)'"
+      }
     end
 
   end

@@ -56,11 +56,11 @@
           <SQL dialect="oracle">
 fname || ' ' || lname
           </SQL>
-          <SQL dialect="postgres">
+          <SQL dialect="postgresql">
 "fname" || ' ' || "lname"
           </SQL>
           <SQL dialect="mysql">
-CONCAT(`customer`.`fname`, ' ', `customer`.`lname`)
+CONCAT(`customers`.`fname`, ' ', `customers`.`lname`)
           </SQL>
           <SQL dialect="luciddb">
 "fname" || ' ' || "lname"
@@ -73,11 +73,11 @@ fullname
           <SQL dialect="oracle">
 fname || ' ' || lname
           </SQL>
-          <SQL dialect="postgres">
+          <SQL dialect="postgresql">
 "fname" || ' ' || "lname"
           </SQL>
           <SQL dialect="mysql">
-CONCAT(`customer`.`fname`, ' ', `customer`.`lname`)
+CONCAT(`customers`.`fname`, ' ', `customers`.`lname`)
           </SQL>
           <SQL dialect="luciddb">
 "fname" || ' ' || "lname"

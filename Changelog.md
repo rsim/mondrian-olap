@@ -1,3 +1,21 @@
+### 0.4.0 / 2012-12-03
+
+* New features
+  * upgraded to latest Mondrian 3.5 version (build from 2012-11-29)
+    as well as corresponding olap4j 1.0.1 version
+  * support for JRuby 1.7 and Java 7 VM
+  * user defined functions and formatters in JavaScript, CoffeeScript and Ruby
+  * shared user defined functions in Ruby
+  * all exceptions are wrapped in Mondrian::OLAP::Error exception with root_cause_message method
+  * drill through from result cell to source measure and dimension table rows
+  * support for Mondrian schema roles to limit cube data access
+* Improvements
+  * get description of cube, dimension, hierarchy and level from schema definition
+  * visible? method for measures and calculated members
+  * nonempty_crossjoin query builder method
+  * schema definition with nested table joins
+  * added approx_row_count schema level attribute
+
 ### 0.3.0 / 2011-11-12
 
 * New features

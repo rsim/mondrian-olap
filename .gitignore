@@ -1,6 +1,7 @@
 .bundle
 .rvmrc
 .DS_Store
+.autotest
 coverage
 doc
 pkg

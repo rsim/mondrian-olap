@@ -20,12 +20,12 @@ Create tables with test data using
 
   rake db:create_data
 
-or specify which database driver to use 
+or specify which database driver to use
 
   rake db:create_data MONDRIAN_DRIVER=mysql
   rake db:create_data MONDRIAN_DRIVER=postgresql
   rake db:create_data MONDRIAN_DRIVER=oracle
-  rake db:create_data MONDRIAN_DRIVER=mssql 
+  rake db:create_data MONDRIAN_DRIVER=mssql
   rake db:create_data MONDRIAN_DRIVER=sqlserver
 
 In case of LucidDB data are not generated and inserted directly into database but are imported from MySQL mondrian_test database (because inserting individual records into LucidDB is very inefficient). Therefore at first generate test data with mysql (using default database settings) and then run data creation task for LucidDB.
@@ -63,4 +63,4 @@ You can also run all tests on all databases with
 
 == JRuby versions
 
-It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.6 on Java 6.
+It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.6 and 1.7 on Java 6 and 7.

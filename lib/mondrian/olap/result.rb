@@ -1,4 +1,5 @@
 require 'nokogiri'
+require 'bigdecimal'
 
 module Mondrian
   module OLAP
@@ -24,7 +25,8 @@ module Mondrian
         @axis_members ||= axis_positions(:to_member)
       end
 
-      %w(column row page section chapter).each_with_index do |axis, i|
+      AXIS_SYMBOLS = [:column, :row, :page, :section, :chapter]
+      AXIS_SYMBOLS.each_with_index do |axis, i|
         define_method :"#{axis}_names" do
           axis_names[i]
         end
@@ -102,6 +104,113 @@ module Mondrian
         end
       end
 
+      # specify drill through cell position, for example, as
+      #   :row => 0, :cell => 1
+      # specify max returned rows with :max_rows parameter
+      def drill_through(position_params = {})
+        Error.wrap_native_exception do
+          cell_params = []
+          axes_count.times do |i|
+            axis_symbol = AXIS_SYMBOLS[i]
+            raise ArgumentError, "missing position #{axis_symbol.inspect}" unless axis_position = position_params[axis_symbol]
+            cell_params << Java::JavaLang::Integer.new(axis_position)
+          end
+          raw_cell = @raw_cell_set.getCell(cell_params)
+          DrillThrough.from_raw_cell(raw_cell, position_params)
+        end
+      end
+
+      class DrillThrough
+        def self.from_raw_cell(raw_cell, params = {})
+          max_rows = params[:max_rows] || -1
+          # workaround to avoid calling raw_cell.drillThroughInternal private method
+          # which fails when running inside TorqueBox
+          cell_field = raw_cell.java_class.declared_field('cell')
+          cell_field.accessible = true
+          rolap_cell = cell_field.value(raw_cell)
+          if rolap_cell.canDrillThrough
+            sql_statement = rolap_cell.drillThroughInternal(max_rows, -1, nil, true, nil)
+            raw_result_set = sql_statement.getWrappedResultSet
+            new(raw_result_set)
+          end
+        end
+
+        def initialize(raw_result_set)
+          @raw_result_set = raw_result_set
+        end
+
+        def column_types
+          @column_types ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnTypeName(i).to_sym}
+        end
+
+        def column_names
+          @column_names ||= begin
+            # if PostgreSQL then use getBaseColumnName as getColumnName returns empty string
+            if metadata.respond_to?(:getBaseColumnName)
+              (1..metadata.getColumnCount).map{|i| metadata.getBaseColumnName(i)}
+            else
+              (1..metadata.getColumnCount).map{|i| metadata.getColumnName(i)}
+            end
+          end
+        end
+
+        def table_names
+          @table_names ||= begin
+            # if PostgreSQL then use getBaseTableName as getTableName returns empty string
+            if metadata.respond_to?(:getBaseTableName)
+              (1..metadata.getColumnCount).map{|i| metadata.getBaseTableName(i)}
+            else
+              (1..metadata.getColumnCount).map{|i| metadata.getTableName(i)}
+            end
+          end
+        end
+
+        def column_labels
+          @column_labels ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnLabel(i)}
+        end
+
+        def fetch
+          if @raw_result_set.next
+            row_values = []
+            column_types.each_with_index do |column_type, i|
+              row_values << Result.java_to_ruby_value(@raw_result_set.getObject(i+1), column_type)
+            end
+            row_values
+          else
+            @raw_result_set.close
+            nil
+          end
+        end
+
+        def rows
+          @rows ||= begin
+            rows_values = []
+            while row_values = fetch
+              rows_values << row_values
+            end
+            rows_values
+          end
+        end
+
+        private
+
+        def metadata
+          @metadata ||= @raw_result_set.getMetaData
+        end
+
+      end
+
+      def self.java_to_ruby_value(value, column_type = nil)
+        case value
+        when Numeric, String
+          value
+        when Java::JavaMath::BigDecimal
+          BigDecimal(value.to_s)
+        else
+          value
+        end
+      end
+
       private
 
       def axes
@@ -146,7 +255,7 @@ module Mondrian
             recursive_values(value_method, axes_sequence, current_index + 1, cell_params)
           end
         else
-          @raw_cell_set.getCell(cell_params).send(value_method)
+          self.class.java_to_ruby_value(@raw_cell_set.getCell(cell_params).send(value_method))
         end
       end
 
