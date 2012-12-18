@@ -231,6 +231,10 @@ module Mondrian
         @raw_member.isCalculated
       end
 
+      def calculated_in_query?
+        @raw_member.isCalculatedInQuery
+      end
+
       def visible?
         @raw_member.isVisible
       end
