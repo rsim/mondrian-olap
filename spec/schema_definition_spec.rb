@@ -450,6 +450,32 @@ describe "Schema definition" do
         </Schema>
         XML
       end
+
+      it "should render embedded cube XML defintion before additional calculated member to XML" do
+        @schema.define do
+          cube 'Sales' do
+            xml <<-XML
+              <Table name="sales_fact_1997"/>
+            XML
+            calculated_member 'Profit' do
+              dimension 'Measures'
+              formula '[Measures].[Store Sales] - [Measures].[Store Cost]'
+              format_string '#,##0.00'
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Table name="sales_fact_1997"/>
+            <CalculatedMember dimension="Measures" formatString="#,##0.00" name="Profit">
+              <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
+            </CalculatedMember>
+          </Cube>
+        </Schema>
+        XML
+      end
     end
 
     describe "Aggregates" do

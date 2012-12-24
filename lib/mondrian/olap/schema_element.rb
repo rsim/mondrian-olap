@@ -54,6 +54,7 @@ module Mondrian
         @elements.concat(names)
 
         names.each do |name|
+          next if name == :xml
           attr_reader pluralize(name).to_sym
           class_eval <<-RUBY, __FILE__, __LINE__ + 1
             def #{name}(name=nil, attributes = {}, &block)
@@ -90,13 +91,23 @@ module Mondrian
           xml.send(tag_name(self.class.name), @content, xmlized_attributes(options))
         else
           xml.send(tag_name(self.class.name), xmlized_attributes(options)) do
+            xml_fragments_added = false
             self.class.elements.each do |element|
-              instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
+              if element == :xml
+                add_xml_fragments(xml)
+                xml_fragments_added = true
+              else
+                instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
+              end
             end
-            @xml_fragments.each do |xml_fragment|
-              xml.send(:insert, Nokogiri::XML::DocumentFragment.parse(xml_fragment))
-            end
+            add_xml_fragments(xml) unless xml_fragments_added
           end
+        end
+      end
+
+      def add_xml_fragments(xml)
+        @xml_fragments.each do |xml_fragment|
+          xml.send(:insert, Nokogiri::XML::DocumentFragment.parse(xml_fragment))
         end
       end
 

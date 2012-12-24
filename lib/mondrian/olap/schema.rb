@@ -61,7 +61,8 @@ module Mondrian
           :cache,
           # Whether element is enabled - if true, then the Cube is realized otherwise it is ignored.
           :enabled
-        elements :table, :view, :dimension, :measure, :calculated_member
+        # always render xml fragment as the first element in XML output (by default it is added at the end)
+        elements :xml, :table, :view, :dimension, :measure, :calculated_member
       end
 
       class Table < SchemaElement
