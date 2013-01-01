@@ -116,7 +116,7 @@ module Mondrian
           # that all members have entirely unique rows, allowing SQL GROUP BY clauses to be completely eliminated from the query.
           :unique_key_level_name
         data_dictionary_names :primary_key, :primary_key_table # values in XML will be uppercased when using Oracle driver
-        elements :table, :join, :property, :level, :view
+        elements :table, :join, :view, :property, :level
       end
 
       class Join < SchemaElement
