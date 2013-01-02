@@ -12,6 +12,8 @@ module Mondrian
         @raw_cube = raw_cube
       end
 
+      attr_reader :raw_cube
+
       def name
         @name ||= @raw_cube.getName
       end
@@ -55,7 +57,7 @@ module Mondrian
         @raw_dimension = raw_dimension
       end
 
-      attr_reader :cube
+      attr_reader :cube, :raw_dimension
 
       def name
         @name ||= @raw_dimension.getName
@@ -103,6 +105,8 @@ module Mondrian
         @dimension = dimension
         @raw_hierarchy = raw_hierarchy
       end
+
+      attr_reader :raw_hierarchy
 
       def name
         @name ||= @raw_hierarchy.getName
@@ -171,6 +175,8 @@ module Mondrian
         @raw_level = raw_level
       end
 
+      attr_reader :raw_level
+
       def name
         @name ||= @raw_level.getName
       end
@@ -215,6 +221,8 @@ module Mondrian
         @raw_member = raw_member
       end
 
+      attr_reader :raw_member
+
       def name
         @raw_member.getName
       end
@@ -229,6 +237,10 @@ module Mondrian
 
       def calculated?
         @raw_member.isCalculated
+      end
+
+      def calculated_in_query?
+        @raw_member.isCalculatedInQuery
       end
 
       def visible?

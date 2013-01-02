@@ -282,6 +282,10 @@ describe "Cube" do
       @cube.member('[Customers].[Non-USA]').should be_calculated
     end
 
+    it "should not be calculated in query when calculated member defined in schema" do
+      @cube.member('[Customers].[Non-USA]').should_not be_calculated_in_query
+    end
+
     it "should not be calculated when normal member" do
       @cube.member('[Customers].[USA]').should_not be_calculated
     end
