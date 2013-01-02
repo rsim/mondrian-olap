@@ -50,7 +50,7 @@ module Mondrian
       public
 
       attributes :name, :description
-      elements :cube, :role, :user_defined_function
+      elements :dimension, :cube, :role, :user_defined_function
 
       class Cube < SchemaElement
         attributes :name, :description,
@@ -61,8 +61,8 @@ module Mondrian
           :cache,
           # Whether element is enabled - if true, then the Cube is realized otherwise it is ignored.
           :enabled
-        # always render xml fragment as the first element in XML output (by default it is added at the end)
-        elements :xml, :table, :view, :dimension, :measure, :calculated_member
+	# always render xml fragment as the first element in XML output (by default it is added at the end)
+        elements :xml, :table, :view, :dimension, :dimension_usage, :measure, :calculated_member, :dimension_description
       end
 
       class Table < SchemaElement
@@ -94,6 +94,15 @@ module Mondrian
           :foreign_key
         data_dictionary_names :foreign_key # values in XML will be uppercased when using Oracle driver
         elements :hierarchy
+      end
+
+      class DimensionUsage < SchemaElement
+        attributes :name, :description, :caption,
+            # name of the shared dimension this refers to
+            :source,
+            # the primary key of the referenced dimension table
+            :foreign_key
+        data_dictionary_names :foreign_key # values in XML will be uppercased when using Oracle driver
       end
 
       class Hierarchy < SchemaElement

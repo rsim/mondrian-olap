@@ -10,3 +10,4 @@ tmp
 sqlnet.log
 Gemfile.lock
 .project
+.idea
