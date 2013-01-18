@@ -31,9 +31,17 @@ module Mondrian
 
           conn_string = connection_string
 
-          # TODO: removed workaround for Mondrian ServiceDiscovery
-          # need to check if database dialects are always loaded by ServiceDiscovery detected class loader
-          @raw_jdbc_connection = driver.connect(conn_string, props)
+          # latest Mondrian version added ClassResolver which uses current thread class loader to load some classes
+          # therefore need to set it to JRuby class loader to ensure that Mondrian classes are found
+          # (e.g. when running mondrian-olap inside OSGi container)
+          current_thread = Java::JavaLang::Thread.currentThread
+          class_loader = current_thread.getContextClassLoader
+          begin
+            current_thread.setContextClassLoader JRuby.runtime.jruby_class_loader
+            @raw_jdbc_connection = driver.connect(conn_string, props)
+          ensure
+            current_thread.setContextClassLoader(class_loader)
+          end
 
           @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
           @raw_catalog = @raw_connection.getOlapCatalog
