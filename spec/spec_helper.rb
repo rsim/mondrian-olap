@@ -6,6 +6,7 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'rspec'
 require 'active_record'
+require 'pry'
 
 DATABASE_HOST     = ENV['DATABASE_HOST']     || 'localhost'
 DATABASE_USER     = ENV['DATABASE_USER']     || 'mondrian_test'
@@ -33,7 +34,7 @@ when 'sqlserver'
 when 'luciddb'
   require 'jdbc/luciddb'
   CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
-  
+
   # Hack to disable :text type for LucidDB
   require 'arjdbc/jdbc/type_converter'
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:text)
@@ -80,7 +81,7 @@ CONNECTION_PARAMS = {
   :password => DATABASE_PASSWORD
 }
 
-case MONDRIAN_DRIVER 
+case MONDRIAN_DRIVER
 when 'oracle'
   AR_CONNECTION_PARAMS = {
     :adapter  => 'oracle_enhanced',

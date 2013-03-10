@@ -61,7 +61,7 @@ module Mondrian
       def to_html(options = {})
         case axes_count
         when 1
-          builder = Nokogiri::XML::Builder.new do |doc|
+          builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |doc|
             doc.table do
               doc.tr do
                 column_full_names.each do |column_full_name|
@@ -78,7 +78,7 @@ module Mondrian
           end
           builder.doc.to_html
         when 2
-          builder = Nokogiri::XML::Builder.new do |doc|
+          builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |doc|
             doc.table do
               doc.tr do
                 doc.th

@@ -79,7 +79,7 @@ module Mondrian
 
       def to_xml(options={})
         options[:upcase_data_dictionary] = @upcase_data_dictionary unless @upcase_data_dictionary.nil?
-        Nokogiri::XML::Builder.new do |xml|
+        Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
           add_to_xml(xml, options)
         end.to_xml
       end
