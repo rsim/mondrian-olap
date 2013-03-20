@@ -8,6 +8,9 @@ require 'rspec'
 require 'active_record'
 require 'pry'
 
+# autoload corresponding JDBC driver during require 'jdbc/...'
+Java::JavaLang::System.setProperty("jdbc.driver.autoload", "true")
+
 DATABASE_HOST     = ENV['DATABASE_HOST']     || 'localhost'
 DATABASE_USER     = ENV['DATABASE_USER']     || 'mondrian_test'
 DATABASE_PASSWORD = ENV['DATABASE_PASSWORD'] || 'mondrian_test'

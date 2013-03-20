@@ -8,10 +8,10 @@ group :development do
   gem 'rdoc'
   gem 'rspec', '~> 2.10'
   gem 'autotest'
-  gem 'jdbc-mysql'
-  gem 'jdbc-postgres'
-  gem 'jdbc-luciddb'
-  gem 'jdbc-jtds'
+  gem 'jdbc-mysql', '~> 5.1.24', :require => false
+  gem 'jdbc-postgres', '~> 9.2.1002.1', :require => false
+  gem 'jdbc-luciddb', :require => false
+  gem 'jdbc-jtds', '~> 1.2.7', :require => false # latest 1.3.x version is not compatible with Java 6
   gem 'activerecord', '= 3.2.8'
   gem 'activerecord-jdbc-adapter', '= 1.2.2'
   gem 'activerecord-oracle_enhanced-adapter', :require => false
