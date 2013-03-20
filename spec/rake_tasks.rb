@@ -251,9 +251,9 @@ namespace :spec do
     end
   end
 
-  desc "Run specs with all database drivers"
+  desc "Run specs with all primary database drivers"
   task :all do
-    %w(mysql postgresql oracle luciddb mssql sqlserver).each do |driver|
+    %w(mysql postgresql oracle mssql).each do |driver|
       Rake::Task["spec:#{driver}"].invoke
     end
   end
