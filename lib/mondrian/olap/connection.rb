@@ -114,6 +114,66 @@ module Mondrian
         end
       end
 
+      # access MondrianServer instance
+      def mondrian_server
+        Error.wrap_native_exception do
+          @raw_connection.getMondrianConnection.getServer
+        end
+      end
+
+      # Force shutdown of static MondrianServer, should not normally be used.
+      # Can be used in at_exit block if JRuby based plugin is unloaded from other Java application.
+      # WARNING: Mondrian will be unusable after calling this method!
+      def self.shutdown_static_mondrian_server!
+        static_mondrian_server = Java::MondrianOlap::MondrianServer.forId(nil)
+
+        # force Mondrian to think that static_mondrian_server is not static MondrianServer
+        mondrian_server_registry = Java::MondrianServer::MondrianServerRegistry::INSTANCE
+        f = mondrian_server_registry.java_class.declared_field("staticServer")
+        f.accessible = true
+        f.set_value(mondrian_server_registry, nil)
+
+        static_mondrian_server.shutdown
+
+        # shut down expiring reference timer thread
+        f = Java::MondrianUtil::ExpiringReference.java_class.declared_field("timer")
+        f.accessible = true
+        expiring_reference_timer = f.static_value.to_java
+        expiring_reference_timer.cancel
+
+        # shut down Mondrian Monitor
+        cons = Java::MondrianServer.__send__(:"MonitorImpl$ShutdownCommand").java_class.declared_constructor
+        cons.accessible = true
+        shutdown_command = cons.new_instance.to_java
+
+        cons = Java::MondrianServer.__send__(:"MonitorImpl$Handler").java_class.declared_constructor
+        cons.accessible = true
+        handler = cons.new_instance.to_java
+
+        pair = Java::mondrian.util.Pair.new handler, shutdown_command
+
+        f = Java::MondrianServer::MonitorImpl.java_class.declared_field("ACTOR")
+        f.accessible = true
+        monitor_actor = f.static_value.to_java
+
+        f = monitor_actor.java_class.declared_field("eventQueue")
+        f.accessible = true
+        event_queue = f.value(monitor_actor)
+
+        event_queue.put pair
+
+        # shut down connection pool thread
+        rolap_connection_pool = Java::mondrian.rolap.RolapConnectionPool.instance
+        f = rolap_connection_pool.java_class.declared_field("mapConnectKeyToPool")
+        f.accessible = true
+        map_connect_key_to_pool = f.value(rolap_connection_pool)
+        map_connect_key_to_pool.values.each do |pool|
+          pool.close if pool && !pool.isClosed
+        end
+
+        true
+      end
+
       private
 
       def connection_string
