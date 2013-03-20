@@ -163,7 +163,9 @@ module Mondrian
         event_queue.put pair
 
         # shut down connection pool thread
-        rolap_connection_pool = Java::mondrian.rolap.RolapConnectionPool.instance
+        f = Java::mondrian.rolap.RolapConnectionPool.java_class.declared_field("instance")
+        f.accessible = true
+        rolap_connection_pool = f.static_value.to_java
         f = rolap_connection_pool.java_class.declared_field("mapConnectKeyToPool")
         f.accessible = true
         map_connect_key_to_pool = f.value(rolap_connection_pool)
