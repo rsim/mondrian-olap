@@ -811,15 +811,15 @@ describe "Query" do
         # where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
         where('[Time].[2010].[Q1]').
         execute
+    end
+
+    it "should return only specified fields in specified order" do
       @drill_through = @result.drill_through(:row => 0, :column => 0, :return => [
         '[Time].[Month]',
         '[Customers].[City]',
         '[Product].[Product Family]',
         '[Measures].[Unit Sales]', '[Measures].[Store Sales]'
       ])
-    end
-
-    it "should return only specified fields in specified order" do
       @drill_through.column_labels.should == [
         "Month",
         "City",
@@ -827,6 +827,18 @@ describe "Query" do
         "Unit Sales", "Store Sales"
       ]
     end
+
+    it "should return only nonempty measures" do
+      @drill_through = @result.drill_through(:row => 0, :column => 0,
+        :return => "[Measures].[Unit Sales], [Measures].[Store Sales]",
+        :nonempty => "[Measures].[Unit Sales]"
+      )
+      @drill_through.column_labels.should == [
+        "Unit Sales", "Store Sales"
+      ]
+      @drill_through.rows.all?{|r| r.any?{|c| c}}.should be_true
+    end
+
   end
 
   describe "drill through statement" do

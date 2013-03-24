@@ -108,16 +108,17 @@ module Mondrian
       #   :row => 0, :cell => 1
       # Specify max returned rows with :max_rows parameter
       # Specify returned fields (as list of MDX levels and measures) with :return parameter
-      def drill_through(position_params = {})
+      # Specify measures which at least one should not be empty (NULL) with :nonempty parameter
+      def drill_through(params = {})
         Error.wrap_native_exception do
           cell_params = []
           axes_count.times do |i|
             axis_symbol = AXIS_SYMBOLS[i]
-            raise ArgumentError, "missing position #{axis_symbol.inspect}" unless axis_position = position_params[axis_symbol]
+            raise ArgumentError, "missing position #{axis_symbol.inspect}" unless axis_position = params[axis_symbol]
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell, position_params)
+          DrillThrough.from_raw_cell(raw_cell, params)
         end
       end
 
@@ -239,7 +240,7 @@ module Mondrian
         end
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
-          return_field_names, return_expressions = parse_return_fields(result, params)
+          return_field_names, return_expressions, nonempty_columns = parse_return_fields(result, params)
 
           sql_non_extended = rolap_cell.getDrillThroughSQL(return_expressions, false)
           sql_extended = rolap_cell.getDrillThroughSQL(return_expressions, true)
@@ -248,7 +249,7 @@ module Mondrian
             non_extended_from = $2
             non_extended_where = $3
           else
-            raise Error, "cannot parse drill through SQL: #{sql_non_extended}"
+            raise ArgumentError, "cannot parse drill through SQL: #{sql_non_extended}"
           end
 
           if sql_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/
@@ -256,16 +257,19 @@ module Mondrian
             extended_from = $2
             extended_where = $3
             extended_order_by = $4
+          # if only measures are selected then there will be no order by
+          elsif sql_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/
+            extended_select = $1
+            extended_from = $2
+            extended_where = $3
+            extended_order_by = ''
           else
-            raise Error, "cannot parse drill through SQL: #{sql_extended}"
+            raise ArgumentError, "cannot parse drill through SQL: #{sql_extended}"
           end
 
           return_column_positions = {}
 
-          if return_field_names.blank?
-            new_select = extended_select
-            new_order_by = extended_order_by
-          else
+          if return_field_names && !return_field_names.empty?
             new_select = extended_select.split(/,\s*/).map do |part|
               column_name, column_alias = part.split(' as ')
               field_name = column_alias[1..-2].gsub(' (Key)', '')
@@ -279,6 +283,9 @@ module Mondrian
               position = return_column_positions[column_name] || 9999
               [part, position]
             end.sort_by(&:last).map(&:first).join(', ')
+          else
+            new_select = extended_select
+            new_order_by = extended_order_by
           end
 
           new_from_parts = non_extended_from.split(/,\s*/)
@@ -302,39 +309,71 @@ module Mondrian
 
           new_from = new_from_parts.join(', ')
 
-          "select #{new_select} from #{new_from} where #{non_extended_where} order by #{new_order_by}"
+          new_where = non_extended_where
+          if nonempty_columns && !nonempty_columns.empty?
+            not_null_condition = nonempty_columns.map{|c| "(#{c}) IS NOT NULL"}.join(' OR ')
+            new_where += " AND (#{not_null_condition})"
+          end
+
+          sql = "select #{new_select} from #{new_from} where #{new_where}"
+          sql << " order by #{new_order_by}" unless new_order_by.empty?
+          sql
         end
 
         def self.parse_return_fields(result, params)
           return_field_names = []
-          return_expressions = if params[:return]
+          return_expressions = nil
+          nonempty_columns = []
+
+          if params[:return] || params[:nonempty]
             rolap_cube = result.getCube
             schema_reader = rolap_cube.getSchemaReader
 
-            return_fields = params[:return]
-            return_fields = return_fields.split(/,\s*/) if return_fields.is_a?(String)
-            return_fields.map do |return_field|
-              begin
-                segment_list = Java::MondrianOlap::Util.parseIdentifier(return_field)
-                return_field_names << segment_list.to_a.last.name
-              rescue Java::JavaLang::IllegalArgumentException
-                raise ArgumentError, "invalid return field #{return_field}"
+            if return_fields = params[:return]
+              return_fields = return_fields.split(/,\s*/) if return_fields.is_a?(String)
+              return_expressions = return_fields.map do |return_field|
+                begin
+                  segment_list = Java::MondrianOlap::Util.parseIdentifier(return_field)
+                  return_field_names << segment_list.to_a.last.name
+                rescue Java::JavaLang::IllegalArgumentException
+                  raise ArgumentError, "invalid return field #{return_field}"
+                end
+
+                level_or_member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
+
+                case level_or_member
+                when Java::MondrianOlap::Level
+                  Java::MondrianMdx::LevelExpr.new level_or_member
+                when Java::MondrianOlap::Member
+                  raise ArgumentError, "cannot use calculated member #{return_field} as return field" if level_or_member.isCalculated
+                  Java::mondrian.mdx.MemberExpr.new level_or_member
+                else
+                  raise ArgumentError, "return field #{return_field} should be level or measure"
+                end
               end
+            end
 
-              level_or_member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
-
-              case level_or_member
-              when Java::MondrianOlap::Level
-                Java::MondrianMdx::LevelExpr.new level_or_member
-              when Java::MondrianOlap::Member
-                raise ArgumentError, "cannot use calculated member #{return_field} as return field" if level_or_member.isCalculated
-                Java::mondrian.mdx.MemberExpr.new level_or_member
-              else
-                raise ArgumentError, "return field #{return_field} should be level or measure"
+            if nonempty_fields = params[:nonempty]
+              nonempty_fields = nonempty_fields.split(/,\s*/) if nonempty_fields.is_a?(String)
+              nonempty_columns = nonempty_fields.map do |nonempty_field|
+                begin
+                  segment_list = Java::MondrianOlap::Util.parseIdentifier(nonempty_field)
+                rescue Java::JavaLang::IllegalArgumentException
+                  raise ArgumentError, "invalid return field #{return_field}"
+                end
+                member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
+                if member.is_a? Java::MondrianOlap::Member
+                  raise ArgumentError, "cannot use calculated member #{return_field} as nonempty field" if member.isCalculated
+                  sql_query = member.getStarMeasure.getSqlQuery
+                  member.getStarMeasure.generateExprString(sql_query)
+                else
+                  raise ArgumentError, "nonempty field #{return_field} should be measure"
+                end
               end
             end
           end
-          [return_field_names, return_expressions]
+
+          [return_field_names, return_expressions, nonempty_columns]
         end
 
       end
