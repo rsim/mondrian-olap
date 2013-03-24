@@ -70,6 +70,13 @@ module Mondrian
         end
       end
 
+      def execute_drill_through(query_string)
+        Error.wrap_native_exception do
+          statement = @raw_connection.createStatement
+          Result::DrillThrough.new(statement.executeQuery(query_string))
+        end
+      end
+
       def from(cube_name)
         Query.from(self, cube_name)
       end

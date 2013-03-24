@@ -214,6 +214,16 @@ module Mondrian
         end
       end
 
+      def execute_drill_through(options = {})
+        Error.wrap_native_exception do
+          drill_through_mdx = "DRILLTHROUGH "
+          drill_through_mdx << "MAXROWS #{options[:max_rows]} " if options[:max_rows]
+          drill_through_mdx << to_mdx
+          drill_through_mdx << " RETURN #{Array(options[:return]).join(',')}" if options[:return]
+          @connection.execute_drill_through drill_through_mdx
+        end
+      end
+
       private
 
       # FIXME: keep original order of WITH MEMBER and WITH SET defitions

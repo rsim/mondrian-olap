@@ -104,9 +104,10 @@ module Mondrian
         end
       end
 
-      # specify drill through cell position, for example, as
+      # Specify drill through cell position, for example, as
       #   :row => 0, :cell => 1
-      # specify max returned rows with :max_rows parameter
+      # Specify max returned rows with :max_rows parameter
+      # Specify returned fields (as list of MDX levels and measures) with :return parameter
       def drill_through(position_params = {})
         Error.wrap_native_exception do
           cell_params = []
@@ -128,8 +129,9 @@ module Mondrian
           cell_field = raw_cell.java_class.declared_field('cell')
           cell_field.accessible = true
           rolap_cell = cell_field.value(raw_cell)
-          if rolap_cell.canDrillThrough
-            sql_statement = rolap_cell.drillThroughInternal(max_rows, -1, nil, true, nil)
+
+          if params[:return] || rolap_cell.canDrillThrough
+            sql_statement = drill_through_internal(rolap_cell, params)
             raw_result_set = sql_statement.getWrappedResultSet
             new(raw_result_set)
           end
@@ -196,6 +198,143 @@ module Mondrian
 
         def metadata
           @metadata ||= @raw_result_set.getMetaData
+        end
+
+        # modified RolapCell drillThroughInternal method
+        def self.drill_through_internal(rolap_cell, params)
+          max_rows = params[:max_rows] || -1
+
+          result_field = rolap_cell.java_class.declared_field('result')
+          result_field.accessible = true
+          result = result_field.value(rolap_cell)
+
+          sql = generate_drill_through_sql(rolap_cell, result, params)
+
+          # Choose the appropriate scrollability. If we need to start from an
+          # offset row, it is useful that the cursor is scrollable, but not
+          # essential.
+          statement = result.getExecution.getMondrianStatement
+          execution = Java::MondrianServer::Execution.new(statement, 0)
+          connection = statement.getMondrianConnection
+          result_set_type = Java::JavaSql::ResultSet::TYPE_FORWARD_ONLY
+          result_set_concurrency = Java::JavaSql::ResultSet::CONCUR_READ_ONLY
+          schema = statement.getSchema
+          dialect = schema.getDialect
+
+          Java::MondrianRolap::RolapUtil.executeQuery(
+            connection.getDataSource,
+            sql,
+            nil,
+            max_rows,
+            -1, # firstRowOrdinal
+            Java::MondrianRolap::SqlStatement::StatementLocus.new(
+              execution,
+              "RolapCell.drillThrough",
+              "Error in drill through",
+              Java::MondrianServerMonitor::SqlStatementEvent::Purpose::DRILL_THROUGH, 0
+            ),
+            result_set_type,
+            result_set_concurrency
+          )
+        end
+
+        def self.generate_drill_through_sql(rolap_cell, result, params)
+          return_field_names, return_expressions = parse_return_fields(result, params)
+
+          sql_non_extended = rolap_cell.getDrillThroughSQL(return_expressions, false)
+          sql_extended = rolap_cell.getDrillThroughSQL(return_expressions, true)
+
+          if sql_non_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/
+            non_extended_from = $2
+            non_extended_where = $3
+          else
+            raise Error, "cannot parse drill through SQL: #{sql_non_extended}"
+          end
+
+          if sql_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/
+            extended_select = $1
+            extended_from = $2
+            extended_where = $3
+            extended_order_by = $4
+          else
+            raise Error, "cannot parse drill through SQL: #{sql_extended}"
+          end
+
+          return_column_positions = {}
+
+          if return_field_names.blank?
+            new_select = extended_select
+            new_order_by = extended_order_by
+          else
+            new_select = extended_select.split(/,\s*/).map do |part|
+              column_name, column_alias = part.split(' as ')
+              field_name = column_alias[1..-2].gsub(' (Key)', '')
+              position = return_field_names.index(field_name) || 9999
+              return_column_positions[column_name] = position
+              [part, position]
+            end.sort_by(&:last).map(&:first).join(', ')
+
+            new_order_by = extended_order_by.split(/,\s*/).map do |part|
+              column_name, asc_desc = part.split(/\s+/)
+              position = return_column_positions[column_name] || 9999
+              [part, position]
+            end.sort_by(&:last).map(&:first).join(', ')
+          end
+
+          new_from_parts = non_extended_from.split(/,\s*/)
+          outer_join_from_parts = extended_from.split(/,\s*/) - new_from_parts
+          where_parts = extended_where.split(' and ')
+
+          outer_join_from_parts.each do |part|
+            part_elements = part.split(/\s+/)
+            # first is original table, then optional 'as' and the last is alias
+            table_name = part_elements.first
+            table_alias = part_elements.last
+            join_conditions = where_parts.select do |where_part|
+              where_part.include?(" = #{table_alias}.")
+            end
+            outer_join = " left outer join #{part} on (#{join_conditions.join(' and ')})"
+            left_table_alias = join_conditions.first.split('.').first
+
+            left_table_from_part = new_from_parts.detect{|from_part| from_part.include?(left_table_alias)}
+            left_table_from_part << outer_join
+          end
+
+          new_from = new_from_parts.join(', ')
+
+          "select #{new_select} from #{new_from} where #{non_extended_where} order by #{new_order_by}"
+        end
+
+        def self.parse_return_fields(result, params)
+          return_field_names = []
+          return_expressions = if params[:return]
+            rolap_cube = result.getCube
+            schema_reader = rolap_cube.getSchemaReader
+
+            return_fields = params[:return]
+            return_fields = return_fields.split(/,\s*/) if return_fields.is_a?(String)
+            return_fields.map do |return_field|
+              begin
+                segment_list = Java::MondrianOlap::Util.parseIdentifier(return_field)
+                return_field_names << segment_list.to_a.last.name
+              rescue Java::JavaLang::IllegalArgumentException
+                raise ArgumentError, "invalid return field #{return_field}"
+              end
+
+              level_or_member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
+
+              case level_or_member
+              when Java::MondrianOlap::Level
+                Java::MondrianMdx::LevelExpr.new level_or_member
+              when Java::MondrianOlap::Member
+                raise ArgumentError, "cannot use calculated member #{return_field} as return field" if level_or_member.isCalculated
+                Java::mondrian.mdx.MemberExpr.new level_or_member
+              else
+                raise ArgumentError, "return field #{return_field} should be level or measure"
+              end
+            end
+          end
+          [return_field_names, return_expressions]
         end
 
       end

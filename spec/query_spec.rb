@@ -719,7 +719,7 @@ describe "Query" do
 
   end
 
-  describe "drill through" do
+  describe "drill through cell" do
     before(:all) do
       @query = @olap.from('Sales')
       @result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
@@ -803,5 +803,76 @@ describe "Query" do
     end
   end
 
+  describe "drill through cell with return" do
+    before(:all) do
+      @query = @olap.from('Sales')
+      @result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        rows('[Product].children').
+        # where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
+        where('[Time].[2010].[Q1]').
+        execute
+      @drill_through = @result.drill_through(:row => 0, :column => 0, :return => [
+        '[Time].[Month]',
+        '[Customers].[City]',
+        '[Product].[Product Family]',
+        '[Measures].[Unit Sales]', '[Measures].[Store Sales]'
+      ])
+    end
+
+    it "should return only specified fields in specified order" do
+      @drill_through.column_labels.should == [
+        "Month",
+        "City",
+        "Product Family",
+        "Unit Sales", "Store Sales"
+      ]
+    end
+  end
+
+  describe "drill through statement" do
+    before(:all) do
+      @query = @olap.from('Sales').
+        columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        rows('[Product].children').
+        where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]')
+    end
+
+    it "should return column labels" do
+      @drill_through = @query.execute_drill_through
+      @drill_through.column_labels.should == [
+        "Year", "Quarter", "Month", "Week", "Day",
+        "Product Family", "Product Department", "Product Category", "Product Subcategory", "Brand Name", "Product Name",
+        "State Province", "City", "Name", "Name (Key)",
+        "Gender",
+        "Unit Sales"
+      ]
+    end
+
+    it "should return row values" do
+      @drill_through = @query.execute_drill_through
+      @drill_through.rows.size.should == 15 # number of generated test rows
+    end
+
+    it "should return only specified max rows" do
+      drill_through = @query.execute_drill_through(:max_rows => 10)
+      drill_through.rows.size.should == 10
+    end
+
+    it "should return only specified fields" do
+      @drill_through = @query.execute_drill_through(:return => [
+        '[Time].[Month]',
+        '[Product].[Product Family]',
+        '[Customers].[City]',
+        '[Measures].[Unit Sales]', '[Measures].[Store Sales]'
+      ])
+      @drill_through.column_labels.should == [
+        "Month",
+        "Product Family",
+        "City",
+        "Unit Sales", "Store Sales"
+      ]
+    end
+
+  end
 
 end
