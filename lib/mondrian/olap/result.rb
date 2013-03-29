@@ -292,7 +292,9 @@ module Mondrian
           outer_join_from_parts = extended_from.split(/,\s*/) - new_from_parts
           where_parts = extended_where.split(' and ')
 
-          outer_join_from_parts.each do |part|
+          # reverse outer_join_from_parts to support dimensions with several table joins
+          # where join with detailed level table should be constructed first
+          outer_join_from_parts.reverse.each do |part|
             part_elements = part.split(/\s+/)
             # first is original table, then optional 'as' and the last is alias
             table_name = part_elements.first
@@ -303,8 +305,11 @@ module Mondrian
             outer_join = " left outer join #{part} on (#{join_conditions.join(' and ')})"
             left_table_alias = join_conditions.first.split('.').first
 
-            left_table_from_part = new_from_parts.detect{|from_part| from_part.include?(left_table_alias)}
-            left_table_from_part << outer_join
+            if left_table_from_part = new_from_parts.detect{|from_part| from_part.include?(left_table_alias)}
+              left_table_from_part << outer_join
+            else
+              raise ArgumentError, "cannot extract outer join left table #{left_table_alias} in drill through SQL: #{sql_extended}"
+            end
           end
 
           new_from = new_from_parts.join(', ')
