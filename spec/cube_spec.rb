@@ -5,6 +5,7 @@ describe "Cube" do
     @schema = Mondrian::OLAP::Schema.define do
       cube 'Sales' do
         description 'Sales description'
+        annotations :foo => 'bar'
         table 'sales'
         dimension 'Gender', :foreign_key => 'customer_id' do
           description 'Gender description'
@@ -14,16 +15,16 @@ describe "Cube" do
             level 'Gender', :column => 'gender', :unique_members => true, :description => 'Gender level description'
           end
         end
-        dimension 'Customers', :foreign_key => 'customer_id' do
-          hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+        dimension 'Customers', :foreign_key => 'customer_id', :annotations => {:foo => 'bar'} do
+          hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id', :annotations => {:foo => 'bar'} do
             table 'customers'
-            level 'Country', :column => 'country', :unique_members => true
+            level 'Country', :column => 'country', :unique_members => true, :annotations => {:foo => 'bar'}
             level 'State Province', :column => 'state_province', :unique_members => true
             level 'City', :column => 'city', :unique_members => false
             level 'Name', :column => 'fullname', :unique_members => true
           end
         end
-        calculated_member 'Non-USA' do
+        calculated_member 'Non-USA', :annotations => {:foo => 'bar'} do
           dimension 'Customers'
           formula '[Customers].[All Customers] - [Customers].[USA]'
         end
@@ -40,7 +41,7 @@ describe "Cube" do
             level 'Week', :column => 'weak_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
           end
         end
-        measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
+        measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum', :annotations => {:foo => 'bar'}
         measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
         measure 'Store Cost', :column => 'store_cost', :aggregator => 'sum', :visible => false
       end
@@ -66,6 +67,10 @@ describe "Cube" do
 
   it "should get cube description" do
     @olap.cube('Sales').description.should == 'Sales description'
+  end
+
+  it "should get cube annotations" do
+    @olap.cube('Sales').annotations.should == {'foo' => 'bar'}
   end
 
   describe "dimensions" do
@@ -106,6 +111,14 @@ describe "Cube" do
       @cube.dimension('Gender').dimension_type.should == :standard
       @cube.dimension('Time').dimension_type.should == :time
       @cube.dimension('Measures').dimension_type.should == :measures
+    end
+
+    it "should get dimension annotations" do
+      @cube.dimension('Customers').annotations.should == {'foo' => 'bar'}
+    end
+
+    it "should get dimension empty annotations" do
+      @cube.dimension('Gender').annotations.should == {}
     end
   end
 
@@ -156,6 +169,14 @@ describe "Cube" do
     it "should get hierarchy level members count" do
       @cube.dimension('Gender').hierarchy.levels.map(&:members_count).should == [1, 2]
     end
+
+    it "should get hierarchy annotations" do
+      @cube.dimension('Customers').hierarchy.annotations.should == {'foo' => 'bar'}
+    end
+
+    it "should get hierarchy empty annotations" do
+      @cube.dimension('Gender').hierarchy.annotations.should == {}
+    end
   end
 
   describe "hierarchy values" do
@@ -201,7 +222,7 @@ describe "Cube" do
 
   end
 
-  describe "level members" do
+  describe "hierarchy levels" do
     before(:all) do
       @cube = @olap.cube('Sales')
     end
@@ -223,6 +244,15 @@ describe "Cube" do
       @cube.dimension('Time').hierarchy('Time.Weekly').level('Year').members.
         map(&:name).should == ['2010', '2011']
     end
+
+    it "should get level annotations" do
+      @cube.dimension('Customers').hierarchy.level('Country').annotations.should == {'foo' => 'bar'}
+    end
+
+    it "should get level empty annotations" do
+      @cube.dimension('Gender').hierarchy.level('Gender').annotations.should == {}
+    end
+
   end
 
   describe "members" do
@@ -317,6 +347,19 @@ describe "Cube" do
     it "should not be visble when member is not visible" do
       @cube.member('[Measures].[Store Cost]').should_not be_visible
     end
+
+    it "should get measure annotations" do
+      @cube.member('[Measures].[Unit Sales]').annotations.should == {'foo' => 'bar'}
+    end
+
+    it "should get measure empty annotations" do
+      @cube.member('[Measures].[Store Sales]').annotations.should == {}
+    end
+
+    it "should get member empty annotations" do
+      @cube.member('[Customers].[USA]').annotations.should == {}
+    end
+
   end
 
 end

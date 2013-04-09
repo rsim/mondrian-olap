@@ -50,7 +50,7 @@ module Mondrian
       public
 
       attributes :name, :description
-      elements :cube, :role, :user_defined_function
+      elements :annotations, :cube, :role, :user_defined_function
 
       class Cube < SchemaElement
         attributes :name, :description,
@@ -62,7 +62,7 @@ module Mondrian
           # Whether element is enabled - if true, then the Cube is realized otherwise it is ignored.
           :enabled
         # always render xml fragment as the first element in XML output (by default it is added at the end)
-        elements :xml, :table, :view, :dimension, :measure, :calculated_member
+        elements :annotations, :xml, :table, :view, :dimension, :measure, :calculated_member
       end
 
       class Table < SchemaElement
@@ -93,7 +93,7 @@ module Mondrian
           # Required in a private Dimension or a DimensionUsage, but not in a public Dimension.
           :foreign_key
         data_dictionary_names :foreign_key # values in XML will be uppercased when using Oracle driver
-        elements :hierarchy
+        elements :annotations, :hierarchy
       end
 
       class Hierarchy < SchemaElement
@@ -116,7 +116,7 @@ module Mondrian
           # that all members have entirely unique rows, allowing SQL GROUP BY clauses to be completely eliminated from the query.
           :unique_key_level_name
         data_dictionary_names :primary_key, :primary_key_table # values in XML will be uppercased when using Oracle driver
-        elements :table, :join, :view, :property, :level
+        elements :annotations, :table, :join, :view, :property, :level
       end
 
       class Join < SchemaElement
@@ -174,7 +174,7 @@ module Mondrian
           # MDSCHEMA_LEVELS, MDSCHEMA_HIERARCHIES and MDSCHEMA_DIMENSIONS XMLA requests
           :approx_row_count
         data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column # values in XML will be uppercased when using Oracle driver
-        elements :key_expression, :name_expression, :ordinal_expression, :member_formatter, :property
+        elements :annotations, :key_expression, :name_expression, :ordinal_expression, :member_formatter, :property
       end
 
       class KeyExpression < SchemaElement
@@ -226,7 +226,7 @@ module Mondrian
           # Whether this member is visible in the user-interface. Default true.
           :visible
         data_dictionary_names :column # values in XML will be uppercased when using Oracle driver
-        elements :measure_expression, :cell_formatter
+        elements :annotations, :measure_expression, :cell_formatter
       end
 
       class MeasureExpression < SchemaElement
@@ -241,7 +241,7 @@ module Mondrian
           :format_string,
           # Whether this member is visible in the user-interface. Default true.
           :visible
-        elements :formula, :calculated_member_property, :cell_formatter
+        elements :annotations, :formula, :calculated_member_property, :cell_formatter
       end
 
       class Formula < SchemaElement
@@ -374,6 +374,28 @@ module Mondrian
         attributes :role_name
       end
 
+      class Annotations < SchemaElement
+        elements :annotation
+        def initialize(name = nil, attributes = {}, &block)
+          if name.is_a?(Hash)
+            attributes = name
+            name = nil
+          end
+          if block_given?
+            super(name, attributes, &block)
+          else
+            super(nil, {}) do
+              attributes.each do |key, value|
+                annotation key.to_s, value.to_s
+              end
+            end
+          end
+        end
+      end
+
+      class Annotation < SchemaElement
+        content :text
+      end
     end
   end
 end

@@ -1,5 +1,20 @@
 module Mondrian
   module OLAP
+    module Annotated
+      private
+
+      def annotations_for(raw_element)
+        @annotations ||= begin
+          annotated = raw_element.unwrap(Java::MondrianOlap::Annotated.java_class)
+          annotations_hash = annotated.getAnnotationMap.to_hash
+          annotations_hash.each do |key, annotation|
+            annotations_hash[key] = annotation.getValue
+          end
+          annotations_hash
+        end
+      end
+    end
+
     class Cube
       def self.get(connection, name)
         if raw_cube = connection.raw_schema.getCubes.get(name)
@@ -20,6 +35,11 @@ module Mondrian
 
       def description
         @description ||= @raw_cube.getDescription
+      end
+
+      include Annotated
+      def annotations
+        annotations_for(@raw_cube)
       end
 
       def dimensions
@@ -98,6 +118,12 @@ module Mondrian
           :standard
         end
       end
+
+      include Annotated
+      def annotations
+        annotations_for(@raw_dimension)
+      end
+
     end
 
     class Hierarchy
@@ -163,6 +189,12 @@ module Mondrian
           parent_member && parent_member.children.map{|m| m.name}
         end
       end
+
+      include Annotated
+      def annotations
+        annotations_for(@raw_hierarchy)
+      end
+
     end
 
     class Level
@@ -206,6 +238,12 @@ module Mondrian
           @raw_level.getMembers.map{|m| Member.new(m)}
         end
       end
+
+      include Annotated
+      def annotations
+        annotations_for(@raw_level)
+      end
+
     end
 
     class Member
@@ -302,6 +340,11 @@ module Mondrian
         if property = @raw_member.getProperties.get(name)
           @raw_member.getPropertyFormattedValue(property)
         end
+      end
+
+      include Annotated
+      def annotations
+        annotations_for(@raw_member)
       end
 
     end

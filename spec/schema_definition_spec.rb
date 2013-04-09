@@ -668,6 +668,65 @@ describe "Schema definition" do
       end
     end
 
+    describe "Element annotations" do
+      it "should render XML from block of elements" do
+        @schema.define do
+          cube 'Sales' do
+            annotations do
+              annotation 'key1', 'value1'
+              annotation 'key2', 'value2'
+            end
+            measure 'Unit Sales', :column => 'unit_sales' do
+              annotations do
+                annotation 'key3', 'value3'
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Annotations>
+              <Annotation name="key1">value1</Annotation>
+              <Annotation name="key2">value2</Annotation>
+            </Annotations>
+            <Measure column="unit_sales" name="Unit Sales">
+              <Annotations>
+                <Annotation name="key3">value3</Annotation>
+              </Annotations>
+            </Measure>
+          </Cube>
+        </Schema>
+        XML
+      end
+
+      it "should render XML from hash options" do
+        @schema.define do
+          cube 'Sales' do
+            annotations :key1 => 'value1', :key2 => 'value2'
+            measure 'Unit Sales', :column => 'unit_sales', :annotations => {:key3 => 'value3'}
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Annotations>
+              <Annotation name="key1">value1</Annotation>
+              <Annotation name="key2">value2</Annotation>
+            </Annotations>
+            <Measure column="unit_sales" name="Unit Sales">
+              <Annotations>
+                <Annotation name="key3">value3</Annotation>
+              </Annotations>
+            </Measure>
+          </Cube>
+        </Schema>
+        XML
+      end
+    end
+
     describe "User defined functions and formatters in JavaScript" do
       before(:each) do
         @schema.define do
