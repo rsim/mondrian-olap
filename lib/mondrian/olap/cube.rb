@@ -347,6 +347,28 @@ module Mondrian
         annotations_for(@raw_member)
       end
 
+      def format_string
+        format_exp = property_value('FORMAT_EXP')
+        if format_exp && format_exp =~ /\A"(.*)"\z/
+          format_exp = $1
+        end
+        if format_exp && !format_exp.empty?
+          format_exp
+        end
+      end
+
+      def cell_formatter_name
+        if dimension_type == :measures
+          cube_measure = raw_member.unwrap(Java::MondrianOlap::Member.java_class)
+          if value_formatter = cube_measure.getFormatter
+            f = value_formatter.java_class.declared_field('cf')
+            f.accessible = true
+            cf = f.value(value_formatter)
+            cf.class.name.split('::').last.gsub(/Udf\z/, '')
+          end
+        end
+      end
+
     end
   end
 end

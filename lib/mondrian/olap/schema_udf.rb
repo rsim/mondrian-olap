@@ -4,6 +4,10 @@ module Mondrian
   module OLAP
     class Schema < SchemaElement
 
+      def user_defined_cell_formatter(name, &block)
+        CellFormatter.new(name, &block)
+      end
+
       module ScriptElements
         def javascript(text)
           script text, :language => 'JavaScript'
@@ -20,8 +24,34 @@ module Mondrian
           javascript javascript_text
         end
 
-        def ruby_formatter(interface_class, method, signature, &block)
-          formatter_class = Class.new
+        def ruby(*options, &block)
+          udf_class_name = if options.include?(:shared)
+            "#{name.capitalize}Udf"
+          end
+          if udf_class_name && self.class.const_defined?(udf_class_name)
+            udf_class = self.class.const_get(udf_class_name)
+          else
+            udf_class = Class.new(RubyUdfBase)
+            self.class.const_set(udf_class_name, udf_class) if udf_class_name
+          end
+          udf_class.function_name = name
+          udf_class.class_eval(&block)
+          udf_java_class = udf_class.become_java!(false)
+
+          class_name udf_java_class.getName
+        end
+
+        def ruby_formatter(options, interface_class, method, signature, &block)
+          formatter_class_name = if options.include?(:shared) && @attributes[:name]
+            ruby_formatter_name_to_class_name(@attributes[:name])
+          end
+          if formatter_class_name && self.class.const_defined?(formatter_class_name)
+            formatter_class = self.class.const_get(formatter_class_name)
+          else
+            formatter_class = Class.new
+            self.class.const_set(formatter_class_name, formatter_class) if formatter_class_name
+          end
+
           formatter_class.class_eval do
             include interface_class
             define_method method, &block
@@ -30,6 +60,16 @@ module Mondrian
           formatter_java_class = formatter_class.become_java!(false)
           class_name formatter_java_class.getName
         end
+
+        def ruby_formatter_name_to_class_name(name)
+          # upcase just first character
+          "#{name.sub(/\A./){|m| m.upcase}}Udf"
+        end
+
+        def ruby_formatter_java_class_name(name)
+          "rubyobj.#{self.class.name.gsub('::','.')}.#{ruby_formatter_name_to_class_name(name)}"
+        end
+
       end
 
       class UserDefinedFunction < SchemaElement
@@ -240,12 +280,21 @@ JS
         attributes :class_name
         elements :script
 
+        def initialize(name = nil, attributes = {}, &block)
+          super
+          if name && !attributes[:class_name] && !block_given?
+            # use shared ruby implementation
+            @attributes[:class_name] = ruby_formatter_java_class_name(name)
+            @attributes.delete(:name)
+          end
+        end
+
         def coffeescript(text)
           coffeescript_function('(value)', text)
         end
 
-        def ruby(&block)
-          ruby_formatter(Java::mondrian.spi.CellFormatter, 'formatCell', [java.lang.String, java.lang.Object], &block)
+        def ruby(*options, &block)
+          ruby_formatter(options, Java::mondrian.spi.CellFormatter, 'formatCell', [java.lang.String, java.lang.Object], &block)
         end
       end
 
@@ -258,8 +307,8 @@ JS
           coffeescript_function('(member)', text)
         end
 
-        def ruby(&block)
-          ruby_formatter(Java::mondrian.spi.MemberFormatter, 'formatMember', [java.lang.String, Java::mondrian.olap.Member], &block)
+        def ruby(*options, &block)
+          ruby_formatter(options, Java::mondrian.spi.MemberFormatter, 'formatMember', [java.lang.String, Java::mondrian.olap.Member], &block)
         end
       end
 
@@ -272,8 +321,8 @@ JS
           coffeescript_function('(member,propertyName,propertyValue)', text)
         end
 
-        def ruby(&block)
-          ruby_formatter(Java::mondrian.spi.PropertyFormatter, 'formatProperty', [java.lang.String, Java::mondrian.olap.Member, java.lang.String, java.lang.Object], &block)
+        def ruby(*options, &block)
+          ruby_formatter(options, Java::mondrian.spi.PropertyFormatter, 'formatProperty', [java.lang.String, Java::mondrian.olap.Member, java.lang.String, java.lang.Object], &block)
         end
       end
 

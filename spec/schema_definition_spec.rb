@@ -1163,6 +1163,11 @@ describe "Schema definition" do
               end
             end
           end
+          user_defined_cell_formatter 'Integer20Digits' do
+            ruby :shared do |value|
+              "%020d" % value
+            end
+          end
         end
 
         @schema.define do
@@ -1176,9 +1181,11 @@ describe "Schema definition" do
                 level 'Name', :column => 'fullname'
               end
             end
+            measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum', :format_string => '#,##0'
             calculated_member 'Factorial' do
               dimension 'Measures'
               formula 'Factorial(6)'
+              cell_formatter 'Integer20Digits'
             end
           end
         end
@@ -1197,8 +1204,10 @@ describe "Schema definition" do
                 <Level column="fullname" name="Name"/>
               </Hierarchy>
             </Dimension>
+            <Measure aggregator="sum" column="unit_sales" formatString="#,##0" name="Unit Sales"/>
             <CalculatedMember dimension="Measures" name="Factorial">
               <Formula>Factorial(6)</Formula>
+              <CellFormatter className="rubyobj.Mondrian.OLAP.Schema.CellFormatter.Integer20DigitsUdf"/>
             </CalculatedMember>
           </Cube>
           <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.FactorialUdf" name="Factorial"/>
@@ -1212,6 +1221,23 @@ describe "Schema definition" do
         result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
         value = 1*2*3*4*5*6
         result.values.should == [value]
+        result.formatted_values.should == ["%020d" % value]
+      end
+
+      it "should get measure cell formatter name" do
+        @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter_name.should == 'Integer20Digits'
+      end
+
+      it "should not get measure cell formatter name if not specified" do
+        @olap.cube('Sales').member('[Measures].[Unit Sales]').cell_formatter_name.should be_nil
+      end
+
+      it "should get measure format string" do
+        @olap.cube('Sales').member('[Measures].[Unit Sales]').format_string.should == '#,##0'
+      end
+
+      it "should not get measure format string if not specified" do
+        @olap.cube('Sales').member('[Measures].[Factorial]').format_string.should be_nil
       end
 
     end

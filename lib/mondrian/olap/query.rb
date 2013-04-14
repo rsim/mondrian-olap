@@ -189,7 +189,15 @@ module Mondrian
         # definition of calculated member
         else
           member_definition = @with.last
-          options = params.last.is_a?(Hash) ? params.pop : nil
+          if params.last.is_a?(Hash)
+            options = params.pop
+            # if formatter does not include . then it should be ruby formatter name
+            if (formatter = options[:cell_formatter]) && !formatter.include?('.')
+              options = options.merge(:cell_formatter => Mondrian::OLAP::Schema::CellFormatter.new(formatter).class_name)
+            end
+          else
+            options = nil
+          end
           raise ArgumentError, "cannot use 'as' method before with_member method" unless member_definition &&
             member_definition[0] == :member && member_definition.length == 2
           raise ArgumentError, "calculated member definition should be single expression" unless params.length == 1

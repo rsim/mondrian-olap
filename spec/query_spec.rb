@@ -612,7 +612,7 @@ describe "Query" do
               :solve_order => 1, :format_string => 'Percent').
           with_member('[Measures].[ProfitValue]').
             as('[Measures].[Store Sales] * [Measures].[ProfitPct]',
-              :solve_order => 2, :format_string => 'Currency').
+              :solve_order => 2, :cell_formatter => 'CurrencyFormatter').
           columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
@@ -623,7 +623,7 @@ describe "Query" do
                SOLVE_ORDER = 1, FORMAT_STRING = 'Percent'
                MEMBER [Measures].[ProfitValue] AS
                '[Measures].[Store Sales] * [Measures].[ProfitPct]',
-               SOLVE_ORDER = 2, FORMAT_STRING = 'Currency'
+               SOLVE_ORDER = 2, CELL_FORMATTER = 'rubyobj.Mondrian.OLAP.Schema.CellFormatter.CurrencyFormatterUdf'
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
