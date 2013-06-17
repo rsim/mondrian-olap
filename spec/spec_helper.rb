@@ -78,6 +78,8 @@ end
 CATALOG_FILE = File.expand_path('../fixtures/MondrianTest.xml', __FILE__) unless defined?(CATALOG_FILE)
 
 CONNECTION_PARAMS = {
+  # uncomment to test PostgreSQL SSL connection
+  # :properties => {'ssl'=>'true','sslfactory'=>'org.postgresql.ssl.NonValidatingFactory'},
   :driver   => MONDRIAN_DRIVER,
   :host     => DATABASE_HOST,
   :database => DATABASE_NAME,
@@ -126,6 +128,8 @@ when 'sqlserver'
   }
 else
   AR_CONNECTION_PARAMS = {
+    # uncomment to test PostgreSQL SSL connection
+    # :properties => CONNECTION_PARAMS[:properties],
     :adapter  => 'jdbc',
     :driver   => JDBC_DRIVER,
     :url      => "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}",

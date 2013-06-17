@@ -201,6 +201,10 @@ module Mondrian
         when 'mysql', 'postgresql'
           uri = "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
           uri << "?useUnicode=yes&characterEncoding=UTF-8" if @driver == 'mysql'
+          if (properties = @params[:properties]).is_a?(Hash) && !properties.empty?
+            uri << (@driver == 'mysql' ? '&' : '?')
+            uri << properties.map{|k, v| "#{k}=#{v}"}.join('&')
+          end
           uri
         when 'oracle'
           # connection using TNS alias
