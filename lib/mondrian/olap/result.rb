@@ -235,7 +235,8 @@ module Mondrian
               Java::MondrianServerMonitor::SqlStatementEvent::Purpose::DRILL_THROUGH, 0
             ),
             result_set_type,
-            result_set_concurrency
+            result_set_concurrency,
+            nil
           )
         end
 
