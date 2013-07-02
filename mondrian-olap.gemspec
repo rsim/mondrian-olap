@@ -37,7 +37,7 @@ Gem::Specification.new do |s|
     "lib/mondrian/jars/eigenbase-resgen.jar",
     "lib/mondrian/jars/eigenbase-xom.jar",
     "lib/mondrian/jars/javacup.jar",
-    "lib/mondrian/jars/log4j-1.2.8.jar",
+    "lib/mondrian/jars/log4j-1.2.14.jar",
     "lib/mondrian/jars/log4j.properties",
     "lib/mondrian/jars/mondrian.jar",
     "lib/mondrian/jars/olap4j.jar",
