@@ -16,6 +16,6 @@ group :development do
   gem 'activerecord-jdbc-adapter', '~> 1.2.9'
   gem 'activerecord-oracle_enhanced-adapter', :require => false
   gem 'coffee-script', '~> 2.2.0'
-  gem 'therubyrhino', '~> 1.73.1'
+  gem 'therubyrhino', '~> 2.0.2'
   gem 'pry', :require => false
 end
