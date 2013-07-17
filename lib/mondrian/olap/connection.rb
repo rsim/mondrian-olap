@@ -106,7 +106,9 @@ module Mondrian
       end
 
       def role_names
-        @raw_connection.getRoleNames.to_a
+        # workaround to access non-public method (was not public when using inside Torquebox)
+        # @raw_connection.getRoleNames.to_a
+        @raw_connection.java_method(:getRoleNames).call.to_a
       end
 
       def role_name=(name)
@@ -117,7 +119,9 @@ module Mondrian
 
       def role_names=(names)
         Error.wrap_native_exception do
-          @raw_connection.setRoleNames(Array(names))
+          # workaround to access non-public method (was not public when using inside Torquebox)
+          # @raw_connection.setRoleNames(Array(names))
+          @raw_connection.java_method(:setRoleNames, [Java::JavaUtil::List.java_class]).call(Array(names))
         end
       end
 
