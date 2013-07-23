@@ -125,6 +125,17 @@ module Mondrian
         end
       end
 
+      def locale
+        @raw_connection.getLocale.toString
+      end
+
+      def locale=(locale)
+        locale_elements = locale.split('_')
+        raise ArgumentError, "invalid locale string #{locale.inspect}" unless [1,2,3].include?(locale_elements.length)
+        java_locale = Java::JavaUtil::Locale.new(*locale_elements)
+        @raw_connection.setLocale(java_locale)
+      end
+
       # access MondrianServer instance
       def mondrian_server
         Error.wrap_native_exception do
@@ -196,6 +207,9 @@ module Mondrian
         if role = @params[:role] || @params[:roles]
           roles = Array(role).map{|r| r && r.to_s.gsub(',', ',,')}.compact
           string << "Role=#{quote_string(roles.join(','))};" unless roles.empty?
+        end
+        if locale = @params[:locale]
+          string << "Locale=#{quote_string(locale)};"
         end
         string << (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
