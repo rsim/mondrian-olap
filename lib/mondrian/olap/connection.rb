@@ -130,7 +130,7 @@ module Mondrian
       end
 
       def locale=(locale)
-        locale_elements = locale.split('_')
+        locale_elements = locale.to_s.split('_')
         raise ArgumentError, "invalid locale string #{locale.inspect}" unless [1,2,3].include?(locale_elements.length)
         java_locale = Java::JavaUtil::Locale.new(*locale_elements)
         @raw_connection.setLocale(java_locale)
@@ -209,7 +209,7 @@ module Mondrian
           string << "Role=#{quote_string(roles.join(','))};" unless roles.empty?
         end
         if locale = @params[:locale]
-          string << "Locale=#{quote_string(locale)};"
+          string << "Locale=#{quote_string(locale.to_s)};"
         end
         string << (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
