@@ -208,11 +208,7 @@ module Mondrian
           # This can be a significant performance enhancement on some databases, such as MySQL.
           :depends_on_level_value
         data_dictionary_names :column
-        elements :property_formatter, :property_expression
-      end
-
-      class PropertyExpression < SchemaElement
-        elements :sql
+        elements :property_formatter
       end
 
       class Measure < SchemaElement
