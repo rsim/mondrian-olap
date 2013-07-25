@@ -641,6 +641,11 @@ describe "Schema definition" do
                   property 'Gender', :column => 'gender'
                   property 'Salary', :column => 'salary'
                   property 'Education Level', :column => 'education_level'
+                  property 'Uppercase Name' do
+                    property_expression do
+                      sql "UPPER(full_name)", :dialect => 'mysql'
+                    end
+                  end
                 end
               end
             end
@@ -659,6 +664,11 @@ describe "Schema definition" do
                   <Property column="gender" name="Gender"/>
                   <Property column="salary" name="Salary"/>
                   <Property column="education_level" name="Education Level"/>
+                  <Property name="Uppercase Name">
+                    <PropertyExpression>
+                      <SQL dialect="mysql">UPPER(full_name)</SQL>
+                    </PropertyExpression>
+                  </Property>
                 </Level>
               </Hierarchy>
             </Dimension>
