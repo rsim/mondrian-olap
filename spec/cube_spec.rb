@@ -3,16 +3,28 @@ require "spec_helper"
 describe "Cube" do
   before(:all) do
     @schema = Mondrian::OLAP::Schema.define do
+      measures_caption 'Measures caption'
+
       cube 'Sales' do
         description 'Sales description'
+        caption 'Sales caption'
         annotations :foo => 'bar'
         table 'sales'
         dimension 'Gender', :foreign_key => 'customer_id' do
           description 'Gender description'
+          caption 'Gender caption'
           hierarchy :has_all => true, :primary_key => 'id' do
             description 'Gender hierarchy description'
+            caption 'Gender hierarchy caption'
+            all_member_name 'All Genders'
+            all_member_caption 'All Genders caption'
             table 'customers'
-            level 'Gender', :column => 'gender', :unique_members => true, :description => 'Gender level description'
+            level 'Gender', :column => 'gender', :unique_members => true,
+                            :description => 'Gender level description', :caption => 'Gender level caption' do
+              caption_expression do
+                sql "'dummy'"
+              end
+            end
           end
         end
         dimension 'Customers', :foreign_key => 'customer_id', :annotations => {:foo => 'bar'} do
@@ -69,6 +81,10 @@ describe "Cube" do
     @olap.cube('Sales').description.should == 'Sales description'
   end
 
+  it "should get cube caption" do
+    @olap.cube('Sales').caption.should == 'Sales caption'
+  end
+
   it "should get cube annotations" do
     @olap.cube('Sales').annotations.should == {'foo' => 'bar'}
   end
@@ -99,12 +115,20 @@ describe "Cube" do
       @cube.dimension('Gender').description.should == 'Gender description'
     end
 
+    it "should get dimension caption" do
+      @cube.dimension('Gender').caption.should == 'Gender caption'
+    end
+
     it "should get dimension full name" do
       @cube.dimension('Gender').full_name.should == '[Gender]'
     end
 
     it "should get measures dimension" do
       @cube.dimension('Measures').should be_measures
+    end
+
+    it "should get measures caption" do
+      @cube.dimension('Measures').caption.should == 'Measures caption'
     end
 
     it "should get dimension type" do
@@ -135,6 +159,10 @@ describe "Cube" do
 
     it "should get hierarchy description" do
       hierarchies = @cube.dimension('Gender').hierarchies.first.description.should == 'Gender hierarchy description'
+    end
+
+    it "should get hierarchy caption" do
+      hierarchies = @cube.dimension('Gender').hierarchies.first.caption.should == 'Gender hierarchy caption'
     end
 
     it "should get hierarchy names" do
@@ -231,6 +259,10 @@ describe "Cube" do
       @cube.dimension('Gender').hierarchy.level('Gender').description.should == 'Gender level description'
     end
 
+    it "should get level caption" do
+      @cube.dimension('Gender').hierarchy.level('Gender').caption.should == 'Gender level caption'
+    end
+
     it "should return nil when getting level with invalid name" do
       @cube.dimension('Gender').hierarchy.level('invalid').should be_nil
     end
@@ -263,6 +295,14 @@ describe "Cube" do
     it "should return member for specified full name" do
       @cube.member('[Gender].[All Genders]').name.should == 'All Genders'
       @cube.member('[Customers].[USA].[OR]').name.should == 'OR'
+    end
+
+    it "should return all member caption" do
+      @cube.member('[Gender].[All Genders]').caption.should == 'All Genders caption'
+    end
+
+    it "should return member caption from expression" do
+      @cube.member('[Gender].[F]').caption.should == 'dummy'
     end
 
     it "should not return member for invalid full name" do

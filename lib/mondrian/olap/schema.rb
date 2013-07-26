@@ -49,11 +49,11 @@ module Mondrian
 
       public
 
-      attributes :name, :description
+      attributes :name, :description, :measures_caption
       elements :annotations, :cube, :role, :user_defined_function
 
       class Cube < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           # The name of the measure that would be taken as the default measure of the cube.
           :default_measure,
           # Should the Fact table data for this Cube be cached by Mondrian or not.
@@ -83,7 +83,7 @@ module Mondrian
       end
 
       class Dimension < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           # The dimension's type may be one of "Standard" or "Time".
           # A time dimension will allow the use of the MDX time functions (WTD, YTD, QTD, etc.).
           # Use a standard dimension if the dimension is not a time-related dimension.
@@ -97,12 +97,14 @@ module Mondrian
       end
 
       class Hierarchy < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           # Whether this hierarchy has an 'all' member.
           :has_all,
           # Name of the 'all' member. If this attribute is not specified,
           # the all member is named 'All hierarchyName', for example, 'All Store'.
           :all_member_name,
+          # A string being displayed instead as the all member's name
+          :all_member_caption,
           # Name of the 'all' level. If this attribute is not specified,
           # the all member is named '(All)'.
           :all_level_name,
@@ -126,7 +128,7 @@ module Mondrian
       end
 
       class Level < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           # The name of the table that the column comes from.
           # If this hierarchy is based upon just one table, defaults to the name of that table;
           # otherwise, it is required.
@@ -140,6 +142,8 @@ module Mondrian
           :ordinal_column,
           # The name of the column which references the parent member in a parent-child hierarchy.
           :parent_column,
+          # The name of the column which holds the caption for members
+          :caption_column,
           # Value which identifies null parents in a parent-child hierarchy.
           # Typical values are 'NULL' and '0'.
           :null_parent_value,
@@ -173,8 +177,8 @@ module Mondrian
           # The estimated number of members in this level. Setting this property improves the performance of
           # MDSCHEMA_LEVELS, MDSCHEMA_HIERARCHIES and MDSCHEMA_DIMENSIONS XMLA requests
           :approx_row_count
-        data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column # values in XML will be uppercased when using Oracle driver
-        elements :annotations, :key_expression, :name_expression, :ordinal_expression, :member_formatter, :property
+        data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column, :caption_column # values in XML will be uppercased when using Oracle driver
+        elements :annotations, :key_expression, :name_expression, :ordinal_expression, :caption_expression, :member_formatter, :property
       end
 
       class KeyExpression < SchemaElement
@@ -189,6 +193,10 @@ module Mondrian
         elements :sql
       end
 
+      class CaptionExpression < SchemaElement
+        elements :sql
+      end
+
       class Sql < SchemaElement
         def self.name
           'SQL'
@@ -198,7 +206,7 @@ module Mondrian
       end
 
       class Property < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           :column,
           # Data type of this property: String, Numeric, Integer, Boolean, Date, Time or Timestamp.
           :type,
@@ -212,7 +220,7 @@ module Mondrian
       end
 
       class Measure < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           # Column which is source of this measure's values.
           # If not specified, a measure expression must be specified.
           :column,
@@ -234,7 +242,7 @@ module Mondrian
       end
 
       class CalculatedMember < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           # Name of the dimension which this member belongs to.
           :dimension,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
@@ -249,7 +257,7 @@ module Mondrian
       end
 
       class CalculatedMemberProperty < SchemaElement
-        attributes :name, :description,
+        attributes :name, :description, :caption,
           # MDX expression which defines the value of this property. If the expression is a constant string, you could enclose it in quotes,
           # or just specify the 'value' attribute instead.
           :expression,

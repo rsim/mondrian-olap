@@ -37,6 +37,10 @@ module Mondrian
         @description ||= @raw_cube.getDescription
       end
 
+      def caption
+        @caption ||= @raw_cube.getCaption
+      end
+
       include Annotated
       def annotations
         annotations_for(@raw_cube)
@@ -85,6 +89,10 @@ module Mondrian
 
       def description
         @description ||= @raw_dimension.getDescription
+      end
+
+      def caption
+        @caption ||= @raw_dimension.getCaption
       end
 
       def full_name
@@ -140,6 +148,10 @@ module Mondrian
 
       def description
         @description ||= @raw_hierarchy.getDescription
+      end
+
+      def caption
+        @caption ||= @raw_hierarchy.getCaption
       end
 
       def levels
@@ -213,6 +225,10 @@ module Mondrian
         @description ||= @raw_level.getDescription
       end
 
+      def caption
+        @caption ||= @raw_level.getCaption
+      end
+
       def depth
         @raw_level.getDepth
       end
@@ -254,15 +270,15 @@ module Mondrian
       attr_reader :raw_member
 
       def name
-        @raw_member.getName
+        @name ||= @raw_member.getName
       end
 
       def full_name
-        @raw_member.getUniqueName
+        @full_name ||= @raw_member.getUniqueName
       end
 
       def caption
-        @raw_member.getCaption
+        @caption ||= @raw_member.getCaption
       end
 
       def calculated?
