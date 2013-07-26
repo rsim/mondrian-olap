@@ -609,7 +609,7 @@ describe "Query" do
         @query.
           with_member('[Measures].[ProfitPct]').
             as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-              :solve_order => 1, :format_string => 'Percent').
+              :solve_order => 1, :format_string => 'Percent', :caption => 'Profit %').
           with_member('[Measures].[ProfitValue]').
             as('[Measures].[Store Sales] * [Measures].[ProfitPct]',
               :solve_order => 2, :cell_formatter => 'CurrencyFormatter').
@@ -620,7 +620,7 @@ describe "Query" do
             WITH
                MEMBER [Measures].[ProfitPct] AS
                'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-               SOLVE_ORDER = 1, FORMAT_STRING = 'Percent'
+               SOLVE_ORDER = 1, FORMAT_STRING = 'Percent', $caption = 'Profit %'
                MEMBER [Measures].[ProfitValue] AS
                '[Measures].[Store Sales] * [Measures].[ProfitPct]',
                SOLVE_ORDER = 2, CELL_FORMATTER = 'rubyobj.Mondrian.OLAP.Schema.CellFormatter.CurrencyFormatterUdf'

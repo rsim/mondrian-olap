@@ -244,7 +244,13 @@ module Mondrian
             options = definition[3]
             options_string = ''
             options && options.each do |option, value|
-              options_string << ", #{option.to_s.upcase} = #{quote_value(value)}"
+              option_name = case option
+              when :caption
+                '$caption'
+              else
+                option.to_s.upcase
+              end
+              options_string << ", #{option_name} = #{quote_value(value)}"
             end
             "MEMBER #{member_name} AS #{quote_value(expression)}#{options_string}"
           when :set
