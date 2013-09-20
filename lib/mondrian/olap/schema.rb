@@ -142,6 +142,14 @@ module Mondrian
           :unique_key_level_name
         data_dictionary_names :primary_key, :primary_key_table # values in XML will be uppercased when using Oracle driver
         elements :annotations, :table, :join, :view, :property, :level
+
+        def initialize(name = nil, attributes = {}, parent = nil)
+          super
+          # set :has_all => true if :all_member_name is set
+          if @attributes[:has_all].nil? && @attributes[:all_member_name]
+            @attributes[:has_all] = true
+          end
+        end
       end
 
       class Join < SchemaElement
@@ -202,6 +210,14 @@ module Mondrian
           :approx_row_count
         data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column, :caption_column # values in XML will be uppercased when using Oracle driver
         elements :annotations, :key_expression, :name_expression, :ordinal_expression, :caption_expression, :member_formatter, :property
+
+        def initialize(name = nil, attributes = {}, parent = nil)
+          super
+          # set :unique_members by default to true for first level and false for next levels
+          if @attributes[:unique_members].nil?
+            @attributes[:unique_members] = parent.levels.empty?
+          end
+        end
       end
 
       class KeyExpression < SchemaElement

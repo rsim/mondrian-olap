@@ -245,6 +245,39 @@ describe "Schema definition" do
         XML
       end
 
+      it "should render dimension with hierarchy and level defaults" do
+        @schema.define do
+          cube 'Sales' do
+            dimension 'Time' do
+              foreign_key 'time_id'
+              hierarchy do
+                all_member_name 'All Times' # should add :has_all => true
+                primary_key 'time_id'
+                table 'time_by_day'
+                level 'Year', :column => 'the_year', :type => 'Numeric' # first level should have default :unique_members => true
+                level 'Quarter', :column => 'quarter' # next levels should have default :unique_members => false
+                level 'Month', :column => 'month_of_year', :type => 'Numeric'
+              end
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <Dimension foreignKey="time_id" name="Time">
+              <Hierarchy allMemberName="All Times" hasAll="true" primaryKey="time_id">
+                <Table name="time_by_day"/>
+                <Level column="the_year" name="Year" type="Numeric" uniqueMembers="true"/>
+                <Level column="quarter" name="Quarter" uniqueMembers="false"/>
+                <Level column="month_of_year" name="Month" type="Numeric" uniqueMembers="false"/>
+              </Hierarchy>
+            </Dimension>
+          </Cube>
+        </Schema>
+        XML
+      end
+
       it "should render dimension hierarchy with join" do
         @schema.define do
           cube 'Sales' do
@@ -825,7 +858,7 @@ describe "Schema definition" do
             <Dimension foreignKey="customer_id" name="Customers">
               <Hierarchy allMemberName="All Customers" hasAll="true" primaryKey="id">
                 <Table name="customers"/>
-                <Level column="fullname" name="Name">
+                <Level column="fullname" name="Name" uniqueMembers="true">
                   <MemberFormatter>
                     <Script language="JavaScript">return member.getName().toUpperCase();</Script>
                   </MemberFormatter>
@@ -1234,7 +1267,7 @@ describe "Schema definition" do
             <Dimension foreignKey="customer_id" name="Customers">
               <Hierarchy allMemberName="All Customers" hasAll="true" primaryKey="id">
                 <Table name="customers"/>
-                <Level column="fullname" name="Name"/>
+                <Level column="fullname" name="Name" uniqueMembers="true"/>
               </Hierarchy>
             </Dimension>
             <Measure aggregator="sum" column="unit_sales" formatString="#,##0" name="Unit Sales"/>
