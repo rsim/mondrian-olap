@@ -432,6 +432,35 @@ describe "Schema definition" do
       end
     end
 
+    describe "Virtual cube" do
+      it "should render to XML" do
+        @schema.define do
+          virtual_cube 'Warehouse and Sales', :default_measure => 'Store Sales' do
+            virtual_cube_dimension 'Customers', :cube_name => 'Sales'
+            virtual_cube_dimension 'Product'
+            virtual_cube_measure '[Measures].[Store Sales]', :cube_name => 'Sales'
+            calculated_member 'Profit' do
+              dimension 'Measures'
+              formula '[Measures].[Store Sales] - [Measures].[Store Cost]'
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Schema name="default">
+          <VirtualCube defaultMeasure="Store Sales" name="Warehouse and Sales">
+            <VirtualCubeDimension cubeName="Sales" name="Customers"/>
+            <VirtualCubeDimension name="Product"/>
+            <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Store Sales]"/>
+            <CalculatedMember dimension="Measures" name="Profit">
+              <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
+            </CalculatedMember>
+          </VirtualCube>
+        </Schema>
+        XML
+      end
+    end
+
     describe "Measure" do
       it "should render XML" do
         @schema.define do

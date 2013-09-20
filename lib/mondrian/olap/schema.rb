@@ -50,7 +50,7 @@ module Mondrian
       public
 
       attributes :name, :description, :measures_caption
-      elements :annotations, :dimension, :cube, :role, :user_defined_function
+      elements :annotations, :dimension, :cube, :virtual_cube, :role, :user_defined_function
 
       class Cube < SchemaElement
         attributes :name, :description, :caption,
@@ -308,6 +308,30 @@ module Mondrian
           :expression,
           # Value of this property. If the value is not constant, specify the 'expression' attribute instead.
           :value
+      end
+
+      class VirtualCube < SchemaElement
+        attributes :name, :description, :caption,
+          # The name of the measure that would be taken as the default measure of the cube.
+          :default_measure,
+          # Whether element is enabled - if true, then the VirtualCube is realized otherwise it is ignored.
+          :enabled
+        elements :annotations, :virtual_cube_dimension, :virtual_cube_measure, :calculated_member
+      end
+
+      class VirtualCubeDimension < SchemaElement
+        attributes :name,
+          # Name of the cube which the dimension belongs to, or unspecified if the dimension is shared
+          :cube_name
+      end
+
+      class VirtualCubeMeasure < SchemaElement
+        attributes :name,
+          # Name of the cube which the measure belongs to.
+          :cube_name,
+          # Whether this member is visible in the user-interface. Default true.
+          :visible
+        elements :annotations
       end
 
       class AggName < SchemaElement
