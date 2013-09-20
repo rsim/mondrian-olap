@@ -440,6 +440,7 @@ describe "Schema definition" do
               column 'unit_sales'
               aggregator 'sum'
             end
+            measure 'Store Sales', :column => 'store_sales' # by default should use sum aggregator
           end
         end
         @schema.to_xml.should be_like <<-XML
@@ -447,6 +448,7 @@ describe "Schema definition" do
         <Schema name="default">
           <Cube name="Sales">
             <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
+            <Measure aggregator="sum" column="store_sales" name="Store Sales"/>
           </Cube>
         </Schema>
         XML
@@ -757,7 +759,7 @@ describe "Schema definition" do
               <Annotation name="key1">value1</Annotation>
               <Annotation name="key2">value2</Annotation>
             </Annotations>
-            <Measure column="unit_sales" name="Unit Sales">
+            <Measure aggregator="sum" column="unit_sales" name="Unit Sales">
               <Annotations>
                 <Annotation name="key3">value3</Annotation>
               </Annotations>
@@ -782,7 +784,7 @@ describe "Schema definition" do
               <Annotation name="key1">value1</Annotation>
               <Annotation name="key2">value2</Annotation>
             </Annotations>
-            <Measure column="unit_sales" name="Unit Sales">
+            <Measure aggregator="sum" column="unit_sales" name="Unit Sales">
               <Annotations>
                 <Annotation name="key3">value3</Annotation>
               </Annotations>

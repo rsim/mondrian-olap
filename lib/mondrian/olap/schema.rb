@@ -274,6 +274,12 @@ module Mondrian
           :visible
         data_dictionary_names :column # values in XML will be uppercased when using Oracle driver
         elements :annotations, :measure_expression, :cell_formatter
+
+        def initialize(name = nil, attributes = {}, parent = nil)
+          super
+          # by default set aggregator to sum
+          @attributes[:aggregator] ||= 'sum'
+        end
       end
 
       class MeasureExpression < SchemaElement
