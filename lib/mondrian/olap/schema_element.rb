@@ -3,7 +3,7 @@ require 'nokogiri'
 module Mondrian
   module OLAP
     class SchemaElement
-      def initialize(name = nil, attributes = {}, &block)
+      def initialize(name = nil, attributes = {}, parent = nil, &block)
         # if just attributes hash provided
         if name.is_a?(Hash) && attributes == {}
           attributes = name
@@ -69,7 +69,7 @@ module Mondrian
           attr_reader pluralize(name).to_sym
           class_eval <<-RUBY, __FILE__, __LINE__ + 1
             def #{name}(name=nil, attributes = {}, &block)
-              @#{pluralize(name)} << Schema::#{camel_case(name)}.new(name, attributes, &block)
+              @#{pluralize(name)} << Schema::#{camel_case(name)}.new(name, attributes, self, &block)
             end
           RUBY
         end

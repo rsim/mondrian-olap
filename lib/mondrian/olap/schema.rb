@@ -5,10 +5,10 @@ module Mondrian
     # See http://mondrian.pentaho.com/documentation/schema.php for more detailed description
     # of Mondrian Schema elements.
     class Schema < SchemaElement
-      def initialize(name = nil, attributes = {}, &block)
+      def initialize(name = nil, attributes = {}, parent = nil, &block)
         name, attributes = self.class.pre_process_arguments(name, attributes)
         pre_process_attributes(attributes)
-        super(name, attributes, &block)
+        super(name, attributes, parent, &block)
       end
 
       def self.define(name = nil, attributes = {}, &block)
@@ -50,7 +50,7 @@ module Mondrian
       public
 
       attributes :name, :description, :measures_caption
-      elements :annotations, :cube, :role, :user_defined_function
+      elements :annotations, :dimension, :cube, :role, :user_defined_function
 
       class Cube < SchemaElement
         attributes :name, :description, :caption,
@@ -62,7 +62,7 @@ module Mondrian
           # Whether element is enabled - if true, then the Cube is realized otherwise it is ignored.
           :enabled
         # always render xml fragment as the first element in XML output (by default it is added at the end)
-        elements :annotations, :xml, :table, :view, :dimension, :measure, :calculated_member
+        elements :annotations, :xml, :table, :view, :dimension_usage, :dimension, :measure, :calculated_member
       end
 
       class Table < SchemaElement
@@ -94,6 +94,29 @@ module Mondrian
           :foreign_key
         data_dictionary_names :foreign_key # values in XML will be uppercased when using Oracle driver
         elements :annotations, :hierarchy
+      end
+
+      class DimensionUsage < SchemaElement
+        attributes :name,
+          # Name of the source dimension. Must be a dimension in this schema. Case-sensitive.
+          :source,
+          # Name of the level to join to. If not specified, joins to the lowest level of the dimension.
+          :level,
+          # If present, then this is prepended to the Dimension column names
+          # during the building of collapse dimension aggregates allowing
+          # 1) different dimension usages to be disambiguated during aggregate table recognition and
+          # 2) multiple shared dimensions that have common column names to be disambiguated.
+          :usage_prefix,
+          # The name of the column in the fact table which joins to the leaf level of this dimension.
+          # Required in a private Dimension or a DimensionUsage, but not in a public Dimension.
+          :foreign_key
+        data_dictionary_names :usage_prefix, :foreign_key # values in XML will be uppercased when using Oracle driver
+
+        def initialize(name = nil, attributes = {}, parent = nil)
+          super
+          # by default specify :source as name
+          @attributes[:source] ||= name
+        end
       end
 
       class Hierarchy < SchemaElement
@@ -384,15 +407,15 @@ module Mondrian
 
       class Annotations < SchemaElement
         elements :annotation
-        def initialize(name = nil, attributes = {}, &block)
+        def initialize(name = nil, attributes = {}, parent = nil, &block)
           if name.is_a?(Hash)
             attributes = name
             name = nil
           end
           if block_given?
-            super(name, attributes, &block)
+            super(name, attributes, parent, &block)
           else
-            super(nil, {}) do
+            super(nil, {}, parent) do
               attributes.each do |key, value|
                 annotation key.to_s, value.to_s
               end

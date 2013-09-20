@@ -280,7 +280,7 @@ JS
         attributes :class_name
         elements :script
 
-        def initialize(name = nil, attributes = {}, &block)
+        def initialize(name = nil, attributes = {}, parent = nil, &block)
           super
           if name && !attributes[:class_name] && !block_given?
             # use shared ruby implementation

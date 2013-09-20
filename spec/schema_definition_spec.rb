@@ -366,6 +366,39 @@ describe "Schema definition" do
 
     end
 
+    describe "Shared dimension" do
+      it "should render to XML" do
+        @schema.define do
+          dimension 'Gender' do
+            hierarchy do
+              has_all true
+              all_member_name 'All Genders'
+              primary_key 'customer_id'
+              table 'customer'
+              level 'Gender', :column => 'gender', :unique_members => true
+            end
+          end
+          cube 'Sales' do
+            dimension_usage 'Gender', :foreign_key => 'customer_id' # by default :source => 'Gender' will be added
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Schema name="default">
+          <Dimension name="Gender">
+            <Hierarchy allMemberName="All Genders" hasAll="true" primaryKey="customer_id">
+              <Table name="customer"/>
+              <Level column="gender" name="Gender" uniqueMembers="true"/>
+            </Hierarchy>
+          </Dimension>
+          <Cube name="Sales">
+            <DimensionUsage foreignKey="customer_id" name="Gender" source="Gender"/>
+          </Cube>
+        </Schema>
+        XML
+      end
+    end
+
     describe "Measure" do
       it "should render XML" do
         @schema.define do
