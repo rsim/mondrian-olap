@@ -2,6 +2,7 @@
 .rvmrc
 .DS_Store
 .autotest
+.ruby-*
 coverage
 doc
 pkg

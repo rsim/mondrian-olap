@@ -1,4 +1,3 @@
-require 'nokogiri'
 require 'bigdecimal'
 
 module Mondrian
