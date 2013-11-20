@@ -1,5 +1,3 @@
-require 'nokogiri'
-
 module Mondrian
   module OLAP
     class SchemaElement
