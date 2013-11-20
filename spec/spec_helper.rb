@@ -1,8 +1,11 @@
-require "bundler"
-Bundler.setup(:default, :development)
-
+require 'jruby-openssl'
+require 'rdoc'
 require 'rspec'
+require 'autotest'
 require 'active_record'
+require 'activerecord-jdbc-adapter'
+require 'coffee-script'
+require 'rhino'
 require 'pry'
 
 # autoload corresponding JDBC driver during require 'jdbc/...'
