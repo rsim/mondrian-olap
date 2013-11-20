@@ -5,7 +5,7 @@ require 'mondrian/olap/version'
 
 Gem::Specification.new do |gem|
   gem.name          = "mondrian-olap"
-  gem.version       = ::Mondrian::Olap::VERSION
+  gem.version       = ::Mondrian::OLAP::VERSION
   gem.authors       = ["Raimonds Simanovskis"]
   gem.email         = ["raimonds.simanovskis@gmail.com"]
   gem.description   = "JRuby gem for performing multidimensional queries of relational database data using Mondrian OLAP Java library\n"
@@ -36,6 +36,6 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "activerecord-jdbc-adapter"
   gem.add_development_dependency "activerecord-oracle_enhanced-adapter"
   gem.add_development_dependency "pry"
-  gem.add_development_dependency "therubyrhino", "~> 2.0.2"
-  gem.add_development_dependency "coffee-script", "~> 2.2.0"
+  gem.add_development_dependency "therubyrhino"
+  gem.add_development_dependency "coffee-script"
 end
