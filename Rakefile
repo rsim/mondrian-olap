@@ -11,17 +11,6 @@ end
 desc "Run specs (default)"
 task :default => :spec
 
-#require 'rubygems'
-#require 'bundler'
-#begin
-#  Bundler.setup(:default, :development)
-#rescue Bundler::BundlerError => e
-#  $stderr.puts e.message
-#  $stderr.puts "Run `bundle install` to install missing gems"
-#  exit e.status_code
-#end
-
-
 require 'rdoc/task'
 RDoc::Task.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""
@@ -33,3 +22,5 @@ RDoc::Task.new do |rdoc|
 end
 
 require 'spec/rake_tasks'
+
+Dir["lib/tasks/**/*.rake"].each { |ext| load ext } if defined?(Rake)
