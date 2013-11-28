@@ -229,8 +229,14 @@ module Mondrian
           if @params[:database] && !@params[:host] && !@params[:url] && ENV['TNS_ADMIN']
             "jdbc:oracle:thin:@#{@params[:database]}"
           else
-            @params[:url] ||
-            "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}:#{@params[:database]}"
+            @params[:url] || begin
+              database = @params[:database]
+              unless database =~ %r{^(:|/)}
+                # assume database is a SID if no colon or slash are supplied (backward-compatibility)
+                database = ":#{database}"
+              end
+              "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}#{database}"
+            end
           end
         when 'luciddb'
           uri = "jdbc:luciddb:http://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"

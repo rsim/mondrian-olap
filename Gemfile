@@ -14,7 +14,7 @@ group :development do
   gem 'jdbc-jtds', '~> 1.2.7', :require => false # latest 1.3.x version is not compatible with Java 6
   gem 'activerecord', '= 3.2.8'
   gem 'activerecord-jdbc-adapter', '~> 1.2.9'
-  gem 'activerecord-oracle_enhanced-adapter', :require => false
+  gem 'activerecord-oracle_enhanced-adapter', '1.4.2', :require => false
   gem 'coffee-script', '~> 2.2.0'
   gem 'therubyrhino', '~> 2.0.2'
   gem 'pry', :require => false
