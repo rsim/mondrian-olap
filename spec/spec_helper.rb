@@ -1,7 +1,5 @@
-require 'jruby-openssl'
 require 'rdoc'
 require 'rspec'
-require 'autotest'
 require 'active_record'
 require 'activerecord-jdbc-adapter'
 require 'coffee-script'
