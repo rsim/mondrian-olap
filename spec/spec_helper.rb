@@ -1,11 +1,11 @@
-require "rubygems"
-require "bundler"
-Bundler.setup(:default, :development)
-
-$:.unshift(File.dirname(__FILE__) + '/../lib')
-
+require 'jruby-openssl'
+require 'rdoc'
 require 'rspec'
+require 'autotest'
 require 'active_record'
+require 'activerecord-jdbc-adapter'
+require 'coffee-script'
+require 'rhino'
 require 'pry'
 
 # autoload corresponding JDBC driver during require 'jdbc/...'
@@ -69,7 +69,7 @@ end
 puts "==> Using #{MONDRIAN_DRIVER} driver"
 
 require 'mondrian/olap'
-require 'support/matchers/be_like'
+require 'spec/support/matchers/be_like'
 
 RSpec.configure do |config|
   config.include Matchers

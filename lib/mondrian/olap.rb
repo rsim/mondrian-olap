@@ -1,4 +1,5 @@
 require 'java'
+require 'nokogiri'
 
 directory = File.expand_path("../jars", __FILE__)
 Dir["#{directory}/*.jar"].each do |file|
