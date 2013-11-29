@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+# encoding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'mondrian/olap/version'
@@ -11,7 +11,8 @@ Gem::Specification.new do |gem|
   gem.description   = "JRuby gem for performing multidimensional queries of relational database data using Mondrian OLAP Java library\n"
   gem.summary       = "JRuby API for Mondrian OLAP Java library"
   gem.homepage      = "http://github.com/rsim/mondrian-olap"
-  gem.date          = "2012-12-03"
+  gem.date          = "2013-11-29"
+  gem.license       = 'MIT'
 
   gem.files         = Dir['Changelog.md', 'LICENSE*', 'README.md', 'VERSION', 'lib/**/*', 'spec/**/*']
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
@@ -19,7 +20,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.extra_rdoc_files = [ "README.md" ]
 
-  gem.platform = "java"
+  gem.platform = Gem::Platform::RUBY # as otherwise rubygems.org are not showing latest version
   gem.add_dependency "nokogiri"
 
   gem.add_development_dependency "bundler"

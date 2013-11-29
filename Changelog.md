@@ -1,3 +1,23 @@
+### 0.5.0 / 2013-11-29
+
+* New features
+  * upgraded to latest Mondrian 3.5 version (build from 2013-07-31)
+  * added shutdown_static_mondrian_server! method
+  * add schema element annotations in schema definition
+  * set connection locale
+  * added support for schema elements caption
+  * added shared dimension schema definition methods
+  * added virtual cube schema definition methods
+* Improvements
+  * connection execute_drill_through method
+  * define shared user defined cell formatters
+  * set default hierarchy :has_all and level :unique_members attributes
+  * by default use sum aggregator for measure in schema definition
+  * support Oracle connection using slash and service name as database name
+* Bug fixes
+  * render cube XML fragment before calculated members in generated XML schema
+  * generate XML with UTF-8 encoding
+
 ### 0.4.0 / 2012-12-03
 
 * New features
