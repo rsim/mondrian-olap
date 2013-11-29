@@ -786,6 +786,14 @@ describe "Query" do
             String,
             BigDecimal
           ]
+        when 'mssql'
+          [
+            Fixnum, String, Fixnum, Fixnum, Fixnum,
+            String, String, String, String, String, String,
+            String, String, String, BigDecimal,
+            String,
+            BigDecimal
+          ]
         else
           [
             Fixnum, String, Fixnum, Fixnum, Fixnum,

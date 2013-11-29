@@ -29,7 +29,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "jdbc-mysql"
   gem.add_development_dependency "jdbc-postgres"
   gem.add_development_dependency "jdbc-luciddb"
-  gem.add_development_dependency "jdbc-jtds"
+  gem.add_development_dependency "jdbc-jtds", "~> 1.2.8" # version 1.3 is not compatible with Java 6
   gem.add_development_dependency "activerecord"
   gem.add_development_dependency "activerecord-jdbc-adapter"
   gem.add_development_dependency "activerecord-oracle_enhanced-adapter"
