@@ -150,7 +150,7 @@ namespace :db do
         )
         Product.create!(
           # LucidDB is not returning inserted ID therefore doing it hard way
-          :product_class_id => ProductClass.find_all_by_product_category("Category #{i}").first.id,
+          :product_class_id => ProductClass.where(:product_category => "Category #{i}").to_a.first.id,
           :brand_name => "Brand #{i}",
           :product_name => "Product #{i}"
         )
@@ -223,9 +223,9 @@ namespace :db do
       Sales.delete_all
       count = 100
       # LucidDB does not support LIMIT therefore select all and limit in Ruby
-      products = Product.order("id").all[0...count]
-      times = TimeDimension.order("id").all[0...count]
-      customers = Customer.order("id").all[0...count]
+      products = Product.order("id").to_a[0...count]
+      times = TimeDimension.order("id").to_a[0...count]
+      customers = Customer.order("id").to_a[0...count]
       count.times do |i|
         Sales.create!(
           :product_id => products[i].id,
