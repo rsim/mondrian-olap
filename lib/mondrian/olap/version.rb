@@ -1,5 +1,5 @@
 module Mondrian
   module OLAP
-    VERSION = "0.4.0"
+    VERSION = File.read(File.expand_path('../../../../VERSION', __FILE__)).chomp
   end
 end

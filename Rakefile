@@ -13,7 +13,7 @@ task :default => :spec
 
 require 'rdoc/task'
 RDoc::Task.new do |rdoc|
-  version = File.exist?('VERSION') ? File.read('VERSION') : ""
+  version = File.exist?('VERSION') ? File.read('VERSION').chomp : ""
 
   rdoc.rdoc_dir = 'doc'
   rdoc.title = "mondrian-olap #{version}"
