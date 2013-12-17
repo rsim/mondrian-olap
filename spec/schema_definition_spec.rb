@@ -549,6 +549,28 @@ describe "Schema definition" do
         XML
       end
 
+      it "should render XML with dimension and hierarchy" do
+        @schema.define do
+          cube 'Sales' do
+            calculated_member 'Current week' do
+              dimension 'Time'
+              hierarchy 'Weekly'
+              formula '[Time.Weekly].[Week].CurrentDateMember'
+            end
+          end
+        end
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Schema name="default">
+          <Cube name="Sales">
+            <CalculatedMember dimension="Time" hierarchy="Weekly" name="Current week">
+              <Formula>[Time.Weekly].[Week].CurrentDateMember</Formula>
+            </CalculatedMember>
+          </Cube>
+        </Schema>
+        XML
+      end
+
       it "should render embedded cube XML defintion before additional calculated member to XML" do
         @schema.define do
           cube 'Sales' do

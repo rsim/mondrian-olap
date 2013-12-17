@@ -290,6 +290,10 @@ module Mondrian
         attributes :name, :description, :caption,
           # Name of the dimension which this member belongs to.
           :dimension,
+          # Name of the hierarchy that this member belongs to.
+          :hierarchy,
+          # Fully-qualified name of the parent member. If not specified, the member will be at the lowest level (besides the 'all' level) in the hierarchy.
+          :parent,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
           :format_string,
           # Whether this member is visible in the user-interface. Default true.
