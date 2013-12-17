@@ -288,9 +288,9 @@ module Mondrian
 
       class CalculatedMember < SchemaElement
         attributes :name, :description, :caption,
-          # Name of the dimension which this member belongs to.
+          # Name of the dimension which this member belongs to. Cannot be used if :hieararchy is specified.
           :dimension,
-          # Name of the hierarchy that this member belongs to.
+          # Full unique name of the hierarchy that this member belongs to.
           :hierarchy,
           # Fully-qualified name of the parent member. If not specified, the member will be at the lowest level (besides the 'all' level) in the hierarchy.
           :parent,

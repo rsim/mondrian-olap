@@ -56,6 +56,10 @@ describe "Cube" do
             level 'Week', :column => 'weak_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
           end
         end
+        calculated_member 'Last week' do
+          hierarchy '[Time.Weekly]'
+          formula 'Tail([Time.Weekly].[Week].Members).Item(0)'
+        end
         measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum', :annotations => {:foo => 'bar'}
         measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
         measure 'Store Cost', :column => 'store_cost', :aggregator => 'sum', :visible => false
@@ -354,6 +358,10 @@ describe "Cube" do
 
     it "should be calculated when member is calculated" do
       @cube.member('[Customers].[Non-USA]').should be_calculated
+    end
+
+    it "should be calculated when member is calculated in non-default hierarchy" do
+      @cube.member('[Time.Weekly].[Last week]').should be_calculated
     end
 
     it "should not be calculated in query when calculated member defined in schema" do

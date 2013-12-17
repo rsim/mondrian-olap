@@ -553,8 +553,7 @@ describe "Schema definition" do
         @schema.define do
           cube 'Sales' do
             calculated_member 'Current week' do
-              dimension 'Time'
-              hierarchy 'Weekly'
+              hierarchy '[Time.Weekly]'
               formula '[Time.Weekly].[Week].CurrentDateMember'
             end
           end
@@ -563,7 +562,7 @@ describe "Schema definition" do
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
-            <CalculatedMember dimension="Time" hierarchy="Weekly" name="Current week">
+            <CalculatedMember hierarchy="[Time.Weekly]" name="Current week">
               <Formula>[Time.Weekly].[Week].CurrentDateMember</Formula>
             </CalculatedMember>
           </Cube>
