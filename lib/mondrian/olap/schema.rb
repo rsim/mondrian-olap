@@ -54,6 +54,8 @@ module Mondrian
 
       class Cube < SchemaElement
         attributes :name, :description, :caption,
+          # Whether this cube is visible in the user-interface. Default true.
+          :visible,
           # The name of the measure that would be taken as the default measure of the cube.
           :default_measure,
           # Should the Fact table data for this Cube be cached by Mondrian or not.
@@ -84,6 +86,8 @@ module Mondrian
 
       class Dimension < SchemaElement
         attributes :name, :description, :caption,
+          # Whether this dimension is visible in the user-interface. Default true.
+          :visible,
           # The dimension's type may be one of "Standard" or "Time".
           # A time dimension will allow the use of the MDX time functions (WTD, YTD, QTD, etc.).
           # Use a standard dimension if the dimension is not a time-related dimension.
@@ -121,6 +125,8 @@ module Mondrian
 
       class Hierarchy < SchemaElement
         attributes :name, :description, :caption,
+          # Whether this hierarchy is visible in the user-interface. Default true.
+          :visible,
           # Whether this hierarchy has an 'all' member.
           :has_all,
           # Name of the 'all' member. If this attribute is not specified,
@@ -137,6 +143,8 @@ module Mondrian
           # The name of the table which contains primary_key.
           # If the hierarchy has only one table, defaults to that; it is required.
           :primary_key_table,
+          #
+          :default_member,
           # Should be set to the level (if such a level exists) at which depth it is known
           # that all members have entirely unique rows, allowing SQL GROUP BY clauses to be completely eliminated from the query.
           :unique_key_level_name
@@ -160,6 +168,8 @@ module Mondrian
 
       class Level < SchemaElement
         attributes :name, :description, :caption,
+          # Whether this level is visible in the user-interface. Default true.
+          :visible,
           # The name of the table that the column comes from.
           # If this hierarchy is based upon just one table, defaults to the name of that table;
           # otherwise, it is required.
@@ -187,6 +197,12 @@ module Mondrian
           # for example, "DATE '2006-06-01'".
           # Default value: 'String'
           :type,
+          # Indicates the Java type that Mondrian uses to store this level's key column.
+          # It also determines the JDBC method that Mondrian will call to retrieve the column;
+          # for example, if the Java type is 'int', Mondrian will call 'ResultSet.getInt(int)'.
+          # Usually this attribute is not needed, because Mondrian can choose a sensible type based on the type of the database column.
+          # Allowable values are: 'int', 'long', 'Object', 'String'.
+          :internal_type,
           # Whether members are unique across all parents.
           # For example, zipcodes are unique across all states.
           # The first level's members are always unique.
@@ -316,6 +332,8 @@ module Mondrian
 
       class VirtualCube < SchemaElement
         attributes :name, :description, :caption,
+          # Whether this cube is visible in the user-interface. Default true.
+          :visible,
           # The name of the measure that would be taken as the default measure of the cube.
           :default_measure,
           # Whether element is enabled - if true, then the VirtualCube is realized otherwise it is ignored.

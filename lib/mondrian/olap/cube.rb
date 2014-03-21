@@ -46,6 +46,10 @@ module Mondrian
         annotations_for(@raw_cube)
       end
 
+      def visible?
+        @raw_cube.isVisible
+      end
+
       def dimensions
         @dimenstions ||= @raw_cube.getDimensions.map{|d| Dimension.new(self, d)}
       end
@@ -132,6 +136,10 @@ module Mondrian
         annotations_for(@raw_dimension)
       end
 
+      def visible?
+        @raw_dimension.isVisible
+      end
+
     end
 
     class Hierarchy
@@ -207,6 +215,10 @@ module Mondrian
         annotations_for(@raw_hierarchy)
       end
 
+      def visible?
+        @raw_hierarchy.isVisible
+      end
+
     end
 
     class Level
@@ -258,6 +270,10 @@ module Mondrian
       include Annotated
       def annotations
         annotations_for(@raw_level)
+      end
+
+      def visible?
+        @raw_level.isVisible
       end
 
     end
