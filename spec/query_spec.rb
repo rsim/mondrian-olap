@@ -282,6 +282,18 @@ describe "Query" do
       end
     end
 
+    describe "generate" do
+      it "should generate new set" do
+        @query.rows('[Customers].[Country].Members').generate('[Customers].CurrentMember')
+        @query.rows.should == [:generate, ['[Customers].[Country].Members'], ['[Customers].CurrentMember']]
+      end
+
+      it "should generate new set with all option" do
+        @query.rows('[Customers].[Country].Members').generate('[Customers].CurrentMember', :all)
+        @query.rows.should == [:generate, ['[Customers].[Country].Members'], ['[Customers].CurrentMember'], 'ALL']
+      end
+    end
+
     describe "where" do
       it "should accept conditions" do
         @query.where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').should equal(@query)
@@ -601,6 +613,26 @@ describe "Query" do
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with generate" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').generate('[Customers].CurrentMember').
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    GENERATE([Customers].[Country].Members, [Customers].CurrentMember) ON ROWS
+              FROM  [Sales]
+          SQL
+      end
+
+      it "should return query with generate all" do
+        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').generate('[Customers].CurrentMember', :all).
+          to_mdx.should be_like <<-SQL
+            SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+                    GENERATE([Customers].[Country].Members, [Customers].CurrentMember, ALL) ON ROWS
               FROM  [Sales]
           SQL
       end

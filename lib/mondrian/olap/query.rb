@@ -47,7 +47,7 @@ module Mondrian
         class_eval <<-RUBY, __FILE__, __LINE__ + 1
           def #{method}(*axis_members)
             raise ArgumentError, "cannot use #{method} method before axis or with_set method" unless @current_set
-            raise ArgumentError, "specify list of members for #{method} method" if axis_members.empty?
+            raise ArgumentError, "specify set of members for #{method} method" if axis_members.empty?
             members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
             @current_set.replace [:#{method}, @current_set.clone, members]
             self
@@ -57,7 +57,7 @@ module Mondrian
 
       def except(*axis_members)
         raise ArgumentError, "cannot use except method before axis or with_set method" unless @current_set
-        raise ArgumentError, "specify list of members for except method" if axis_members.empty?
+        raise ArgumentError, "specify set of members for except method" if axis_members.empty?
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
         if [:crossjoin, :nonempty_crossjoin].include? @current_set[0]
           @current_set[2] = [:except, @current_set[2], members]
@@ -84,6 +84,19 @@ module Mondrian
         raise ArgumentError, "cannot use filter_nonempty method before axis or with_set method" unless @current_set
         condition = "NOT ISEMPTY(S.CURRENT)"
         @current_set.replace [:filter, @current_set.clone, condition, 'S']
+        self
+      end
+
+      def generate(*axis_members)
+        raise ArgumentError, "cannot use generate method before axis or with_set method" unless @current_set
+        all = if axis_members.last == :all
+          axis_members.pop
+          'ALL'
+        end
+        raise ArgumentError, "specify set of members for generate method" if axis_members.empty?
+        members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
+        @current_set.replace [:generate, @current_set.clone, members]
+        @current_set << all if all
         self
       end
 
@@ -299,6 +312,8 @@ module Mondrian
           when :filter
             as_alias = members[3] ? " AS #{members[3]}" : nil
             "FILTER(#{members_to_mdx(members[1])}#{as_alias}, #{members[2]})"
+          when :generate
+            "GENERATE(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])}#{members[3] && ", #{members[3]}"})"
           when :order
             "ORDER(#{members_to_mdx(members[1])}, #{expression_to_mdx(members[2])}, #{members[3]})"
           when :top_count, :bottom_count
