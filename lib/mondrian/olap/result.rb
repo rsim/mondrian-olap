@@ -8,6 +8,8 @@ module Mondrian
         @raw_cell_set = raw_cell_set
       end
 
+      attr_reader :raw_cell_set
+
       def axes_count
         axes.length
       end
