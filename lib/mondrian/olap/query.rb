@@ -229,9 +229,9 @@ module Mondrian
         mdx
       end
 
-      def execute
+      def execute(parameters = {})
         Error.wrap_native_exception do
-          @connection.execute to_mdx
+          @connection.execute to_mdx, parameters
         end
       end
 

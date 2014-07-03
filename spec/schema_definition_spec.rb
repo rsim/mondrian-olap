@@ -1394,6 +1394,93 @@ describe "Schema definition" do
       end
     end
 
+    describe "Parameters" do
+      before(:each) do
+        @schema.define do
+          parameter 'Current User', :type => 'String', :modifiable => true, :default_value => "'demo'"
+          parameter 'Default User', :type => 'String', :modifiable => false, :default_value => "'default'"
+          cube 'Sales' do
+            table 'sales'
+            measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
+          end
+        end
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      end
+
+      it "should render XML" do
+        @schema.to_xml.should be_like <<-XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Schema name="default">
+          <Parameter defaultValue="'demo'" modifiable="true" name="Current User" type="String"/>
+          <Parameter defaultValue="'default'" modifiable="false" name="Default User" type="String"/>
+          <Cube name="Sales">
+            <Table name="sales"/>
+            <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
+          </Cube>
+        </Schema>
+        XML
+      end
+
+      it "should get parameter definition from connection" do
+        parameter = @olap.mondrian_parameter('Current User')
+        parameter.should_not be_nil
+        parameter.name.should == 'Current User'
+        parameter.description.should be_nil
+        parameter.should be_modifiable
+        parameter.scope.to_s.should == 'Schema'
+        parameter.type.to_s.should == 'STRING'
+      end
+
+      it "should not get parameter definition with invalid name" do
+        @olap.mondrian_parameter('Current User 2').should be_nil
+      end
+
+      it "should get default parameter value with ParamRef" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Current User]').as("ParamRef('Current User')").
+            columns('[Measures].[Current User]').execute
+        result.values.should == ['demo']
+      end
+
+      it "should execute query with schema parameter value and get value with ParamRef" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Current User]').as("ParamRef('Current User')").
+            columns('[Measures].[Current User]').execute("Current User" => "test")
+        result.values.should == ['test']
+      end
+
+      it "should execute query with query parameter value and get value with ParamRef" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Current User]').as("Parameter('Current User 2', String, 'demo2')").
+            columns('[Measures].[Current User]').execute("Current User 2" => "test2")
+        result.values.should == ['test2']
+      end
+
+      it "should fail if executing with invalid parameter name" do
+        expect {
+          @olap.from('Sales').
+            with_member('[Measures].[Current User]').as("'dummy'").
+              columns('[Measures].[Current User]').execute("Current User 2" => "test2")
+        }.to raise_error {|e|
+          e.should be_kind_of(Mondrian::OLAP::Error)
+          e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Unknown parameter 'Current User 2'"
+          e.root_cause_message.should == "Unknown parameter 'Current User 2'"
+        }
+      end
+
+      it "should fail if executing with non-modifiable parameter" do
+        expect {
+          @olap.from('Sales').
+            with_member('[Measures].[Current User]').as("'dummy'").
+              columns('[Measures].[Current User]').execute("Default User" => "test")
+        }.to raise_error {|e|
+          e.should be_kind_of(Mondrian::OLAP::Error)
+          e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Parameter 'Default User' (defined at 'Schema' scope) is not modifiable"
+          e.root_cause_message.should == "Parameter 'Default User' (defined at 'Schema' scope) is not modifiable"
+        }
+      end
+    end
+
   end
 
   describe "connection with schema" do

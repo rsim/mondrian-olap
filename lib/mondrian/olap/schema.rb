@@ -50,7 +50,7 @@ module Mondrian
       public
 
       attributes :name, :description, :measures_caption
-      elements :annotations, :dimension, :cube, :virtual_cube, :role, :user_defined_function
+      elements :annotations, :parameter, :dimension, :cube, :virtual_cube, :role, :user_defined_function
 
       class Cube < SchemaElement
         attributes :name, :description, :caption,
@@ -495,6 +495,18 @@ module Mondrian
       class Annotation < SchemaElement
         content :text
       end
+
+      class Parameter < SchemaElement
+        attributes :name, :description,
+          # Indicates the type of this parameter: String, Numeric, Integer, Boolean, Date, Time, Timestamp, or Member.
+          :type,
+          # If false, statement cannot change the value of this parameter; the parameter becomes effectively constant
+          # (provided that its default value expression always returns the same value). Default is true.
+          :modifiable,
+          # Expression for the default value of this parameter.
+          :default_value
+      end
+
     end
   end
 end

@@ -7,7 +7,7 @@ module Mondrian
         connection
       end
 
-      attr_reader :raw_connection, :raw_catalog, :raw_schema
+      attr_reader :raw_connection, :raw_catalog, :raw_schema, :raw_schema_reader
 
       def initialize(params={})
         @params = params
@@ -47,6 +47,7 @@ module Mondrian
           @raw_catalog = @raw_connection.getOlapCatalog
           # currently it is assumed that there is just one schema per connection catalog
           @raw_schema = @raw_catalog.getSchemas.first
+          @raw_schema_reader = @raw_connection.getMondrianConnection.getSchemaReader
           @connected = true
           true
         end
@@ -63,10 +64,20 @@ module Mondrian
         true
       end
 
-      def execute(query_string)
+      def execute(query_string, parameters = {})
         Error.wrap_native_exception do
           statement = @raw_connection.prepareOlapStatement(query_string)
+          parameters && parameters.each do |parameter_name, value|
+            statement.getQuery.setParameter(parameter_name, value)
+          end
           Result.new(self, statement.executeQuery())
+        end
+      end
+
+      # access mondrian.olap.Parameter object
+      def mondrian_parameter(parameter_name)
+        Error.wrap_native_exception do
+          @raw_schema_reader.getParameter(parameter_name)
         end
       end
 
