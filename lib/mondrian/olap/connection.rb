@@ -67,9 +67,7 @@ module Mondrian
       def execute(query_string, parameters = {})
         Error.wrap_native_exception do
           statement = @raw_connection.prepareOlapStatement(query_string)
-          parameters && parameters.each do |parameter_name, value|
-            statement.getQuery.setParameter(parameter_name, value)
-          end
+          set_statement_parameters(statement, parameters)
           Result.new(self, statement.executeQuery())
         end
       end
@@ -310,6 +308,25 @@ module Mondrian
 
       def quote_string(string)
         "'#{string.gsub("'","''")}'"
+      end
+
+      def set_statement_parameters(statement, parameters)
+        if parameters && !parameters.empty?
+          # define addtional parameters which can be accessed from user defined functions
+          if parameters[:define_parameters]
+            parameters = parameters.dup
+            define_parameters = parameters.delete(:define_parameters)
+            query_validator = statement.getQuery.createValidator
+            define_parameters.each do |dp_name, dp_value|
+              dp_type_class = dp_value.is_a?(Numeric) ? Java::MondrianOlapType::NumericType : Java::MondrianOlapType::StringType
+              query_validator.createOrLookupParam(true, dp_name, dp_type_class.new, nil, nil)
+              parameters[dp_name] = dp_value
+            end
+          end
+          parameters.each do |parameter_name, value|
+            statement.getQuery.setParameter(parameter_name, value)
+          end
+        end
       end
 
     end

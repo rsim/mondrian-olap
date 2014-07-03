@@ -1398,10 +1398,22 @@ describe "Schema definition" do
       before(:each) do
         @schema.define do
           parameter 'Current User', :type => 'String', :modifiable => true, :default_value => "'demo'"
+          parameter 'Current User 1', :type => 'String', :modifiable => true, :default_value => "''"
           parameter 'Default User', :type => 'String', :modifiable => false, :default_value => "'default'"
           cube 'Sales' do
             table 'sales'
             measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
+          end
+          user_defined_function 'ParameterValue' do
+            ruby :shared do
+              parameters :string
+              returns :scalar
+              syntax :function
+              def call_with_evaluator(evaluator, parameter_name)
+                parameter = evaluator.getQuery.getSchemaReader(false).getParameter(parameter_name)
+                parameter && parameter.getValue
+              end
+            end
           end
         end
         @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
@@ -1412,11 +1424,13 @@ describe "Schema definition" do
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Parameter defaultValue="'demo'" modifiable="true" name="Current User" type="String"/>
+          <Parameter defaultValue="''" modifiable="true" name="Current User 1" type="String"/>
           <Parameter defaultValue="'default'" modifiable="false" name="Default User" type="String"/>
           <Cube name="Sales">
             <Table name="sales"/>
             <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
           </Cube>
+          <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.ParametervalueUdf" name="ParameterValue"/>
         </Schema>
         XML
       end
@@ -1444,16 +1458,45 @@ describe "Schema definition" do
 
       it "should execute query with schema parameter value and get value with ParamRef" do
         result = @olap.from('Sales').
-          with_member('[Measures].[Current User]').as("ParamRef('Current User')").
-            columns('[Measures].[Current User]').execute("Current User" => "test")
+          with_member('[Measures].[Current User]').as("ParamRef('Current User 1')").
+            columns('[Measures].[Current User]').execute("Current User 1" => "test")
         result.values.should == ['test']
       end
 
-      it "should execute query with query parameter value and get value with ParamRef" do
+      it "should execute query with query parameter value and get value with Parameter" do
         result = @olap.from('Sales').
           with_member('[Measures].[Current User]').as("Parameter('Current User 2', String, 'demo2')").
             columns('[Measures].[Current User]').execute("Current User 2" => "test2")
         result.values.should == ['test2']
+      end
+
+      # can be used in user defined functions
+      it "should execute query with additional defined parameter string value" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Parameter]').as("ParameterValue('String Parameter')").
+            columns('[Measures].[Parameter]').execute(:define_parameters => {"String Parameter" => "test"})
+        result.values.should == ['test']
+      end
+
+      it "should execute query with additional defined parameter integer value" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Parameter]').as("ParameterValue('Integer Parameter')").
+            columns('[Measures].[Parameter]').execute(:define_parameters => {"Integer Parameter" => 123})
+        result.values.should == [123]
+      end
+
+      it "should execute query with additional defined parameter double value" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Parameter]').as("ParameterValue('Double Parameter')").
+            columns('[Measures].[Parameter]').execute(:define_parameters => {"Double Parameter" => 123.456})
+        result.values.should == [123.456]
+      end
+
+      it "should execute query with additional defined parameter nil value" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Parameter]').as("ParameterValue('Nil Parameter')").
+            columns('[Measures].[Parameter]').execute(:define_parameters => {"Nil Parameter" => nil})
+        result.values.should == [nil]
       end
 
       it "should fail if executing with invalid parameter name" do
