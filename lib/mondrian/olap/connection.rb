@@ -204,6 +204,14 @@ module Mondrian
           pool.close if pool && !pool.isClosed
         end
 
+        # unregister MBean
+        mbs = Java::JavaLangManagement::ManagementFactory.getPlatformMBeanServer
+        mbean_name = Java::JavaxManagement::ObjectName.new("mondrian.server:type=Server-#{static_mondrian_server.getId}")
+        begin
+          mbs.unregisterMBean(mbean_name)
+        rescue Java::JavaxManagement::InstanceNotFoundException
+        end
+
         true
       end
 
