@@ -29,6 +29,13 @@ module Mondrian
           props.setProperty('JdbcUser', @params[:username]) if @params[:username]
           props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
 
+          # on Oracle increase default row prefetch size
+          # as default 10 is very low and slows down loading of all dimension members
+          if @driver == 'oracle'
+            prefetch_rows = @params[:prefetch_rows] || 100
+            props.setProperty("jdbc.defaultRowPrefetch", prefetch_rows.to_s)
+          end
+
           conn_string = connection_string
 
           # latest Mondrian version added ClassResolver which uses current thread class loader to load some classes
