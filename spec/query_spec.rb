@@ -927,4 +927,50 @@ describe "Query" do
 
   end
 
+  describe "schema cache" do
+    before(:all) do
+      product_id = @sql.select_value("SELECT MIN(id) FROM products")
+      time_id = @sql.select_value("SELECT MIN(id) FROM time")
+      customer_id = @sql.select_value("SELECT MIN(id) FROM customers")
+      @condition = "product_id = #{product_id} AND time_id = #{time_id} AND customer_id = #{customer_id}"
+      # check expected initial value
+      @first_unit_sales = 1
+      @sql.select_value("SELECT unit_sales FROM sales WHERE #{@condition}").to_i.should == @first_unit_sales
+    end
+
+    after(:all) do
+      update_first_unit_sales(@first_unit_sales)
+    end
+
+    def create_olap_connection
+      @olap2.close if @olap2
+      @olap2 = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
+    end
+
+    def update_first_unit_sales(value)
+      @sql.update "UPDATE sales SET unit_sales = #{value} WHERE #{@condition}"
+    end
+
+    def query_unit_sales_value
+      @olap2.from('Sales').columns('[Measures].[Unit Sales]').execute.values.first
+    end
+
+    it "should flush schema cache" do
+      create_olap_connection
+      unit_sales = query_unit_sales_value
+
+      update_first_unit_sales(@first_unit_sales + 1)
+
+      # should still use previous value from cache
+      create_olap_connection
+      query_unit_sales_value.should == unit_sales
+
+      # should query new value from the database after flush schema cache
+      @olap2.flush_schema_cache
+      create_olap_connection
+      query_unit_sales_value.should == unit_sales + 1
+    end
+
+  end
+
 end
