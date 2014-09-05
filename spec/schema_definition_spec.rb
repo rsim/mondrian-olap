@@ -845,6 +845,8 @@ describe "Schema definition" do
     end
 
     describe "User defined functions and formatters in JavaScript" do
+      next pending "not supported by Mondrian in Java 8" if ENV_JAVA["java.version"] >= "1.8"
+
       before(:each) do
         @schema.define do
           cube 'Sales' do
@@ -978,6 +980,8 @@ describe "Schema definition" do
     end
 
     describe "User defined functions and formatters in CoffeeScript" do
+      next pending "not supported by Mondrian in Java 8" if ENV_JAVA["java.version"] >= "1.8"
+
       before(:each) do
         @schema.define do
           cube 'Sales' do
