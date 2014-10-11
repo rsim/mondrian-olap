@@ -930,7 +930,7 @@ describe "Query" do
   describe "schema cache" do
     before(:all) do
       product_id = @sql.select_value("SELECT MIN(id) FROM products")
-      time_id = @sql.select_value("SELECT MIN(id) FROM time")
+      time_id = @sql.select_value("SELECT MIN(id) FROM #{qt :time}")
       customer_id = @sql.select_value("SELECT MIN(id) FROM customers")
       @condition = "product_id = #{product_id} AND time_id = #{time_id} AND customer_id = #{customer_id}"
       # check expected initial value
