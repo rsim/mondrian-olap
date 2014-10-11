@@ -279,6 +279,8 @@ module Mondrian
           uri << ";applicationName=#{@params[:application_name]}" if @params[:application_name]
           uri << ";instanceName=#{@params[:instance_name]}" if @params[:instance_name]
           uri
+        when 'jdbc'
+          @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
@@ -298,6 +300,8 @@ module Mondrian
           'net.sourceforge.jtds.jdbc.Driver'
         when 'sqlserver'
           'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+        when 'jdbc'
+          @params[:jdbc_driver] or raise ArgumentError, 'missing jdbc_driver parameter'
         else
           raise ArgumentError, 'unknown JDBC driver'
         end

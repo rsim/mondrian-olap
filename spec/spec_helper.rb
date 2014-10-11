@@ -19,7 +19,7 @@ DATABASE_NAME     = ENV["#{env_prefix}_DATABASE_NAME"]     || ENV['DATABASE_NAME
 DATABASE_INSTANCE = ENV["#{env_prefix}_DATABASE_INSTANCE"] || ENV['DATABASE_INSTANCE']
 
 case MONDRIAN_DRIVER
-when 'mysql'
+when 'mysql', 'jdbc_mysql'
   require 'jdbc/mysql'
   JDBC_DRIVER = 'com.mysql.jdbc.Driver'
 when 'postgresql'
@@ -75,15 +75,25 @@ end
 
 CATALOG_FILE = File.expand_path('../fixtures/MondrianTest.xml', __FILE__) unless defined?(CATALOG_FILE)
 
-CONNECTION_PARAMS = {
-  # uncomment to test PostgreSQL SSL connection
-  # :properties => {'ssl'=>'true','sslfactory'=>'org.postgresql.ssl.NonValidatingFactory'},
-  :driver   => MONDRIAN_DRIVER,
-  :host     => DATABASE_HOST,
-  :database => DATABASE_NAME,
-  :username => DATABASE_USER,
-  :password => DATABASE_PASSWORD
-}
+CONNECTION_PARAMS = if MONDRIAN_DRIVER =~ /^jdbc/
+  {
+    :driver   => 'jdbc',
+    :jdbc_url => "jdbc:#{MONDRIAN_DRIVER.split('_').last}://#{DATABASE_HOST}/#{DATABASE_NAME}",
+    :jdbc_driver => JDBC_DRIVER,
+    :username => DATABASE_USER,
+    :password => DATABASE_PASSWORD
+  }
+else
+  {
+    # uncomment to test PostgreSQL SSL connection
+    # :properties => {'ssl'=>'true','sslfactory'=>'org.postgresql.ssl.NonValidatingFactory'},
+    :driver   => MONDRIAN_DRIVER,
+    :host     => DATABASE_HOST,
+    :database => DATABASE_NAME,
+    :username => DATABASE_USER,
+    :password => DATABASE_PASSWORD
+  }
+end
 
 case MONDRIAN_DRIVER
 when 'oracle'
@@ -125,6 +135,14 @@ when 'sqlserver'
     :username => CONNECTION_PARAMS[:username],
     :password => CONNECTION_PARAMS[:password],
     :connection_alive_sql => 'SELECT 1'
+  }
+when /jdbc/
+  AR_CONNECTION_PARAMS = {
+    :adapter  => 'jdbc',
+    :driver   => JDBC_DRIVER,
+    :url      => CONNECTION_PARAMS[:jdbc_url],
+    :username => CONNECTION_PARAMS[:username],
+    :password => CONNECTION_PARAMS[:password]
   }
 else
   AR_CONNECTION_PARAMS = {
