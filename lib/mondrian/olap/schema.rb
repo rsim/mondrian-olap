@@ -344,7 +344,9 @@ module Mondrian
       class VirtualCubeDimension < SchemaElement
         attributes :name,
           # Name of the cube which the dimension belongs to, or unspecified if the dimension is shared
-          :cube_name
+          :cube_name,
+          # Whether this dimension is visible in the user-interface. Default true.
+          :visible
       end
 
       class VirtualCubeMeasure < SchemaElement
