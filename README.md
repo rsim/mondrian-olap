@@ -56,42 +56,42 @@ require "mondrian-olap"
 schema = Mondrian::OLAP::Schema.define do
   cube 'Sales' do
     table 'sales'
-    dimension 'Customers', :foreign_key => 'customer_id' do
-      hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+    dimension 'Customers', foreign_key: 'customer_id' do
+      hierarchy has_all: true, all_member_name: 'All Customers', primary_key: 'id' do
         table 'customers'
-        level 'Country', :column => 'country', :unique_members => true
-        level 'State Province', :column => 'state_province', :unique_members => true
-        level 'City', :column => 'city', :unique_members => false
-        level 'Name', :column => 'fullname', :unique_members => true
+        level 'Country', column: 'country', unique_members: true
+        level 'State Province', column: 'state_province', unique_members: true
+        level 'City', column: 'city', unique_members: false
+        level 'Name', column: 'fullname', unique_members: true
       end
     end
-    dimension 'Products', :foreign_key => 'product_id' do
-      hierarchy :has_all => true, :all_member_name => 'All Products',
-                :primary_key => 'id', :primary_key_table => 'products' do
-        join :left_key => 'product_class_id', :right_key => 'id' do
+    dimension 'Products', foreign_key: 'product_id' do
+      hierarchy has_all: true, all_member_name: 'All Products',
+                primary_key: 'id', primary_key_table: 'products' do
+        join left_key: 'product_class_id', right_key: 'id' do
           table 'products'
           table 'product_classes'
         end
-        level 'Product Family', :table => 'product_classes', :column => 'product_family', :unique_members => true
-        level 'Brand Name', :table => 'products', :column => 'brand_name', :unique_members => false
-        level 'Product Name', :table => 'products', :column => 'product_name', :unique_members => true
+        level 'Product Family', table: 'product_classes', column: 'product_family', unique_members: true
+        level 'Brand Name', table: 'products', column: 'brand_name', unique_members: false
+        level 'Product Name', table: 'products', column: 'product_name', unique_members: true
       end
     end
-    dimension 'Time', :foreign_key => 'time_id', :type => 'TimeDimension' do
-      hierarchy :has_all => false, :primary_key => 'id' do
+    dimension 'Time', foreign_key: 'time_id', type: 'TimeDimension' do
+      hierarchy has_all: false, primary_key: 'id' do
         table 'time'
-        level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
-        level 'Quarter', :column => 'quarter', :unique_members => false, :level_type => 'TimeQuarters'
-        level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeMonths'
+        level 'Year', column: 'the_year', type: 'Numeric', unique_members: true, level_type: 'TimeYears'
+        level 'Quarter', column: 'quarter', unique_members: false, level_type: 'TimeQuarters'
+        level 'Month', column: 'month_of_year', type: 'Numeric', unique_members: false, level_type: 'TimeMonths'
       end
-      hierarchy 'Weekly', :has_all => false, :primary_key => 'id' do
+      hierarchy 'Weekly', has_all: false, primary_key: 'id' do
         table 'time'
-        level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
-        level 'Week', :column => 'week_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeWeeks'
+        level 'Year', column: 'the_year', type: 'Numeric', unique_members: true, level_type: 'TimeYears'
+        level 'Week', column: 'week_of_year', type: 'Numeric', unique_members: false, level_type: 'TimeWeeks'
       end
     end
-    measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
-    measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
+    measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
+    measure 'Store Sales', column: 'store_sales', aggregator: 'sum'
   end
 end
 ```
@@ -104,12 +104,12 @@ When schema is defined it is necessary to establish OLAP connection to database.
 require "jdbc/mysql"
 
 olap = Mondrian::OLAP::Connection.create(
-  :driver => 'mysql',
-  :host => 'localhost,
-  :database => 'mondrian_test',
-  :username => 'mondrian_user',
-  :password => 'secret',
-  :schema => schema
+  driver: 'mysql',
+  host: 'localhost,
+  database: 'mondrian_test',
+  username: 'mondrian_user',
+  password: 'secret',
+  schema: schema
 )
 ```
 
@@ -171,7 +171,7 @@ Here is example of more complex query "Get sales amount and profit % of top 50 p
 olap.from('Sales').
 with_member('[Measures].[ProfitPct]').
   as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-  :format_string => 'Percent').
+  format_string: 'Percent').
 columns('[Measures].[Store Sales]', '[Measures].[ProfitPct]').
 rows('[Products].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
   top_count(50, '[Measures].[Store Sales]').
@@ -251,13 +251,13 @@ subset of measures and dimension members. Here is example of data access role de
 schema = Mondrian::OLAP::Schema.define do
   # ... cube definitions ...
   role 'California manager' do
-    schema_grant :access => 'none' do
-      cube_grant :cube => 'Sales', :access => 'all' do
-        dimension_grant :dimension => '[Measures]', :access => 'all'
-        hierarchy_grant :hierarchy => '[Customers]', :access => 'custom',
-                        :top_level => '[Customers].[State Province]', :bottom_level => '[Customers].[City]' do
-          member_grant :member => '[Customers].[USA].[CA]', :access => 'all'
-          member_grant :member => '[Customers].[USA].[CA].[Los Angeles]', :access => 'none'
+    schema_grant access: 'none' do
+      cube_grant cube: 'Sales', access: 'all' do
+        dimension_grant dimension: '[Measures]', access: 'all'
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom',
+                        top_level: '[Customers].[State Province]', bottom_level: '[Customers].[City]' do
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
+          member_grant member: '[Customers].[USA].[CA].[Los Angeles]', access: 'none'
         end
       end
     end
@@ -270,9 +270,9 @@ See more examples of data access roles in `spec/connection_role_spec.rb`.
 REQUIREMENTS
 ------------
 
-mondrian-olap gem is compatible with JRuby versions 1.6 and 1.7 and Java 6 and 7 VM. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
+mondrian-olap gem is compatible with JRuby version 1.7 and Java 6, 7 or 8 VM. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
 
-mondrian-olap currently supports MySQL, PostgreSQL, Oracle, LucidDB and Microsoft SQL Server databases. When using MySQL, PostgreSQL or LucidDB databases then install jdbc-mysql, jdbc-postgres or jdbc-luciddb gem and require "jdbc/mysql", "jdbc/postgres" or "jdbc/luciddb" to load the corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (`ojdbc6.jar` for Java 6) in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually. When using SQL Server you can choose between the jTDS or Microsoft JDBC drivers. If you use jTDS require "jdbc/jtds". If you use the Microsoft JDBC driver include `sqljdbc.jar` or `sqljdbc4.jar` in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually.
+mondrian-olap supports MySQL, PostgreSQL, Oracle, LucidDB and Microsoft SQL Server databases as well as other databases that are supported by Mondrian OLAP engine (using jdbc_driver and jdbc_url connection parameters). When using MySQL, PostgreSQL or LucidDB databases then install jdbc-mysql, jdbc-postgres or jdbc-luciddb gem and require "jdbc/mysql", "jdbc/postgres" or "jdbc/luciddb" to load the corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (`ojdbc6.jar` for Java 6) in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually. When using SQL Server you can choose between the jTDS or Microsoft JDBC drivers. If you use jTDS require "jdbc/jtds". If you use the Microsoft JDBC driver include `sqljdbc.jar` or `sqljdbc4.jar` in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually.
 
 INSTALL
 -------
