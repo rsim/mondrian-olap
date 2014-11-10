@@ -1,3 +1,18 @@
+### 0.6.0 / 2014-11-10
+
+* New features
+  * upgraded to latest Mondrian 3.8.0 version
+  * connection with generic JDBC driver using jdbc_driver and jdbc_url parameters
+  * added hierarchy and parent attributes for calculated member schema definition element
+  * added visible attribute for cube, dimension, virtual_cube_dimension, hierarchy and level schema definition elements
+  * added query builder generate method
+  * added schema parameters and query execution with parameters
+  * updated specs to pass on Java 8
+* Improvements
+  * set defaultRowPrefetch property for Oracle connection
+* Bug fixes
+  * fixed result drill_through method with just all members selection
+
 ### 0.5.0 / 2013-11-29
 
 * New features

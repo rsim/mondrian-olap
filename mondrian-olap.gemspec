@@ -11,7 +11,7 @@ Gem::Specification.new do |gem|
   gem.description   = "JRuby gem for performing multidimensional queries of relational database data using Mondrian OLAP Java library\n"
   gem.summary       = "JRuby API for Mondrian OLAP Java library"
   gem.homepage      = "http://github.com/rsim/mondrian-olap"
-  gem.date          = "2013-11-29"
+  gem.date          = "2014-11-10"
   gem.license       = 'MIT'
 
   gem.files         = Dir['Changelog.md', 'LICENSE*', 'README.md', 'VERSION', 'lib/**/*', 'spec/**/*']
