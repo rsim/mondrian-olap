@@ -105,7 +105,7 @@ require "jdbc/mysql"
 
 olap = Mondrian::OLAP::Connection.create(
   driver: 'mysql',
-  host: 'localhost,
+  host: 'localhost',
   database: 'mondrian_test',
   username: 'mondrian_user',
   password: 'secret',
