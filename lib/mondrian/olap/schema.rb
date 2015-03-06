@@ -115,6 +115,7 @@ module Mondrian
           # Required in a private Dimension or a DimensionUsage, but not in a public Dimension.
           :foreign_key
         data_dictionary_names :usage_prefix, :foreign_key # values in XML will be uppercased when using Oracle driver
+        elements :annotations
 
         def initialize(name = nil, attributes = {}, parent = nil)
           super
@@ -347,6 +348,7 @@ module Mondrian
           :cube_name,
           # Whether this dimension is visible in the user-interface. Default true.
           :visible
+        elements :annotations
       end
 
       class VirtualCubeMeasure < SchemaElement
