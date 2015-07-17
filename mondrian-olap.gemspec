@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
-  gem.extra_rdoc_files = [ "README.md" ]
+  gem.extra_rdoc_files = Dir["README.md"]
 
   gem.platform = Gem::Platform::RUBY # as otherwise rubygems.org are not showing latest version
   gem.add_dependency "nokogiri"
