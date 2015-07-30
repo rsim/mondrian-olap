@@ -67,7 +67,7 @@ end
 puts "==> Using #{MONDRIAN_DRIVER} driver"
 
 require 'mondrian/olap'
-require 'spec/support/matchers/be_like'
+require_relative 'support/matchers/be_like'
 
 RSpec.configure do |config|
   config.include Matchers
