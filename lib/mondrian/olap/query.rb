@@ -73,6 +73,12 @@ module Mondrian
         self
       end
 
+      def distinct
+        raise ArgumentError, "cannot use distinct method before axis method" unless @current_set
+        @current_set.replace [:distinct, @current_set.clone]
+        self
+      end
+
       def filter(condition, options={})
         raise ArgumentError, "cannot use filter method before axis or with_set method" unless @current_set
         @current_set.replace [:filter, @current_set.clone, condition]
@@ -309,6 +315,8 @@ module Mondrian
             "EXCEPT(#{members_to_mdx(members[1])}, #{members_to_mdx(members[2])})"
           when :nonempty
             "NON EMPTY #{members_to_mdx(members[1])}"
+          when :distinct
+            "DISTINCT (#{members_to_mdx(members[1])})"
           when :filter
             as_alias = members[3] ? " AS #{members[3]}" : nil
             "FILTER(#{members_to_mdx(members[1])}#{as_alias}, #{members[2]})"
