@@ -179,6 +179,13 @@ describe "Query" do
       end
     end
 
+    describe "distinct" do
+      it "should limit to set of distinct tuples" do
+        @query.rows('[Product].children').distinct.nonempty.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]')
+        @query.rows.should == [:nonempty, [:distinct, ["[Product].children"]]]
+      end
+    end
+
     describe "order" do
       it "should order by one measure" do
         @query.rows('[Product].children').order('[Measures].[Unit Sales]', :bdesc)
