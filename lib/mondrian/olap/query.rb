@@ -316,7 +316,7 @@ module Mondrian
           when :nonempty
             "NON EMPTY #{members_to_mdx(members[1])}"
           when :distinct
-            "DISTINCT (#{members_to_mdx(members[1])})"
+            "DISTINCT(#{members_to_mdx(members[1])})"
           when :filter
             as_alias = members[3] ? " AS #{members[3]}" : nil
             "FILTER(#{members_to_mdx(members[1])}#{as_alias}, #{members[2]})"
