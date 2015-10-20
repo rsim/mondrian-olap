@@ -63,4 +63,4 @@ You can also run all tests on all databases with
 
 == JRuby versions
 
-It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.6 and 1.7 on Java 6 and 7.
+It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.7 and 9.0 on Java 7 and 8.

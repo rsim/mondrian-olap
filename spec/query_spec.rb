@@ -791,12 +791,14 @@ describe "Query" do
     end if %w(mysql postgresql).include? MONDRIAN_DRIVER
 
     it "should return table names" do
-      @drill_through.table_names.should == [
+      # ignore calculated customer full name column name which is shown differently on each database
+      @drill_through.table_names[0..12].should == [
         "time", "time", "time", "time", "time",
         "product_classes", "product_classes", "product_classes", "product_classes", "products", "products",
-        "customers", "customers", "", "customers",
-        "customers",
-        "sales"
+        "customers", "customers"
+      ]
+      @drill_through.table_names[14..16].should == [
+        "customers", "customers", "sales"
       ]
     end if %w(mysql postgresql).include? MONDRIAN_DRIVER
 

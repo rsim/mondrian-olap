@@ -270,9 +270,9 @@ See more examples of data access roles in `spec/connection_role_spec.rb`.
 REQUIREMENTS
 ------------
 
-mondrian-olap gem is compatible with JRuby version 1.7 and Java 6, 7 or 8 VM. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
+mondrian-olap gem is compatible with JRuby versions 1.7 and 9.0 and Java 7 or 8 VM. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
 
-mondrian-olap supports MySQL, PostgreSQL, Oracle, LucidDB and Microsoft SQL Server databases as well as other databases that are supported by Mondrian OLAP engine (using jdbc_driver and jdbc_url connection parameters). When using MySQL, PostgreSQL or LucidDB databases then install jdbc-mysql, jdbc-postgres or jdbc-luciddb gem and require "jdbc/mysql", "jdbc/postgres" or "jdbc/luciddb" to load the corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (`ojdbc6.jar` for Java 6) in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually. When using SQL Server you can choose between the jTDS or Microsoft JDBC drivers. If you use jTDS require "jdbc/jtds". If you use the Microsoft JDBC driver include `sqljdbc.jar` or `sqljdbc4.jar` in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually.
+mondrian-olap supports MySQL, PostgreSQL, Oracle, LucidDB and Microsoft SQL Server databases as well as other databases that are supported by Mondrian OLAP engine (using jdbc_driver and jdbc_url connection parameters). When using MySQL, PostgreSQL or LucidDB databases then install jdbc-mysql, jdbc-postgres or jdbc-luciddb gem and require "jdbc/mysql", "jdbc/postgres" or "jdbc/luciddb" to load the corresponding JDBC database driver. When using Oracle then include Oracle JDBC driver (`ojdbc7.jar` for Java 7) in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually. When using SQL Server you can choose between the jTDS or Microsoft JDBC drivers. If you use jTDS require "jdbc/jtds". If you use the Microsoft JDBC driver include `sqljdbc.jar` or `sqljdbc4.jar` in `CLASSPATH` or copy to `JRUBY_HOME/lib` or require it in application manually.
 
 INSTALL
 -------
