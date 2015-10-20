@@ -333,7 +333,7 @@ module Mondrian
 
         def self.parse_return_fields(result, params)
           return_field_names = []
-          return_expressions = nil
+          return_expressions = []
           nonempty_columns = []
 
           if params[:return] || params[:nonempty]
@@ -354,10 +354,10 @@ module Mondrian
 
                 case level_or_member
                 when Java::MondrianOlap::Level
-                  Java::MondrianMdx::LevelExpr.new level_or_member
+                  level_or_member
                 when Java::MondrianOlap::Member
                   raise ArgumentError, "cannot use calculated member #{return_field} as return field" if level_or_member.isCalculated
-                  Java::mondrian.mdx.MemberExpr.new level_or_member
+                  level_or_member
                 else
                   raise ArgumentError, "return field #{return_field} should be level or measure"
                 end
