@@ -34,7 +34,7 @@ module Mondrian
         end
       end
 
-      AXIS_ALIASES = %w(columns rows pages sections chapters)
+      AXIS_ALIASES = %w(columns rows pages chapters sections)
       AXIS_ALIASES.each_with_index do |axis, i|
         class_eval <<-RUBY, __FILE__, __LINE__ + 1
           def #{axis}(*axis_members)
