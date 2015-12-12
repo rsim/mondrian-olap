@@ -1,3 +1,16 @@
+### 0.7.0 / 2015-12-12
+
+* New features
+  * upgraded to latest the latest Mondrian version 3.11
+  * removed Java 6 support
+  * fixes for JRuby 9.0 support
+  * added a query builder method "distinct"
+* Improvements
+  * added annotations for dimension_usage and virtual_cube_dimension schema elements
+* Bug fixes
+  * fixed the order of axis aliases - columns, rows, pages, chapters, sections
+
+
 ### 0.6.0 / 2014-11-10
 
 * New features
