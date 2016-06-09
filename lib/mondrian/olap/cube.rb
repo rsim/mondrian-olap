@@ -25,6 +25,7 @@ module Mondrian
       def initialize(connection, raw_cube)
         @connection = connection
         @raw_cube = raw_cube
+        @cache_control = CacheControl.new(@connection, @raw_cube)
       end
 
       attr_reader :raw_cube
@@ -76,6 +77,16 @@ module Mondrian
         segment_list = Java::OrgOlap4jMdx::IdentifierNode.ofNames(*segment_names).getSegmentList
         raw_member = @raw_cube.lookupMember(segment_list)
         raw_member && Member.new(raw_member)
+      end
+
+      def flush_region_cache_with_segments(*segment_names)
+        members = segment_names.map { |name| member_by_segments(*name).mondrian_member }
+        @cache_control.flush(members)
+      end
+
+      def flush_region_cache_with_full_names(*full_names)
+        members = full_names.map { |name| member(*name).mondrian_member }
+        @cache_control.flush(members)
       end
     end
 
@@ -374,6 +385,10 @@ module Mondrian
         end
       end
 
+      def mondrian_member
+        @raw_member.unwrap(Java::MondrianOlap::Member.java_class)
+      end
+
       include Annotated
       def annotations
         annotations_for(@raw_member)
@@ -400,7 +415,22 @@ module Mondrian
           end
         end
       end
+    end
 
+    class CacheControl
+      def initialize(connection, raw_cube)
+        @connection = connection
+        @mondrian_cube = raw_cube.unwrap(Java::MondrianOlap::Cube.java_class)
+        @cache_control = @connection.cache_control
+      end
+
+      def flush(members)
+        regions = members.map do |member|
+          @cache_control.create_member_region(member, true)
+        end
+        regions << @cache_control.create_measures_region(@mondrian_cube)
+        @cache_control.flush(@cache_control.create_crossjoin_region(*regions))
+      end
     end
   end
 end

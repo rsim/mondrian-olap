@@ -5,6 +5,7 @@ require 'activerecord-jdbc-adapter'
 require 'coffee-script'
 require 'rhino'
 require 'pry'
+require 'rake'
 
 # autoload corresponding JDBC driver during require 'jdbc/...'
 Java::JavaLang::System.setProperty("jdbc.driver.autoload", "true")
@@ -159,3 +160,6 @@ end
 CONNECTION_PARAMS_WITH_CATALOG = CONNECTION_PARAMS.merge(:catalog => CATALOG_FILE)
 
 ActiveRecord::Base.establish_connection(AR_CONNECTION_PARAMS)
+
+Rake.application.init
+load File.expand_path('../../Rakefile', __FILE__)
