@@ -56,7 +56,7 @@ module Mondrian
           # currently it is assumed that there is just one schema per connection catalog
           @raw_schema = @raw_catalog.getSchemas.first
           @raw_schema_reader = @raw_connection.getMondrianConnection.getSchemaReader
-          @raw_cache_control = @raw_connection.mondrian_connection.get_cache_control(nil)
+          @raw_cache_control = @raw_connection.getMondrianConnection.getCacheControl(nil)
           @connected = true
           true
         end
