@@ -817,8 +817,7 @@ describe "Query" do
     end
 
     it "should return correct row value types" do
-      @drill_through.rows.first.map(&:class).should ==
-        case MONDRIAN_DRIVER
+      expected_value_types = case MONDRIAN_DRIVER
         when "oracle"
           [
             BigDecimal, String, BigDecimal, BigDecimal, BigDecimal,
@@ -831,7 +830,8 @@ describe "Query" do
           [
             Fixnum, String, Fixnum, Fixnum, Fixnum,
             String, String, String, String, String, String,
-            String, String, String, BigDecimal,
+            # last one can be BigDecimal or Fixnum, probably depends on MS SQL version
+            String, String, String, Numeric,
             String,
             BigDecimal
           ]
@@ -844,6 +844,10 @@ describe "Query" do
             BigDecimal
           ]
         end
+
+      @drill_through.rows.first.each_with_index do |value, i|
+        value.should be_a expected_value_types[i]
+      end
     end
 
     it "should return only specified max rows" do
