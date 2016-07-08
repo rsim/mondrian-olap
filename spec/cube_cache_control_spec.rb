@@ -86,6 +86,8 @@ describe "Cube" do
       when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle'
         @connection.execute 'CREATE TABLE sales_copy AS SELECT * FROM sales'
       when 'mssql', 'sqlserver'
+        # Use raw_connection.execute to avoid detecting this query as a SELECT query
+        # for which executeQuery JDBC method will fail
         @connection.raw_connection.execute 'SELECT * INTO sales_copy FROM sales'
       end
     end
@@ -96,8 +98,8 @@ describe "Cube" do
         @connection.execute 'TRUNCATE TABLE sales'
         @connection.execute 'INSERT INTO sales SELECT * FROM sales_copy'
       when 'mssql', 'sqlserver'
-        @connection.raw_connection.execute 'TRUNCATE TABLE sales'
-        @connection.raw_connection.execute 'INSERT INTO sales SELECT * FROM sales_copy'
+        @connection.execute 'TRUNCATE TABLE sales'
+        @connection.execute 'INSERT INTO sales SELECT * FROM sales_copy'
       end
 
       @olap.flush_schema_cache
@@ -110,7 +112,7 @@ describe "Cube" do
       when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle'
         @connection.execute 'DROP TABLE sales_copy'
       when 'mssql', 'sqlserver'
-        @connection.raw_connection.execute 'DROP TABLE sales_copy'
+        @connection.execute 'DROP TABLE sales_copy'
       end
     end
 
