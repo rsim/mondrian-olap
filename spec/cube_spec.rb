@@ -433,7 +433,5 @@ describe "Cube" do
     it "should get member empty annotations" do
       @cube.member('[Customers].[USA]').annotations.should == {}
     end
-
   end
-
 end

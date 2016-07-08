@@ -16,6 +16,8 @@ module Mondrian
     end
 
     class Cube
+      extend Forwardable
+
       def self.get(connection, name)
         if raw_cube = connection.raw_schema.getCubes.get(name)
           Cube.new(connection, raw_cube)
@@ -25,6 +27,7 @@ module Mondrian
       def initialize(connection, raw_cube)
         @connection = connection
         @raw_cube = raw_cube
+        @cache_control = CacheControl.new(@connection, self)
       end
 
       attr_reader :raw_cube
@@ -77,6 +80,9 @@ module Mondrian
         raw_member = @raw_cube.lookupMember(segment_list)
         raw_member && Member.new(raw_member)
       end
+
+      def_delegators :@cache_control, :flush_region_cache_with_segments, :flush_region_cache_with_segments
+      def_delegators :@cache_control, :flush_region_cache_with_full_names, :flush_region_cache_with_full_names
     end
 
     class Dimension
@@ -374,6 +380,10 @@ module Mondrian
         end
       end
 
+      def mondrian_member
+        @raw_member.unwrap(Java::MondrianOlap::Member.java_class)
+      end
+
       include Annotated
       def annotations
         annotations_for(@raw_member)
@@ -400,7 +410,35 @@ module Mondrian
           end
         end
       end
+    end
 
+    class CacheControl
+      def initialize(connection, cube)
+        @connection = connection
+        @cube = cube
+        @mondrian_cube = @cube.raw_cube.unwrap(Java::MondrianOlap::Cube.java_class)
+        @cache_control = @connection.raw_cache_control
+      end
+
+      def flush_region_cache_with_segments(*segment_names)
+        members = segment_names.map { |name| @cube.member_by_segments(*name).mondrian_member }
+        flush(members)
+      end
+
+      def flush_region_cache_with_full_names(*full_names)
+        members = full_names.map { |name| @cube.member(*name).mondrian_member }
+        flush(members)
+      end
+
+      private
+
+      def flush(members)
+        regions = members.map do |member|
+          @cache_control.create_member_region(member, true)
+        end
+        regions << @cache_control.create_measures_region(@mondrian_cube)
+        @cache_control.flush(@cache_control.create_crossjoin_region(*regions))
+      end
     end
   end
 end

@@ -7,7 +7,8 @@ module Mondrian
         connection
       end
 
-      attr_reader :raw_connection, :raw_catalog, :raw_schema, :raw_schema_reader
+      attr_reader :raw_connection, :raw_catalog, :raw_schema,
+                  :raw_schema_reader, :raw_cache_control
 
       def initialize(params={})
         @params = params
@@ -55,6 +56,7 @@ module Mondrian
           # currently it is assumed that there is just one schema per connection catalog
           @raw_schema = @raw_catalog.getSchemas.first
           @raw_schema_reader = @raw_connection.getMondrianConnection.getSchemaReader
+          @raw_cache_control = @raw_connection.getMondrianConnection.getCacheControl(nil)
           @connected = true
           true
         end
