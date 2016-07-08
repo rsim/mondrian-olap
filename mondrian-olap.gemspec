@@ -33,7 +33,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "jdbc-jtds", "~> 1.2.8" # version 1.3 is not compatible with Java 6
   gem.add_development_dependency "activerecord", "~> 4.0.0"
   gem.add_development_dependency "activerecord-jdbc-adapter"
-  gem.add_development_dependency "activerecord-oracle_enhanced-adapter"
+  gem.add_development_dependency "activerecord-oracle_enhanced-adapter", "~> 1.5.6"
   gem.add_development_dependency "pry"
   gem.add_development_dependency "therubyrhino"
   gem.add_development_dependency "coffee-script"
