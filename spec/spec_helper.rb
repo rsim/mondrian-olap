@@ -119,6 +119,7 @@ when 'mssql'
   url << ";instance=#{DATABASE_INSTANCE}" if DATABASE_INSTANCE
   AR_CONNECTION_PARAMS = {
     :adapter  => 'jdbc',
+    :dialect  => 'Microsoft SQL Server',
     :driver   => JDBC_DRIVER,
     :url      => url,
     :username => CONNECTION_PARAMS[:username],
