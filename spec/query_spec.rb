@@ -874,9 +874,9 @@ describe "Query" do
         '[Measures].[Unit Sales]', '[Measures].[Store Sales]'
       ])
       @drill_through.column_labels.should == [
-        "Month",
-        "City",
-        "Product Family",
+        "Month (Key)",
+        "City (Key)",
+        "Product Family (Key)",
         "Unit Sales", "Store Sales"
       ]
     end
@@ -892,6 +892,38 @@ describe "Query" do
       @drill_through.rows.all?{|r| r.any?{|c| c}}.should be_true
     end
 
+    it "should return member name and property values" do
+      @drill_through = @result.drill_through(row: 0, column: 0,
+        return: [
+          "Name([Customers].[Name])",
+          "Property([Customers].[Name], 'Gender')"
+        ]
+      )
+      @drill_through.column_labels.should == [ "Name", "Gender" ]
+      @drill_through.rows.should == @sql.select_rows(<<-SQL
+        SELECT
+          customers.fullname,
+          customers.gender
+        FROM
+          sales,
+          customers,
+          time,
+          products,
+          product_classes
+        WHERE
+          time.quarter = 'Q1' AND
+          time.the_year = 2010 AND
+          product_classes.product_family = 'Drink' AND
+          products.product_class_id = product_classes.id AND
+          sales.product_id = products.id AND
+          sales.time_id = time.id AND
+          customers.id = sales.customer_id
+        ORDER BY
+          customers.fullname,
+          customers.gender
+      SQL
+      )
+    end
   end
 
   describe "drill through statement" do

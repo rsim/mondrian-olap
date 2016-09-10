@@ -242,7 +242,8 @@ module Mondrian
         end
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
-          return_field_names, return_expressions, nonempty_columns = parse_return_fields(result, params)
+          nonempty_columns, return_fields = parse_return_fields(result, params)
+          return_expressions = return_fields.map{|field| field[:member]}
 
           sql_non_extended = rolap_cell.getDrillThroughSQL(return_expressions, false)
           sql_extended = rolap_cell.getDrillThroughSQL(return_expressions, true)
@@ -273,22 +274,21 @@ module Mondrian
             raise ArgumentError, "cannot parse drill through SQL: #{sql_extended}"
           end
 
-          return_column_positions = {}
+          if return_fields.present?
+            new_select_columns = []
+            new_order_by_columns = []
+            return_fields.size.times do |i|
+              column_alias = return_fields[i][:column_alias]
+              new_select_columns << if column_name = return_fields[i][:column_name]
+                new_order_by_columns << column_name
+                "#{column_name} AS #{column_alias}"
+              else
+                "'' AS #{column_alias}"
+              end
+            end
 
-          if return_field_names && !return_field_names.empty?
-            new_select = extended_select.split(/,\s*/).map do |part|
-              column_name, column_alias = part.split(' as ')
-              field_name = column_alias[1..-2].gsub(' (Key)', '')
-              position = return_field_names.index(field_name) || 9999
-              return_column_positions[column_name] = position
-              [part, position]
-            end.sort_by(&:last).map(&:first).join(', ')
-
-            new_order_by = extended_order_by.split(/,\s*/).map do |part|
-              column_name, asc_desc = part.split(/\s+/)
-              position = return_column_positions[column_name] || 9999
-              [part, position]
-            end.sort_by(&:last).map(&:first).join(', ')
+            new_select = new_select_columns.join(', ')
+            new_order_by = new_order_by_columns.join(', ')
           else
             new_select = extended_select
             new_order_by = extended_order_by
@@ -332,35 +332,72 @@ module Mondrian
         end
 
         def self.parse_return_fields(result, params)
-          return_field_names = []
-          return_expressions = []
           nonempty_columns = []
+          return_fields = []
 
           if params[:return] || params[:nonempty]
             rolap_cube = result.getCube
             schema_reader = rolap_cube.getSchemaReader
+            dialect = result.getCube.getSchema.getDialect
+            sql_query = Java::mondrian.rolap.sql.SqlQuery.new(dialect)
 
-            if return_fields = params[:return]
-              return_fields = return_fields.split(/,\s*/) if return_fields.is_a?(String)
-              return_expressions = return_fields.map do |return_field|
+            if fields = params[:return]
+              fields = fields.split(/,\s*/) if fields.is_a? String
+              fields.each do |field|
+                return_fields << case field
+                  when /\AName\((.*)\)\z/i then
+                    { member_full_name: $1, type: :name }
+                  when /\AProperty\((.*)\s*,\s*'(.*)'\)\z/i then
+                    { member_full_name: $1, type: :property, name: $2 }
+                  else
+                    { member_full_name: field }
+                  end
+              end
+
+              return_fields.size.times do | i |
+                member_full_name = return_fields[i][:member_full_name]
                 begin
-                  segment_list = Java::MondrianOlap::Util.parseIdentifier(return_field)
-                  return_field_names << segment_list.to_a.last.name
+                  segment_list = Java::MondrianOlap::Util.parseIdentifier(member_full_name)
                 rescue Java::JavaLang::IllegalArgumentException
-                  raise ArgumentError, "invalid return field #{return_field}"
+                  raise ArgumentError, "invalid return field #{member_full_name}"
                 end
 
+                # if this is property field then the name is initilized already
+                return_fields[i][:name] ||= segment_list.to_a.last.name
                 level_or_member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
+                return_fields[i][:member] = level_or_member
 
-                case level_or_member
-                when Java::MondrianOlap::Level
-                  level_or_member
-                when Java::MondrianOlap::Member
-                  raise ArgumentError, "cannot use calculated member #{return_field} as return field" if level_or_member.isCalculated
-                  level_or_member
-                else
-                  raise ArgumentError, "return field #{return_field} should be level or measure"
+                if level_or_member.is_a? Java::MondrianOlap::Member
+                  raise ArgumentError, "cannot use calculated member #{member_full_name} as return field" if level_or_member.isCalculated
+                elsif !level_or_member.is_a? Java::MondrianOlap::Level
+                  raise ArgumentError, "return field #{member_full_name} should be level or measure"
                 end
+
+                return_fields[i][:column_name] = case return_fields[i][:type]
+                  when :name
+                    if level_or_member.respond_to? :getNameExp
+                      level_or_member.getNameExp.getExpression sql_query
+                    end
+                  when :property
+                    if column = level_or_member.properties.to_a.detect{|p| p.getName == return_fields[i][:name]}.try(:getExp)
+                      column.getExpression sql_query
+                    end
+                  else
+                    if level_or_member.respond_to? :getKeyExp
+                      return_fields[i][:type] = :key
+                      level_or_member.getKeyExp.getExpression sql_query
+                    else
+                      return_fields[i][:type] = :measure
+                      level_or_member.getMondrianDefExpression.getExpression sql_query
+                    end
+                  end
+
+                column_alias = if return_fields[i][:type] == :key
+                  "#{return_fields[i][:name]} (Key)"
+                else
+                  return_fields[i][:name]
+                end
+                return_fields[i][:column_alias] = dialect.quoteIdentifier(column_alias)
               end
             end
 
@@ -370,23 +407,22 @@ module Mondrian
                 begin
                   segment_list = Java::MondrianOlap::Util.parseIdentifier(nonempty_field)
                 rescue Java::JavaLang::IllegalArgumentException
-                  raise ArgumentError, "invalid return field #{return_field}"
+                  raise ArgumentError, "invalid return field #{nonempty_field}"
                 end
                 member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
                 if member.is_a? Java::MondrianOlap::Member
-                  raise ArgumentError, "cannot use calculated member #{return_field} as nonempty field" if member.isCalculated
+                  raise ArgumentError, "cannot use calculated member #{nonempty_field} as nonempty field" if member.isCalculated
                   sql_query = member.getStarMeasure.getSqlQuery
                   member.getStarMeasure.generateExprString(sql_query)
                 else
-                  raise ArgumentError, "nonempty field #{return_field} should be measure"
+                  raise ArgumentError, "nonempty field #{nonempty_field} should be measure"
                 end
               end
             end
           end
 
-          [return_field_names, return_expressions, nonempty_columns]
+          [nonempty_columns, return_fields]
         end
-
       end
 
       def self.java_to_ruby_value(value, column_type = nil)
