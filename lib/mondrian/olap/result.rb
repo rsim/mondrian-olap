@@ -277,11 +277,15 @@ module Mondrian
           if return_fields.present?
             new_select_columns = []
             new_order_by_columns = []
+            new_group_by_columns = []
+            group_by = params[:group_by]
+
             return_fields.size.times do |i|
               column_alias = return_fields[i][:column_alias]
-              new_select_columns << if column_name = return_fields[i][:column_name]
-                new_order_by_columns << column_name
-                "#{column_name} AS #{column_alias}"
+              new_select_columns << if column_expression = return_fields[i][:column_expression]
+                new_order_by_columns << column_expression
+                new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
+                "#{column_expression} AS #{column_alias}"
               else
                 "'' AS #{column_alias}"
               end
@@ -289,9 +293,11 @@ module Mondrian
 
             new_select = new_select_columns.join(', ')
             new_order_by = new_order_by_columns.join(', ')
+            new_group_by = new_group_by_columns.join(', ')
           else
             new_select = extended_select
             new_order_by = extended_order_by
+            new_group_by = ''
           end
 
           new_from_parts = non_extended_from.split(/,\s*/)
@@ -327,6 +333,7 @@ module Mondrian
           end
 
           sql = "select #{new_select} from #{new_from} where #{new_where}"
+          sql << " group by #{new_group_by}" unless new_group_by.empty?
           sql << " order by #{new_order_by}" unless new_order_by.empty?
           sql
         end
@@ -373,7 +380,7 @@ module Mondrian
                   raise ArgumentError, "return field #{member_full_name} should be level or measure"
                 end
 
-                return_fields[i][:column_name] = case return_fields[i][:type]
+                return_fields[i][:column_expression] = case return_fields[i][:type]
                   when :name
                     if level_or_member.respond_to? :getNameExp
                       level_or_member.getNameExp.getExpression sql_query
@@ -388,7 +395,12 @@ module Mondrian
                       level_or_member.getKeyExp.getExpression sql_query
                     else
                       return_fields[i][:type] = :measure
-                      level_or_member.getMondrianDefExpression.getExpression sql_query
+                      column_expression = level_or_member.getMondrianDefExpression.getExpression sql_query
+                      if params[:group_by]
+                        level_or_member.getAggregator.getExpression column_expression
+                      else
+                        column_expression
+                      end
                     end
                   end
 

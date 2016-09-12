@@ -924,6 +924,39 @@ describe "Query" do
       SQL
       )
     end
+
+    it "should group by" do
+      @drill_through = @result.drill_through(row: 0, column: 0,
+        return: [
+          "[Product].[Product Family]",
+          "[Measures].[Unit Sales]",
+          "[Measures].[Store Cost]"
+        ],
+        group_by: true
+      )
+      @drill_through.column_labels.should == [ "Product Family (Key)", "Unit Sales", "Store Cost" ]
+      @drill_through.rows.should == @sql.select_rows(<<-SQL
+        SELECT
+          product_classes.product_family,
+          SUM(sales.unit_sales),
+          SUM(sales.store_cost)
+        FROM
+          sales,
+          time,
+          products,
+          product_classes
+        WHERE
+          time.quarter = 'Q1' AND
+          time.the_year = 2010 AND
+          product_classes.product_family = 'Drink' AND
+          products.product_class_id = product_classes.id AND
+          sales.product_id = products.id AND
+          sales.time_id = time.id
+        GROUP BY
+          product_classes.product_family
+      SQL
+      )
+    end
   end
 
   describe "drill through statement" do
