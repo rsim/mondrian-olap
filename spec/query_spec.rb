@@ -938,8 +938,8 @@ describe "Query" do
       @drill_through.rows.should == @sql.select_rows(<<-SQL
         SELECT
           product_classes.product_family,
-          SUM(sales.unit_sales),
-          SUM(sales.store_cost)
+          SUM(sales.unit_sales) AS unit_sales,
+          SUM(sales.store_cost) AS store_cost
         FROM
           sales,
           time,
