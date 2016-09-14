@@ -861,8 +861,7 @@ describe "Query" do
       @query = @olap.from('Sales')
       @result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
         rows('[Product].children').
-        # where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
-        where('[Time].[2010].[Q1]').
+        where('[Time].[2010].[Q1]', '[Time].[2010].[Q2]').
         execute
     end
 
@@ -911,7 +910,7 @@ describe "Query" do
           products,
           product_classes
         WHERE
-          time.quarter = 'Q1' AND
+          (time.quarter = 'Q1' OR time.quarter = 'Q2') AND
           time.the_year = 2010 AND
           product_classes.product_family = 'Drink' AND
           products.product_class_id = product_classes.id AND
@@ -946,7 +945,7 @@ describe "Query" do
           products,
           product_classes
         WHERE
-          time.quarter = 'Q1' AND
+          (time.quarter = 'Q1' OR time.quarter = 'Q2') AND
           time.the_year = 2010 AND
           product_classes.product_family = 'Drink' AND
           products.product_class_id = product_classes.id AND
