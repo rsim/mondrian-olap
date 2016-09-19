@@ -386,8 +386,14 @@ module Mondrian
                       level_or_member.getNameExp.getExpression sql_query
                     end
                   when :property
-                    if column = level_or_member.properties.to_a.detect{|p| p.getName == return_fields[i][:name]}.try(:getExp)
-                      column.getExpression sql_query
+                    if property = level_or_member.getProperties.to_a.detect{|p| p.getName == return_fields[i][:name]}
+                      # property.getExp is a protected method therefore
+                      # use a workaround to get the value from the field
+                      f = property.java_class.declared_field("exp")
+                      f.accessible = true
+                      if column = f.value(property)
+                        column.getExpression sql_query
+                      end
                     end
                   else
                     if level_or_member.respond_to? :getKeyExp
