@@ -40,6 +40,14 @@ namespace :db do
         t.string      :lname, :limit => 30
         t.string      :fullname, :limit => 60
         t.string      :gender, :limit => 30
+        # Mondrian does not support properties with Oracle CLOB type
+        # as it tries to GROUP BY all columns when loading a dimension table
+        if MONDRIAN_DRIVER == 'oracle'
+          t.string      :description, :limit => 4000
+        else
+          t.text        :description
+        end
+
       end
 
       create_table :sales, :force => true, :id => false do |t|
@@ -207,7 +215,8 @@ namespace :db do
           :fname => "First#{i}",
           :lname => "Last#{i}",
           :fullname => "First#{i} Last#{i}",
-          :gender => i % 2 == 0 ? "M" : "F"
+          :gender => i % 2 == 0 ? "M" : "F",
+          :description => 100.times.map{"1234567890"}.join("\n")
         )
       end
     end

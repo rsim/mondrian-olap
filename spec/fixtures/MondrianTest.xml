@@ -87,6 +87,7 @@ fullname
           </SQL>
         </OrdinalExpression>
         <Property name="Gender" column="gender"/>
+        <Property name="Description" column="description"/>
       </Level>
     </Hierarchy>
   </Dimension>

@@ -895,14 +895,16 @@ describe "Query" do
       @drill_through = @result.drill_through(row: 0, column: 0,
         return: [
           "Name([Customers].[Name])",
-          "Property([Customers].[Name], 'Gender')"
+          "Property([Customers].[Name], 'Gender')",
+          "Property([Customers].[Name], 'Description')"
         ]
       )
-      @drill_through.column_labels.should == [ "Name", "Gender" ]
+      @drill_through.column_labels.should == [ "Name", "Gender", "Description" ]
       @drill_through.rows.should == @sql.select_rows(<<-SQL
         SELECT
           customers.fullname,
-          customers.gender
+          customers.gender,
+          customers.description
         FROM
           sales,
           customers,
@@ -919,7 +921,8 @@ describe "Query" do
           customers.id = sales.customer_id
         ORDER BY
           customers.fullname,
-          customers.gender
+          customers.gender,
+          customers.description
       SQL
       )
     end

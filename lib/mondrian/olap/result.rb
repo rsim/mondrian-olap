@@ -449,12 +449,31 @@ module Mondrian
           value
         when Java::JavaMath::BigDecimal
           BigDecimal(value.to_s)
+        when Java::JavaSql::Clob
+          clob_to_string(value)
         else
           value
         end
       end
 
       private
+
+      def self.clob_to_string(value)
+        if reader = value.getCharacterStream
+          buffered_reader = Java::JavaIo::BufferedReader.new(reader)
+          result = []
+          while str = buffered_reader.readLine
+            result << str
+          end
+          result.join("\n")
+        end
+      ensure
+        if buffered_reader
+          buffered_reader.close
+        elsif reader
+          reader.close
+        end
+      end
 
       def axes
         @axes ||= @raw_cell_set.getAxes
