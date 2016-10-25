@@ -12,7 +12,7 @@ One of the most popular open-source OLAP engines is [Mondrian](http://mondrian.p
 
 mondrian-olap is JRuby gem which includes Mondrian OLAP engine and provides Ruby DSL for creating OLAP schemas on top of relational database schemas and provides MDX query language and query builder Ruby methods for making analytical queries.
 
-mondrian-olap is used in [eazyBI data analysis and reporting web application](https://eazybi.com). [Private eazyBI](https://eazybi.com/help/private-eazybi) can be used to create easy-to-use web based reports and dashboards on top of mondrian-olap based backend database. There is also [mondrian-olap demo Rails application for trying MDX queries](https://github.com/rsim/mondrian_demo).
+mondrian-olap is used in [eazyBI data analysis and reporting web application](https://eazybi.com). [Private eazyBI](https://eazybi.com/help/private-eazybi) can be used to create easy-to-use web based reports and dashboards on top of mondrian-olap based backend database. There is also [mondrian-olap demo Rails application for trying MDX queries](https://github.com/rsim/mondrian_demo). The [mondrian-rest](https://github.com/jazzido/mondrian-rest) uses mondrian-olap to implement a REST API.
 
 USAGE
 -----
