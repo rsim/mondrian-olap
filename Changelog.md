@@ -1,3 +1,12 @@
+### 0.8.0 / 2016-10-26
+
+* New features
+  * upgraded to the latest Mondrian version 3.12.0.6
+  * added flush_region_cache_with_segments and flush_region_cache_with_full_names methods for partial clearing of the cache
+  * added Name() and Property() extensions for drill_through return fields
+* Bug fixes
+  * fixed retrieving of drill through results with Clob values
+
 ### 0.7.0 / 2015-12-12
 
 * New features
