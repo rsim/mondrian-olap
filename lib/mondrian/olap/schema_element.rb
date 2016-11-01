@@ -67,7 +67,9 @@ module Mondrian
           attr_reader pluralize(name).to_sym
           class_eval <<-RUBY, __FILE__, __LINE__ + 1
             def #{name}(name=nil, attributes = {}, &block)
-              @#{pluralize(name)} << Schema::#{camel_case(name)}.new(name, attributes, self, &block)
+              new_element = Schema::#{camel_case(name)}.new(name, attributes, self, &block)
+              @#{pluralize(name)} << new_element
+              new_element
             end
           RUBY
         end
