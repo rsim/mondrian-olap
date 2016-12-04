@@ -380,9 +380,12 @@ module Mondrian
       end
 
       def extract_dimension_name(full_name)
-        if full_name =~ /\A[^\[]*\[([^\]]+)\]/
-          $1
+        begin
+          sl = org.olap4j.mdx.IdentifierNode.parseIdentifier(full_name).getSegmentList
+        rescue Java::JavaLang::IllegalArgumentException
+          return nil
         end
+        sl.get(0).name
       end
     end
   end
