@@ -1354,7 +1354,8 @@ describe "Schema definition" do
       end
 
       it "should get measure cell formatter" do
-        @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter.should_not be_nil
+        @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter.class.name.should ==
+          'Mondrian::OLAP::Schema::CellFormatter::Integer20DigitsUdf'
       end
 
       it "should not get measure cell formatter if not specified" do
