@@ -1353,6 +1353,15 @@ describe "Schema definition" do
         @olap.cube('Sales').member('[Measures].[Unit Sales]').cell_formatter_name.should be_nil
       end
 
+      it "should get measure cell formatter" do
+        @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter.class.name.should ==
+          'Mondrian::OLAP::Schema::CellFormatter::Integer20DigitsUdf'
+      end
+
+      it "should not get measure cell formatter if not specified" do
+        @olap.cube('Sales').member('[Measures].[Unit Sales]').cell_formatter.should be_nil
+      end
+
       it "should get measure format string" do
         @olap.cube('Sales').member('[Measures].[Unit Sales]').format_string.should == '#,##0'
       end

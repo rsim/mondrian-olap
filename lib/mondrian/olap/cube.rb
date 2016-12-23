@@ -400,13 +400,18 @@ module Mondrian
       end
 
       def cell_formatter_name
+        if cf = cell_formatter
+          cf.class.name.split('::').last.gsub(/Udf\z/, '')
+        end
+      end
+
+      def cell_formatter
         if dimension_type == :measures
           cube_measure = raw_member.unwrap(Java::MondrianOlap::Member.java_class)
           if value_formatter = cube_measure.getFormatter
             f = value_formatter.java_class.declared_field('cf')
             f.accessible = true
-            cf = f.value(value_formatter)
-            cf.class.name.split('::').last.gsub(/Udf\z/, '')
+            f.value(value_formatter)
           end
         end
       end
