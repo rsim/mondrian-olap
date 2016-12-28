@@ -1,0 +1,52 @@
+sudo: required
+dist: trusty
+
+language: ruby
+cache:
+  - bundler
+notifications:
+  email: false
+rvm:
+  - jruby-1.7.26
+  - jruby-9.1.6.0
+addons:
+  postgresql: "9.4"
+  hosts:
+    - oracle.vm
+  apt:
+    packages:
+     - haveged
+services:
+  - mysql
+jdk:
+  - oraclejdk7
+  - oraclejdk8
+env:
+  global:
+    - ORACLE_COOKIE=sqldev
+    - ORACLE_FILE=oracle11g/xe/oracle-xe-11.2.0-1.0.x86_64.rpm.zip
+    - ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe
+    - TNS_ADMIN=$ORACLE_HOME/network/admin
+    - NLS_LANG=AMERICAN_AMERICA.AL32UTF8
+    - ORACLE_BASE=/u01/app/oracle
+    - LD_LIBRARY_PATH=$ORACLE_HOME/lib
+    - PATH=$PATH:$ORACLE_HOME/jdbc/lib
+    - DATABASE_VERSION=11.2.0.2
+    - ORACLE_SID=XE
+    - DATABASE_NAME=XE
+    - DATABASE_NON_DEFAULT_TABLESPACE=USERS
+    - JAVA_OPTS=-Xmx512m
+branches:
+  only:
+    - master
+
+install:
+  - .travis/oracle/download.sh
+  - .travis/oracle/install.sh
+  - bundle install --jobs=3 --retry=3 --deployment --binstubs
+
+before_script:
+  - .travis/create_db_schemas.sh
+
+script:
+  - .travis/run_tests.sh
