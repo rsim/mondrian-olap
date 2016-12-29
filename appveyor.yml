@@ -1,0 +1,37 @@
+environment:
+  JRUBY_OPTS: "--dev -J-Xmx1024M"
+  matrix:
+    - JRUBY_VERSION: "1.7.26"
+    - JRUBY_VERSION: "9.1.6.0"
+
+services:
+  - mssql2012sp1
+
+build: off
+
+branches:
+  only:
+    - master
+
+cache:
+  - vendor/bundle
+
+install:
+  - appveyor DownloadFile https://s3.amazonaws.com/jruby.org/downloads/%JRUBY_VERSION%/jruby-bin-%JRUBY_VERSION%.zip
+  - 7z x jruby-bin-%JRUBY_VERSION%.zip -y > nul
+  - del jruby-bin-%JRUBY_VERSION%.zip
+  - SET PATH=C:\projects\mondrian-olap\jruby-%JRUBY_VERSION%\bin;%PATH%
+  - gem install bundler
+  - bundle install --jobs=3 --retry=3 --path vendor/bundle --binstubs
+
+before_test:
+  - ruby -v
+  - gem -v
+  - bundle -v
+  - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "CREATE LOGIN mondrian_test WITH PASSWORD = 'mondrian_test'"
+  - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "ALTER SERVER ROLE [dbcreator] ADD MEMBER [mondrian_test]"
+  - sqlcmd -S "(local)" -U "mondrian_test" -P "mondrian_test" -Q "CREATE DATABASE mondrian_test"
+  - bin\rake db:create_data MONDRIAN_DRIVER=mssql
+
+test_script:
+  - bin\rake spec MONDRIAN_DRIVER=mssql
