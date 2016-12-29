@@ -17,6 +17,10 @@ cache:
   - vendor/bundle
 
 install:
+  - ps: secedit /export /cfg c:\secpol.cfg
+  - ps: (gc C:\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0").replace("MinimumPasswordLength = 8", "MinimumPasswordLength = 0") | Out-File C:\secpol.cfg
+  - ps: secedit /configure /db c:\windows\security\local.sdb /cfg c:\secpol.cfg /areas SECURITYPOLICY
+  - ps: rm -force c:\secpol.cfg -confirm:$false
   - appveyor DownloadFile https://s3.amazonaws.com/jruby.org/downloads/%JRUBY_VERSION%/jruby-bin-%JRUBY_VERSION%.zip
   - 7z x jruby-bin-%JRUBY_VERSION%.zip -y > nul
   - del jruby-bin-%JRUBY_VERSION%.zip
