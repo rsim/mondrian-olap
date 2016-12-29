@@ -73,6 +73,10 @@ describe "Cube" do
   end
 
   describe 'cache', unless: MONDRIAN_DRIVER == 'luciddb' do
+    def qt(name)
+      @connection.quote_table_name(name.to_s)
+    end
+
     before(:all) do
       @connection = ActiveRecord::Base.connection
       @cube = @olap.cube('Sales')
@@ -121,7 +125,7 @@ describe "Cube" do
       @connection.execute <<-SQL
         DELETE FROM sales
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
@@ -139,7 +143,7 @@ describe "Cube" do
       @connection.execute <<-SQL
         DELETE FROM sales
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
@@ -158,7 +162,7 @@ describe "Cube" do
             store_sales = store_sales + 1,
             store_cost = store_cost + 1
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
@@ -178,7 +182,7 @@ describe "Cube" do
             store_sales = store_sales + 1,
             store_cost = store_cost + 1
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
@@ -195,7 +199,7 @@ describe "Cube" do
       @connection.execute <<-SQL
         DELETE FROM sales
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
@@ -213,7 +217,7 @@ describe "Cube" do
       @connection.execute <<-SQL
         DELETE FROM sales
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
@@ -232,7 +236,7 @@ describe "Cube" do
             store_sales = store_sales + 1,
             store_cost = store_cost + 1
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
@@ -252,7 +256,7 @@ describe "Cube" do
             store_sales = store_sales + 1,
             store_cost = store_cost + 1
         WHERE  time_id IN (SELECT id
-                           FROM   TIME
+                           FROM   #{qt :time}
                            WHERE  the_year = 2010
                                   AND quarter = 'Q1')
                AND customer_id IN (SELECT id
