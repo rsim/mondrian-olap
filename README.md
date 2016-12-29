@@ -1,3 +1,6 @@
+[![Travis CI status](https://travis-ci.org/rsim/mondrian-olap.svg?branch=master)](https://travis-ci.org/rsim/mondrian-olap)
+[![AppVeyor status](https://ci.appveyor.com/api/projects/status/08xd4tyty2k3wxba/branch/master?svg=true)](https://ci.appveyor.com/project/rsim/mondrian-olap)
+
 mondrian-olap
 =============
 
