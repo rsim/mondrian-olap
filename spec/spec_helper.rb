@@ -32,7 +32,7 @@ when 'mssql'
   require 'jdbc/jtds'
   JDBC_DRIVER = 'net.sourceforge.jtds.jdbc.Driver'
 when 'sqlserver'
-  if File.exist?(jdbc_driver_file = 'spec/support/jars/sqljdbc41.jar')
+  if File.exist?(jdbc_driver_file = File.expand_path('spec/support/jars/sqljdbc41.jar'))
     require jdbc_driver_file
   end
   JDBC_DRIVER = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
