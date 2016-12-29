@@ -24,8 +24,8 @@ Gem::Specification.new do |gem|
   gem.add_dependency "nokogiri"
 
   gem.add_development_dependency "bundler"
-  gem.add_development_dependency "rake"
-  gem.add_development_dependency "rspec", "2.14"
+  gem.add_development_dependency "rake", "~> 10.3.2"
+  gem.add_development_dependency "rspec", "~> 2.14.0"
   gem.add_development_dependency "rdoc"
   gem.add_development_dependency "jdbc-mysql"
   gem.add_development_dependency "jdbc-postgres"
