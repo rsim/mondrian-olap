@@ -26,16 +26,16 @@ install:
   - del jruby-bin-%JRUBY_VERSION%.zip
   - SET PATH=C:\projects\mondrian-olap\jruby-%JRUBY_VERSION%\bin;%PATH%
   - gem install bundler
-  - bundle install --jobs=3 --retry=3 --path vendor/bundle --binstubs
+  - bundle install --jobs=3 --retry=3 --path vendor/bundle
 
 before_test:
-  - ruby -v
+  - jruby -v
   - gem -v
   - bundle -v
   - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "CREATE LOGIN mondrian_test WITH PASSWORD = 'mondrian_test'"
   - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "ALTER SERVER ROLE [dbcreator] ADD MEMBER [mondrian_test]"
   - sqlcmd -S "(local)" -U "mondrian_test" -P "mondrian_test" -Q "CREATE DATABASE mondrian_test"
-  - bin\rake db:create_data MONDRIAN_DRIVER=mssql
+  - bundle exec rake db:create_data MONDRIAN_DRIVER=mssql
 
 test_script:
-  - bin\rake spec MONDRIAN_DRIVER=mssql
+  - bundle exec rake spec MONDRIAN_DRIVER=mssql
