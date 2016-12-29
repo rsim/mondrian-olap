@@ -92,7 +92,7 @@ describe "Cube" do
       when 'mssql', 'sqlserver'
         # Use raw_connection.execute to avoid detecting this query as a SELECT query
         # for which executeQuery JDBC method will fail
-        @connection.raw_connection.execute 'SELECT * INTO sales_copy FROM sales'
+        @connection.raw_connection.execute_update 'SELECT * INTO sales_copy FROM sales'
       end
     end
 
