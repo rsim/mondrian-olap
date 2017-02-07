@@ -25,8 +25,8 @@ install:
   - appveyor DownloadFile https://s3.amazonaws.com/jruby.org/downloads/%JRUBY_VERSION%/jruby-bin-%JRUBY_VERSION%.zip
   - 7z x jruby-bin-%JRUBY_VERSION%.zip -y > nul
   - del jruby-bin-%JRUBY_VERSION%.zip
-  - appveyor DownloadFile https://download.microsoft.com/download/0/2/A/02AAE597-3865-456C-AE7F-613F99F850A8/enu/sqljdbc_6.0.7728.100_enu.exe
-  - 7z x sqljdbc_6.0.7728.100_enu.exe -y > nul
+  - appveyor DownloadFile https://download.microsoft.com/download/0/2/A/02AAE597-3865-456C-AE7F-613F99F850A8/enu/sqljdbc_6.0.8112.100_enu.exe
+  - 7z x sqljdbc_6.0.8112.100_enu.exe -y > nul
   - copy sqljdbc_6.0\enu\sqljdbc41.jar spec\support\jars\
   - SET JAVA_HOME=C:\Program Files\Java\%CONFIGURATION%
   - SET PATH=C:\projects\mondrian-olap\jruby-%JRUBY_VERSION%\bin;%JAVA_HOME%\bin;%PATH%
