@@ -251,6 +251,10 @@ module Mondrian
           if sql_non_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/
             non_extended_from = $2
             non_extended_where = $3
+          # the latest Mondrian version sometimes returns sql_non_extended without order by
+          elsif sql_non_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/
+            non_extended_from = $2
+            non_extended_where = $3
           # if drill through total measure with just all members selection
           elsif sql_non_extended =~ /\Aselect (.*) from (.*)\Z/
             non_extended_from = $2
