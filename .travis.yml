@@ -44,6 +44,7 @@ install:
   - .travis/oracle/download.sh
   - .travis/oracle/install.sh
   - bundle install --jobs=3 --retry=3 --path vendor/bundle --binstubs
+  - rake install_jars
 
 before_script:
   - .travis/create_db_schemas.sh
