@@ -24,3 +24,8 @@ end
 require_relative 'spec/rake_tasks'
 
 Dir["lib/tasks/**/*.rake"].each { |ext| load ext } if defined?(Rake)
+
+require 'jars/installer'
+task :install_jars do
+  Jars::Installer.vendor_jars!("lib/jars")
+end

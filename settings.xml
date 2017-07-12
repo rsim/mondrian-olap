@@ -1,0 +1,22 @@
+<settings>
+  <profiles>
+    <profile>
+      <id>mondrian-olap</id>
+      <repositories>
+        <repository>
+          <id>pentaho-releases</id>
+          <url>http://repository.pentaho.org/artifactory/repo/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>mondrian-olap</activeProfile>
+  </activeProfiles>
+</settings>

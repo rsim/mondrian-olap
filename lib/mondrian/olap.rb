@@ -1,10 +1,9 @@
 require 'java'
 require 'nokogiri'
 
+require_relative '../jars/mondrian-olap_jars.rb'
+
 directory = File.expand_path("../jars", __FILE__)
-Dir["#{directory}/*.jar"].each do |file|
-  require file
-end
 
 unless java.lang.System.getProperty("log4j.configuration")
   file_uri = java.io.File.new("#{directory}/log4j.properties").toURI.to_s
