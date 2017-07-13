@@ -7,7 +7,7 @@ module Mondrian
         connection
       end
 
-      attr_reader :raw_connection, :raw_catalog, :raw_schema,
+      attr_reader :raw_connection, :raw_mondrian_connection, :raw_catalog, :raw_schema,
                   :raw_schema_reader, :raw_cache_control
 
       def initialize(params={})
@@ -55,8 +55,9 @@ module Mondrian
           @raw_catalog = @raw_connection.getOlapCatalog
           # currently it is assumed that there is just one schema per connection catalog
           @raw_schema = @raw_catalog.getSchemas.first
-          @raw_schema_reader = @raw_connection.getMondrianConnection.getSchemaReader
-          @raw_cache_control = @raw_connection.getMondrianConnection.getCacheControl(nil)
+          @raw_mondrian_connection = @raw_connection.getMondrianConnection
+          @raw_schema_reader = @raw_mondrian_connection.getSchemaReader
+          @raw_cache_control = @raw_mondrian_connection.getCacheControl(nil)
           @connected = true
           true
         end
@@ -139,7 +140,16 @@ module Mondrian
         Error.wrap_native_exception do
           # workaround to access non-public method (was not public when using inside Torquebox)
           # @raw_connection.setRoleNames(Array(names))
-          @raw_connection.java_method(:setRoleNames, [Java::JavaUtil::List.java_class]).call(Array(names))
+          names = Array(names)
+          @raw_connection.java_method(:setRoleNames, [Java::JavaUtil::List.java_class]).call(names)
+          # Construct a union role with one member as a workaround
+          # for a Mondrian bug which does not allow access to ragged dimensions when using a single role.
+          if names.length == 1
+            role = @raw_mondrian_connection.getRole
+            role = Java::MondrianOlap::RoleImpl.union([role])
+            @raw_mondrian_connection.setRole(role)
+          end
+          names
         end
       end
 
