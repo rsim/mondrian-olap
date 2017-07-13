@@ -12,7 +12,7 @@ describe "Connection role" do
           dimension 'Gender', :foreign_key => 'customer_id' do
             hierarchy :has_all => true, :primary_key => 'id' do
               table 'customers'
-              level 'Gender', :column => 'gender', :unique_members => true
+              level 'Gender', :column => 'gender', :unique_members => true, :hide_member_if => 'IfBlankName'
             end
           end
           dimension 'Customers', :foreign_key => 'customer_id' do
@@ -61,6 +61,10 @@ describe "Connection role" do
         end
       end
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+    end
+
+    after(:each) do
+      @olap.role_name = nil if @olap
     end
 
     it "should connect" do
@@ -113,18 +117,31 @@ describe "Connection role" do
     # end
 
     it "should not get non-visible member when role name set in connection parameters" do
-      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema,
-        :role => @role_name)
-      @cube = @olap.cube('Sales')
-      @cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
+      olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema, role: @role_name)
+      cube = olap.cube('Sales')
+      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
     end
 
     it "should not get non-visible member when several role names set in connection parameters" do
-      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema,
-        :roles => [@role_name, @role_name2])
-      @cube = @olap.cube('Sales')
-      @cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
+      olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema, roles: [@role_name, @role_name2])
+      cube = olap.cube('Sales')
+      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
     end
 
+    it "should see members from ragged dimensions when using single role" do
+      # Workaround for a Mondrian bug which does not allow access to ragged dimensions when using single role.
+      # This syntax will create a union role with one role.
+      @olap.role_names = [@role_name]
+      cube = @olap.cube('Sales')
+      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
+      cube.member('[Gender].[All Genders]').should_not be_nil
+    end
+
+    it "should see members from ragged dimensions when using multiple roles" do
+      @olap.role_names = [@role_name, @role_name2]
+      cube = @olap.cube('Sales')
+      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
+      cube.member('[Gender].[All Genders]').should_not be_nil
+    end
   end
 end
