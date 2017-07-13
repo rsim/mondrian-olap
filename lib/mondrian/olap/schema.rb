@@ -497,6 +497,7 @@ module Mondrian
       end
 
       class Annotation < SchemaElement
+        attributes :name
         content :text
       end
 

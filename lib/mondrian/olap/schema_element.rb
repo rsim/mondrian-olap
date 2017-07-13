@@ -72,11 +72,25 @@ module Mondrian
               new_element
             end
           RUBY
+          if name == :annotations
+            class_eval <<-RUBY, __FILE__, __LINE__ + 1
+              def annotations_hash
+                hash = {}
+                @annotationss.each do |annotations|
+                  annotations.annotations.each do |annotation|
+                    hash[annotation.name] = annotation.content
+                  end
+                end
+                hash
+              end
+            RUBY
+          end
         end
       end
 
       def self.content(type=nil)
         return @content if type.nil?
+        attr_reader :content
         @content = type
       end
 
