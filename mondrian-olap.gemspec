@@ -17,15 +17,18 @@ Gem::Specification.new do |gem|
   gem.files         = Dir['Changelog.md', 'LICENSE*', 'README.md', 'VERSION', 'lib/**/*', 'spec/**/*']
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
-  gem.require_paths = ["lib"]
+  gem.require_paths = ["lib", "lib/jars"]
   gem.extra_rdoc_files = Dir["README.md"]
 
   gem.platform = Gem::Platform::RUBY # as otherwise rubygems.org are not showing latest version
   gem.add_dependency "nokogiri"
 
+  gem.requirements << 'jar pentaho:mondrian, 3.14.0.1-14'
+
   gem.add_development_dependency "bundler"
   gem.add_development_dependency "rake", "~> 10.3.2"
   gem.add_development_dependency "rspec", "~> 2.14.0"
+  gem.add_development_dependency "jar-dependencies", "~> 0.3.2"
   gem.add_development_dependency "rdoc"
   gem.add_development_dependency "jdbc-mysql"
   gem.add_development_dependency "jdbc-postgres"
