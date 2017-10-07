@@ -1,3 +1,12 @@
+### 0.9.0 / Not yet released
+
+* New features
+  * Upgraded to the latest Mondrian version 3.14.0.5
+  * Added an annotations_hash method for schema elements
+* Bug fixes
+  * Fixed drill through SQL query generation
+  * Set a single role as a union role - used as a workaround for a Mondrian bug
+
 ### 0.8.0 / 2016-10-26
 
 * New features
