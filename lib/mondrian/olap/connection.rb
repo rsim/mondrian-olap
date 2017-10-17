@@ -142,13 +142,6 @@ module Mondrian
           # @raw_connection.setRoleNames(Array(names))
           names = Array(names)
           @raw_connection.java_method(:setRoleNames, [Java::JavaUtil::List.java_class]).call(names)
-          # Construct a union role with one member as a workaround
-          # for a Mondrian bug which does not allow access to ragged dimensions when using a single role.
-          if names.length == 1
-            role = @raw_mondrian_connection.getRole
-            role = Java::MondrianOlap::RoleImpl.union([role])
-            @raw_mondrian_connection.setRole(role)
-          end
           names
         end
       end
