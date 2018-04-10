@@ -248,28 +248,28 @@ module Mondrian
           sql_non_extended = rolap_cell.getDrillThroughSQL(return_expressions, false)
           sql_extended = rolap_cell.getDrillThroughSQL(return_expressions, true)
 
-          if sql_non_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/
+          if sql_non_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/m
             non_extended_from = $2
             non_extended_where = $3
           # the latest Mondrian version sometimes returns sql_non_extended without order by
-          elsif sql_non_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/
+          elsif sql_non_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/m
             non_extended_from = $2
             non_extended_where = $3
           # if drill through total measure with just all members selection
-          elsif sql_non_extended =~ /\Aselect (.*) from (.*)\Z/
+          elsif sql_non_extended =~ /\Aselect (.*) from (.*)\Z/m
             non_extended_from = $2
             non_extended_where = "1 = 1" # dummy true condition
           else
             raise ArgumentError, "cannot parse drill through SQL: #{sql_non_extended}"
           end
 
-          if sql_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/
+          if sql_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/m
             extended_select = $1
             extended_from = $2
             extended_where = $3
             extended_order_by = $4
           # if only measures are selected then there will be no order by
-          elsif sql_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/
+          elsif sql_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/m
             extended_select = $1
             extended_from = $2
             extended_where = $3
