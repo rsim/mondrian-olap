@@ -36,6 +36,7 @@ env:
     - ORACLE_DATABASE_NAME=XE
     - DATABASE_NON_DEFAULT_TABLESPACE=USERS
     - JAVA_OPTS=-Xmx512m
+    - JRUBY_OPTS="--dev --2.0"
 branches:
   only:
     - master
