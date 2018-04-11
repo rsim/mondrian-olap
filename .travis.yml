@@ -41,6 +41,9 @@ branches:
   only:
     - master
 
+before_install:
+  - gem install bundler
+
 install:
   - .travis/oracle/download.sh
   - .travis/oracle/install.sh
