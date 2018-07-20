@@ -78,7 +78,10 @@ module Mondrian
         Error.wrap_native_exception do
           statement = @raw_connection.prepareOlapStatement(query_string)
           set_statement_parameters(statement, parameters)
-          Result.new(self, statement.executeQuery())
+          start_time = Time.now
+          raw_cell_set = statement.executeQuery()
+          total_duration = ((Time.now - start_time) * 1000).to_i
+          Result.new(self, raw_cell_set, profiling_handler: statement.getProfileHandler, total_duration: total_duration)
         end
       end
 
@@ -347,9 +350,27 @@ module Mondrian
               parameters[dp_name] = dp_value
             end
           end
+          if parameters.key?(:profiling)
+            parameters = parameters.dup
+            if parameters.delete(:profiling)
+              statement.enableProfiling(ProfilingHandler.new)
+            end
+          end
           parameters.each do |parameter_name, value|
             statement.getQuery.setParameter(parameter_name, value)
           end
+        end
+      end
+
+      class ProfilingHandler
+        java_implements Java::mondrian.spi.ProfileHandler
+        attr_reader :plan
+        attr_reader :timing
+
+        java_signature 'void explain(String plan, mondrian.olap.QueryTiming timing)'
+        def explain(plan, timing)
+          @plan = plan
+          @timing = timing
         end
       end
 

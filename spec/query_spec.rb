@@ -1053,4 +1053,39 @@ describe "Query" do
 
   end
 
+  describe "profiling" do
+    before(:all) do
+      if @olap
+        @olap.flush_schema_cache
+        @olap.close
+      end
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
+      @result = @olap.execute "SELECT [Measures].[Unit Sales] ON COLUMNS FROM [Sales]", profiling: true
+      @result.profiling_mark_full("MDX query time", 100)
+    end
+
+    it "should return query plan" do
+      @result.profiling_plan.strip.should == <<-EOS.strip
+Axis (COLUMNS):
+SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc, type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
+    2(name=2, class=class mondrian.olap.fun.SetFunDef$SetListCalc$2, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE)
+        Literal(name=Literal, class=class mondrian.calc.impl.ConstantCalc, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
+      EOS
+    end
+
+    it "should return SQL timing string" do
+      @result.profiling_timing_string.strip.should =~
+        %r{^SqlStatement-Segment.load invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$}
+    end
+
+    it "should return custom profiling string" do
+      @result.profiling_timing_string.strip.should =~
+        %r{^MDX query time invoked 1 times for total of 100ms.  \(Avg. 100ms/invocation\)$}
+    end
+
+    it "should return total duration" do
+      @result.total_duration.should > 0
+    end
+  end
+
 end
