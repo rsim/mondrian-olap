@@ -76,9 +76,9 @@ module Mondrian
 
       def execute(query_string, parameters = {})
         Error.wrap_native_exception do
+          start_time = Time.now
           statement = @raw_connection.prepareOlapStatement(query_string)
           set_statement_parameters(statement, parameters)
-          start_time = Time.now
           raw_cell_set = statement.executeQuery()
           total_duration = ((Time.now - start_time) * 1000).to_i
           Result.new(self, raw_cell_set, profiling_handler: statement.getProfileHandler, total_duration: total_duration)
