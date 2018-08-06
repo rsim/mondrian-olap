@@ -1088,4 +1088,28 @@ SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCal
     end
   end
 
+  describe "error with profiling" do
+    before(:all) do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
+      begin
+        @olap.execute <<-MDX, profiling: true
+          SELECT [Measures].[Unit Sales] ON COLUMNS,
+          FILTER([Customers].Children, ([Customers].DefaultMember, [Measures].[Unit Sales]) > 'dummy') ON ROWS
+          FROM [Sales]
+        MDX
+      rescue => e
+        @error = e
+      end
+    end
+
+    it "should return query plan" do
+      @error.profiling_plan.should =~ /^Axis \(COLUMNS\):/
+    end
+
+    it "should return timing string" do
+      @error.profiling_timing_string.should =~
+        %r{^FilterFunDef invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$}
+    end
+  end
+
 end
