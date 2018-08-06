@@ -236,19 +236,15 @@ module Mondrian
       end
 
       def execute(parameters = {})
-        Error.wrap_native_exception do
-          @connection.execute to_mdx, parameters
-        end
+        @connection.execute to_mdx, parameters
       end
 
       def execute_drill_through(options = {})
-        Error.wrap_native_exception do
-          drill_through_mdx = "DRILLTHROUGH "
-          drill_through_mdx << "MAXROWS #{options[:max_rows]} " if options[:max_rows]
-          drill_through_mdx << to_mdx
-          drill_through_mdx << " RETURN #{Array(options[:return]).join(',')}" if options[:return]
-          @connection.execute_drill_through drill_through_mdx
-        end
+        drill_through_mdx = "DRILLTHROUGH "
+        drill_through_mdx << "MAXROWS #{options[:max_rows]} " if options[:max_rows]
+        drill_through_mdx << to_mdx
+        drill_through_mdx << " RETURN #{Array(options[:return]).join(',')}" if options[:return]
+        @connection.execute_drill_through drill_through_mdx
       end
 
       private
