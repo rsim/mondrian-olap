@@ -1045,8 +1045,8 @@ describe "Query" do
       create_olap_connection
       query_unit_sales_value.should == unit_sales
 
-      # should query new value from the database after flush schema cache
-      @olap2.flush_schema_cache
+      # should query new value from the database after flush schema
+      @olap2.flush_schema
       create_olap_connection
       query_unit_sales_value.should == unit_sales + 1
     end
@@ -1056,7 +1056,7 @@ describe "Query" do
   describe "profiling" do
     before(:all) do
       if @olap
-        @olap.flush_schema_cache
+        @olap.flush_schema
         @olap.close
       end
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
