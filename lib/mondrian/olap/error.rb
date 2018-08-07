@@ -27,7 +27,9 @@ module Mondrian
       end
 
       def profiling_plan
-        profiling_handler.plan if profiling_handler
+        if profiling_handler && (plan = profiling_handler.plan)
+          plan.gsub("\r\n", "\n")
+        end
       end
 
       def profiling_timing
@@ -35,7 +37,9 @@ module Mondrian
       end
 
       def profiling_timing_string
-        profiling_timing && profiling_timing.toString
+        if profiling_timing && (timing_string = profiling_timing.toString)
+          timing_string.gsub("\r\n", "\n")
+        end
       end
 
       private
