@@ -1045,12 +1045,75 @@ describe "Query" do
       create_olap_connection
       query_unit_sales_value.should == unit_sales
 
-      # should query new value from the database after flush schema cache
-      @olap2.flush_schema_cache
+      # should query new value from the database after flush schema
+      @olap2.flush_schema
       create_olap_connection
       query_unit_sales_value.should == unit_sales + 1
     end
 
+  end
+
+  describe "profiling" do
+    before(:all) do
+      if @olap
+        @olap.flush_schema
+        @olap.close
+      end
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
+      @result = @olap.execute "SELECT [Measures].[Unit Sales] ON COLUMNS, [Product].Children ON ROWS FROM [Sales]", profiling: true
+      @result.profiling_mark_full("MDX query time", 100)
+    end
+
+    it "should return query plan" do
+      @result.profiling_plan.strip.should == <<-EOS.strip
+Axis (COLUMNS):
+SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc, type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
+    2(name=2, class=class mondrian.olap.fun.SetFunDef$SetListCalc$2, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE)
+        Literal(name=Literal, class=class mondrian.calc.impl.ConstantCalc, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
+
+Axis (ROWS):
+Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
+    CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed, class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl, type=MemberType<hierarchy=[Product]>, resultStyle=VALUE)
+      EOS
+    end
+
+    it "should return SQL timing string" do
+      @result.profiling_timing_string.strip.should =~
+        %r{^SqlStatement-Segment.load invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$}
+    end
+
+    it "should return custom profiling string" do
+      @result.profiling_timing_string.strip.should =~
+        %r{^MDX query time invoked 1 times for total of 100ms.  \(Avg. 100ms/invocation\)$}
+    end
+
+    it "should return total duration" do
+      @result.total_duration.should > 0
+    end
+  end
+
+  describe "error with profiling" do
+    before(:all) do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
+      begin
+        @olap.execute <<-MDX, profiling: true
+          SELECT [Measures].[Unit Sales] ON COLUMNS,
+          FILTER([Customers].Children, ([Customers].DefaultMember, [Measures].[Unit Sales]) > 'dummy') ON ROWS
+          FROM [Sales]
+        MDX
+      rescue => e
+        @error = e
+      end
+    end
+
+    it "should return query plan" do
+      @error.profiling_plan.should =~ /^Axis \(COLUMNS\):/
+    end
+
+    it "should return timing string" do
+      @error.profiling_timing_string.should =~
+        %r{^FilterFunDef invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$}
+    end
   end
 
 end

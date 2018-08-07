@@ -3,12 +3,14 @@ require 'bigdecimal'
 module Mondrian
   module OLAP
     class Result
-      def initialize(connection, raw_cell_set)
+      def initialize(connection, raw_cell_set, options = {})
         @connection = connection
         @raw_cell_set = raw_cell_set
+        @profiling_handler = options[:profiling_handler]
+        @total_duration = options[:total_duration]
       end
 
-      attr_reader :raw_cell_set
+      attr_reader :raw_cell_set, :profiling_handler, :total_duration
 
       def axes_count
         axes.length
@@ -102,6 +104,32 @@ module Mondrian
           builder.doc.to_html
         else
           raise ArgumentError, "just columns and rows axes are supported"
+        end
+      end
+
+      def profiling_plan
+        if profiling_handler
+          @raw_cell_set.close
+          if plan = profiling_handler.plan
+            plan.gsub("\r\n", "\n")
+          end
+        end
+      end
+
+      def profiling_timing
+        if profiling_handler
+          @raw_cell_set.close
+          profiling_handler.timing
+        end
+      end
+
+      def profiling_mark_full(name, duration)
+        profiling_timing && profiling_timing.markFull(name, duration)
+      end
+
+      def profiling_timing_string
+        if profiling_timing && (timing_string = profiling_timing.toString)
+          timing_string.gsub("\r\n", "\n")
         end
       end
 

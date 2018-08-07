@@ -2,7 +2,7 @@ environment:
   JRUBY_OPTS: '--dev --2.0 -J-Xmx1024m'
   matrix:
     - JRUBY_VERSION: "1.7.26"
-    - JRUBY_VERSION: "9.1.6.0"
+    - JRUBY_VERSION: "9.1.17.0"
 
 configuration:
   - jdk1.7.0

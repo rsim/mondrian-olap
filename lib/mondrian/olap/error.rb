@@ -6,22 +6,39 @@ module Mondrian
     class Error < StandardError
       # root_cause will be nil if there is no cause for wrapped native error
       # root_cause_message will have either root_cause message or wrapped native error message
-      attr_reader :native_error, :root_cause_message, :root_cause
+      attr_reader :native_error, :root_cause_message, :root_cause, :profiling_handler
 
-      def initialize(native_error)
+      def initialize(native_error, options = {})
         @native_error = native_error
         get_root_cause
         super(native_error.message)
         add_root_cause_to_backtrace
+        get_profiling(options)
       end
 
-      def self.wrap_native_exception
+      def self.wrap_native_exception(options = {})
         yield
       rescue NativeException => e
         if e.message =~ NATIVE_ERROR_REGEXP
-          raise Mondrian::OLAP::Error.new(e)
+          raise Mondrian::OLAP::Error.new(e, options)
         else
           raise
+        end
+      end
+
+      def profiling_plan
+        if profiling_handler && (plan = profiling_handler.plan)
+          plan.gsub("\r\n", "\n")
+        end
+      end
+
+      def profiling_timing
+        profiling_handler.timing if profiling_handler
+      end
+
+      def profiling_timing_string
+        if profiling_timing && (timing_string = profiling_timing.toString)
+          timing_string.gsub("\r\n", "\n")
         end
       end
 
@@ -50,6 +67,17 @@ module Mondrian
           bt.unshift "root cause: #{@root_cause.java_class.name}: #{@root_cause.message.chomp}"
         end
         set_backtrace bt
+      end
+
+      def get_profiling(options)
+        if statement = options[:profiling_statement]
+          f = Java::mondrian.olap4j.MondrianOlap4jStatement.java_class.declared_field("openCellSet")
+          f.accessible = true
+          if cell_set = f.value(statement)
+            cell_set.close
+            @profiling_handler = statement.getProfileHandler
+          end
+        end
       end
 
     end

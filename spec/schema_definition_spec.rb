@@ -1020,11 +1020,11 @@ describe "Schema definition" do
               dimension 'Measures'
               formula 'Factorial(6)'
               cell_formatter do
-                coffeescript <<-JS
+                coffeescript <<-CS
                   s = value.toString()
                   s = "0" + s while s.length < 20
                   s
-                JS
+                CS
               end
             end
             calculated_member 'City' do
@@ -1033,30 +1033,30 @@ describe "Schema definition" do
             end
           end
           user_defined_function 'Factorial' do
-            coffeescript <<-JS
+            coffeescript <<-CS
               parameters: ["Numeric"]
               returns: "Numeric"
               execute: (n) ->
                 if n <= 1 then 1 else n * @execute(n - 1)
-            JS
+            CS
           end
           user_defined_function 'UpperName' do
-            coffeescript <<-JS
+            coffeescript <<-CS
               parameters: ["Member"]
               returns: "String"
               syntax: "Property"
               execute: (member) ->
                 member.getName().toUpperCase()
-            JS
+            CS
           end
           user_defined_function 'toUpperName' do
-            coffeescript <<-JS
+            coffeescript <<-CS
               parameters: ["Member", "String"]
               returns: "String"
               syntax: "Method"
               execute: (member, dummy) ->
                 member.getName().toUpperCase()
-            JS
+            CS
           end
         end
         @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)

@@ -75,10 +75,15 @@ module Mondrian
       end
 
       def execute(query_string, parameters = {})
-        Error.wrap_native_exception do
+        options = {}
+        Error.wrap_native_exception(options) do
+          start_time = Time.now
           statement = @raw_connection.prepareOlapStatement(query_string)
+          options[:profiling_statement] = statement if parameters[:profiling]
           set_statement_parameters(statement, parameters)
-          Result.new(self, statement.executeQuery())
+          raw_cell_set = statement.executeQuery()
+          total_duration = ((Time.now - start_time) * 1000).to_i
+          Result.new(self, raw_cell_set, profiling_handler: statement.getProfileHandler, total_duration: total_duration)
         end
       end
 
@@ -110,10 +115,16 @@ module Mondrian
 
       # Will affect only the next created connection. If it is necessary to clear all schema cache then
       # flush_schema_cache should be called, then close and then new connection should be created.
+      # This method flushes schemas for all connections (clears the schema pool).
       def flush_schema_cache
-        unwrapped_connection = @raw_connection.unwrap(Java::MondrianOlap::Connection.java_class)
-        raw_cache_control = unwrapped_connection.getCacheControl(nil)
         raw_cache_control.flushSchemaCache
+      end
+
+      # This method flushes the schema only for this connection (removes from the schema pool).
+      def flush_schema
+        if raw_mondrian_connection && (rolap_schema = raw_mondrian_connection.getSchema)
+          raw_cache_control.flushSchema(rolap_schema)
+        end
       end
 
       def available_role_names
@@ -347,9 +358,27 @@ module Mondrian
               parameters[dp_name] = dp_value
             end
           end
+          if parameters.key?(:profiling)
+            parameters = parameters.dup
+            if parameters.delete(:profiling)
+              statement.enableProfiling(ProfilingHandler.new)
+            end
+          end
           parameters.each do |parameter_name, value|
             statement.getQuery.setParameter(parameter_name, value)
           end
+        end
+      end
+
+      class ProfilingHandler
+        java_implements Java::mondrian.spi.ProfileHandler
+        attr_reader :plan
+        attr_reader :timing
+
+        java_signature 'void explain(String plan, mondrian.olap.QueryTiming timing)'
+        def explain(plan, timing)
+          @plan = plan
+          @timing = timing
         end
       end
 
