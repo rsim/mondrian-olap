@@ -1060,7 +1060,7 @@ describe "Query" do
         @olap.close
       end
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
-      @result = @olap.execute "SELECT [Measures].[Unit Sales] ON COLUMNS FROM [Sales]", profiling: true
+      @result = @olap.execute "SELECT [Measures].[Unit Sales] ON COLUMNS, [Product].Children ON ROWS FROM [Sales]", profiling: true
       @result.profiling_mark_full("MDX query time", 100)
     end
 
@@ -1070,6 +1070,10 @@ Axis (COLUMNS):
 SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc, type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
     2(name=2, class=class mondrian.olap.fun.SetFunDef$SetListCalc$2, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE)
         Literal(name=Literal, class=class mondrian.calc.impl.ConstantCalc, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
+
+Axis (ROWS):
+Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
+    CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed, class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl, type=MemberType<hierarchy=[Product]>, resultStyle=VALUE)
       EOS
     end
 
