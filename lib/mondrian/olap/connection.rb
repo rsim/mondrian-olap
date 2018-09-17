@@ -244,6 +244,7 @@ module Mondrian
         string = "jdbc:mondrian:Jdbc=#{quote_string(jdbc_uri)};JdbcDrivers=#{jdbc_driver};"
         # by default use content checksum to reload schema when catalog has changed
         string << "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
+        string << "PinSchemaTimeout=#{@params[:pin_schema_timeout]};" if @params[:pin_schema_timeout]
         if role = @params[:role] || @params[:roles]
           roles = Array(role).map{|r| r && r.to_s.gsub(',', ',,')}.compact
           string << "Role=#{quote_string(roles.join(','))};" unless roles.empty?
