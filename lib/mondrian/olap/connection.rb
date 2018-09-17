@@ -105,8 +105,12 @@ module Mondrian
         Query.from(self, cube_name)
       end
 
+      def raw_schema_key
+        @raw_mondrian_connection.getSchema.getKey
+      end
+
       def schema_key
-        @raw_mondrian_connection.getSchema.getKey.toString
+        raw_schema_key.toString
       end
 
       def self.raw_schema_key(schema_key)
