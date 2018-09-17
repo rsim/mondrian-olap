@@ -1018,13 +1018,25 @@ describe "Query" do
       @sql.select_value("SELECT unit_sales FROM sales WHERE #{@condition}").to_i.should == @first_unit_sales
     end
 
-    after(:all) do
-      update_first_unit_sales(@first_unit_sales)
+    before do
+      create_olap_connection
+      @unit_sales = query_unit_sales_value
+
+      update_first_unit_sales(@first_unit_sales + 1)
+
+      # should still use previous value from cache
+      create_olap_connection
+      query_unit_sales_value.should == @unit_sales
     end
 
-    def create_olap_connection
+    after do
+      update_first_unit_sales(@first_unit_sales)
+      Mondrian::OLAP::Connection.flush_schema_cache
+    end
+
+    def create_olap_connection(options = {})
       @olap2.close if @olap2
-      @olap2 = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
+      @olap2 = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(options))
     end
 
     def update_first_unit_sales(value)
@@ -1036,19 +1048,15 @@ describe "Query" do
     end
 
     it "should flush schema cache" do
-      create_olap_connection
-      unit_sales = query_unit_sales_value
-
-      update_first_unit_sales(@first_unit_sales + 1)
-
-      # should still use previous value from cache
-      create_olap_connection
-      query_unit_sales_value.should == unit_sales
-
-      # should query new value from the database after flush schema
       @olap2.flush_schema
       create_olap_connection
-      query_unit_sales_value.should == unit_sales + 1
+      query_unit_sales_value.should == @unit_sales + 1
+    end
+
+    it "should remove schema by key" do
+      Mondrian::OLAP::Connection.flush_schema(@olap2.schema_key)
+      create_olap_connection
+      query_unit_sales_value.should == @unit_sales + 1
     end
 
   end

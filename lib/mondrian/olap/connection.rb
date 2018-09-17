@@ -105,6 +105,36 @@ module Mondrian
         Query.from(self, cube_name)
       end
 
+      def raw_schema_key
+        @raw_mondrian_connection.getSchema.getKey
+      end
+
+      def schema_key
+        raw_schema_key.toString
+      end
+
+      def self.raw_schema_key(schema_key)
+        if schema_key =~ /\A<(.*), (.*)>\z/
+          schema_content_key = $1
+          connection_key = $2
+
+          cons = Java::mondrian.rolap.SchemaContentKey.java_class.declared_constructor(java.lang.String)
+          cons.accessible = true
+          raw_schema_content_key = cons.new_instance(schema_content_key)
+
+          cons = Java::mondrian.rolap.ConnectionKey.java_class.declared_constructor(java.lang.String)
+          cons.accessible = true
+          raw_connection_key = cons.new_instance(connection_key)
+
+          cons = Java::mondrian.rolap.SchemaKey.java_class.declared_constructor(
+            Java::mondrian.rolap.SchemaContentKey, Java::mondrian.rolap.ConnectionKey)
+          cons.accessible = true
+          cons.new_instance(raw_schema_content_key, raw_connection_key)
+        else
+          raise ArgumentError, "invalid schema key #{schema_key}"
+        end
+      end
+
       def cube_names
         @raw_schema.getCubes.map{|c| c.getName}
       end
@@ -120,11 +150,24 @@ module Mondrian
         raw_cache_control.flushSchemaCache
       end
 
+      def self.flush_schema_cache
+        method = Java::mondrian.rolap.RolapSchemaPool.java_class.declared_method('clear')
+        method.accessible = true
+        method.invoke(Java::mondrian.rolap.RolapSchemaPool.instance)
+      end
+
       # This method flushes the schema only for this connection (removes from the schema pool).
       def flush_schema
         if raw_mondrian_connection && (rolap_schema = raw_mondrian_connection.getSchema)
           raw_cache_control.flushSchema(rolap_schema)
         end
+      end
+
+      def self.flush_schema(schema_key)
+        method = Java::mondrian.rolap.RolapSchemaPool.java_class.declared_method('remove',
+          Java::mondrian.rolap.SchemaKey.java_class)
+        method.accessible = true
+        method.invoke(Java::mondrian.rolap.RolapSchemaPool.instance, raw_schema_key(schema_key))
       end
 
       def available_role_names
@@ -244,6 +287,7 @@ module Mondrian
         string = "jdbc:mondrian:Jdbc=#{quote_string(jdbc_uri)};JdbcDrivers=#{jdbc_driver};"
         # by default use content checksum to reload schema when catalog has changed
         string << "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
+        string << "PinSchemaTimeout=#{@params[:pin_schema_timeout]};" if @params[:pin_schema_timeout]
         if role = @params[:role] || @params[:roles]
           roles = Array(role).map{|r| r && r.to_s.gsub(',', ',,')}.compact
           string << "Role=#{quote_string(roles.join(','))};" unless roles.empty?
