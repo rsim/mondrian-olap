@@ -150,10 +150,16 @@ module Mondrian
         raw_cache_control.flushSchemaCache
       end
 
+      def self.raw_schema_pool
+        method = Java::mondrian.rolap.RolapSchemaPool.java_class.declared_method('instance')
+        method.accessible = true
+        method.invoke_static
+      end
+
       def self.flush_schema_cache
         method = Java::mondrian.rolap.RolapSchemaPool.java_class.declared_method('clear')
         method.accessible = true
-        method.invoke(Java::mondrian.rolap.RolapSchemaPool.instance)
+        method.invoke(raw_schema_pool)
       end
 
       # This method flushes the schema only for this connection (removes from the schema pool).
@@ -167,7 +173,7 @@ module Mondrian
         method = Java::mondrian.rolap.RolapSchemaPool.java_class.declared_method('remove',
           Java::mondrian.rolap.SchemaKey.java_class)
         method.accessible = true
-        method.invoke(Java::mondrian.rolap.RolapSchemaPool.instance, raw_schema_key(schema_key))
+        method.invoke(raw_schema_pool, raw_schema_key(schema_key))
       end
 
       def available_role_names
