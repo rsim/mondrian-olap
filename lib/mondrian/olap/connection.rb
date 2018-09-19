@@ -68,9 +68,11 @@ module Mondrian
       end
 
       def close
+        @raw_jdbc_connection = @raw_catalog = @raw_schema = @raw_mondrian_connection = nil
+        @raw_schema_reader = @raw_cache_control = nil
         @raw_connection.close
+        @raw_connection = nil
         @connected = false
-        @raw_connection = @raw_jdbc_connection = nil
         true
       end
 
