@@ -4,8 +4,14 @@ describe "Connection role" do
 
   describe "create connection" do
     before(:each) do
-      @role_name = role_name = 'California manager'
-      @role_name2 = role_name2 = 'Dummy, with comma'
+      @all_roles = [
+        @role_name = role_name = 'California manager',
+        @role_name2 = role_name2 = 'Dummy, with comma',
+        @simple_role_name = simple_role_name = 'USA manager',
+        @union_role_name = union_role_name = 'Union California manager',
+        @intermediate_union_role_name = intermediate_union_role_name = "Intermediate #{union_role_name}"
+      ]
+
       @schema = Mondrian::OLAP::Schema.define do
         cube 'Sales' do
           table 'sales'
@@ -49,6 +55,26 @@ describe "Connection role" do
         end
         role role_name2
 
+        role simple_role_name do
+          schema_grant :access => 'none' do
+            cube_grant :cube => 'Sales', :access => 'all' do
+              hierarchy_grant :hierarchy => '[Customers]', :access => 'custom', :bottom_level => '[Customers].[State Province]' do
+                member_grant :member => '[Customers].[USA]', :access => 'all'
+              end
+            end
+          end
+        end
+        role intermediate_union_role_name do
+          union do
+            role_usage role_name: simple_role_name
+          end
+        end
+        role union_role_name do
+          union do
+            role_usage role_name: intermediate_union_role_name
+          end
+        end
+
         # to test that Role elements are generated before UserDefinedFunction
         user_defined_function 'Factorial' do
           ruby do
@@ -72,7 +98,7 @@ describe "Connection role" do
     end
 
     it "should get available role names" do
-      @olap.available_role_names.should == [@role_name, @role_name2]
+      @olap.available_role_names.sort.should == @all_roles.sort
     end
 
     it "should not get role name if not set" do
@@ -143,5 +169,15 @@ describe "Connection role" do
       cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
       cube.member('[Gender].[All Genders]').should_not be_nil
     end
+
+    # Test patch for UnionRoleImpl getBottomLevelDepth method
+    it "should see member as drillable when using union of union role" do
+      @olap.role_names = [@union_role_name]
+      cube = @olap.cube('Sales')
+      cube.member('[Customers].[All Customers]').should be_drillable
+      cube.member('[Customers].[All Customers].[USA]').should be_drillable
+      cube.member('[Customers].[All Customers].[USA].[CA]').should_not be_drillable
+    end
+
   end
 end
