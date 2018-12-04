@@ -17,7 +17,7 @@ module Mondrian
 
         def coffeescript_function(arguments_string, text)
           # construct function to ensure that last expression is returned
-          coffee_text = "#{arguments_string} ->\n" << text.gsub(/^/,'  ')
+          coffee_text = "#{arguments_string} ->\n" << text.gsub(/^/, '  ')
           javascript_text = CoffeeScript.compile(coffee_text, :bare => true)
           # remove function definition first and last lines
           javascript_text = javascript_text.strip.lines.to_a[1..-2].join
@@ -67,7 +67,7 @@ module Mondrian
         end
 
         def ruby_formatter_java_class_name(name)
-          "rubyobj.#{self.class.name.gsub('::','.')}.#{ruby_formatter_name_to_class_name(name)}"
+          "rubyobj.#{self.class.name.gsub('::', '.')}.#{ruby_formatter_name_to_class_name(name)}"
         end
 
       end
@@ -214,7 +214,7 @@ JS
 
           def execute(evaluator, arguments)
             values = []
-            self.class.parameters.each_with_index do |p,i|
+            self.class.parameters.each_with_index do |p, i|
               value = UDF_SCALAR_TYPES[p] ? arguments[i].evaluateScalar(evaluator) : arguments[i].evaluate(evaluator)
               values << value
             end

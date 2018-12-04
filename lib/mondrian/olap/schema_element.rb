@@ -88,7 +88,7 @@ module Mondrian
         end
       end
 
-      def self.content(type=nil)
+      def self.content(type = nil)
         return @content if type.nil?
         attr_reader :content
         @content = type
@@ -102,7 +102,7 @@ module Mondrian
         @xml_fragments << string
       end
 
-      def to_xml(options={})
+      def to_xml(options = {})
         options[:upcase_data_dictionary] = @upcase_data_dictionary unless @upcase_data_dictionary.nil?
         Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
           add_to_xml(xml, options)

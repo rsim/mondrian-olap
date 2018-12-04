@@ -205,7 +205,7 @@ module Mondrian
           if @raw_result_set.next
             row_values = []
             column_types.each_with_index do |column_type, i|
-              row_values << Result.java_to_ruby_value(@raw_result_set.getObject(i+1), column_type)
+              row_values << Result.java_to_ruby_value(@raw_result_set.getObject(i + 1), column_type)
             end
             row_values
           else
@@ -314,13 +314,14 @@ module Mondrian
 
             return_fields.size.times do |i|
               column_alias = return_fields[i][:column_alias]
-              new_select_columns << if column_expression = return_fields[i][:column_expression]
-                new_order_by_columns << column_expression
-                new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
-                "#{column_expression} AS #{column_alias}"
-              else
-                "'' AS #{column_alias}"
-              end
+              new_select_columns <<
+                if column_expression = return_fields[i][:column_expression]
+                  new_order_by_columns << column_expression
+                  new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
+                  "#{column_expression} AS #{column_alias}"
+                else
+                  "'' AS #{column_alias}"
+                end
             end
 
             new_select = new_select_columns.join(', ')
@@ -393,7 +394,7 @@ module Mondrian
                   end
               end
 
-              return_fields.size.times do | i |
+              return_fields.size.times do |i|
                 member_full_name = return_fields[i][:member_full_name]
                 begin
                   segment_list = Java::MondrianOlap::Util.parseIdentifier(member_full_name)
@@ -413,34 +414,34 @@ module Mondrian
                 end
 
                 return_fields[i][:column_expression] = case return_fields[i][:type]
-                  when :name
-                    if level_or_member.respond_to? :getNameExp
-                      level_or_member.getNameExp.getExpression sql_query
-                    end
-                  when :property
-                    if property = level_or_member.getProperties.to_a.detect{|p| p.getName == return_fields[i][:name]}
-                      # property.getExp is a protected method therefore
-                      # use a workaround to get the value from the field
-                      f = property.java_class.declared_field("exp")
-                      f.accessible = true
-                      if column = f.value(property)
-                        column.getExpression sql_query
-                      end
-                    end
-                  else
-                    if level_or_member.respond_to? :getKeyExp
-                      return_fields[i][:type] = :key
-                      level_or_member.getKeyExp.getExpression sql_query
-                    else
-                      return_fields[i][:type] = :measure
-                      column_expression = level_or_member.getMondrianDefExpression.getExpression sql_query
-                      if params[:group_by]
-                        level_or_member.getAggregator.getExpression column_expression
-                      else
-                        column_expression
-                      end
+                when :name
+                  if level_or_member.respond_to? :getNameExp
+                    level_or_member.getNameExp.getExpression sql_query
+                  end
+                when :property
+                  if property = level_or_member.getProperties.to_a.detect{|p| p.getName == return_fields[i][:name]}
+                    # property.getExp is a protected method therefore
+                    # use a workaround to get the value from the field
+                    f = property.java_class.declared_field("exp")
+                    f.accessible = true
+                    if column = f.value(property)
+                      column.getExpression sql_query
                     end
                   end
+                else
+                  if level_or_member.respond_to? :getKeyExp
+                    return_fields[i][:type] = :key
+                    level_or_member.getKeyExp.getExpression sql_query
+                  else
+                    return_fields[i][:type] = :measure
+                    column_expression = level_or_member.getMondrianDefExpression.getExpression sql_query
+                    if params[:group_by]
+                      level_or_member.getAggregator.getExpression column_expression
+                    else
+                      column_expression
+                    end
+                  end
+                end
 
                 column_alias = if return_fields[i][:type] == :key
                   "#{return_fields[i][:name]} (Key)"
@@ -511,7 +512,7 @@ module Mondrian
         @axes ||= @raw_cell_set.getAxes
       end
 
-      def axis_positions(map_method, join_with=false)
+      def axis_positions(map_method, join_with = false)
         axes.map do |axis|
           axis.getPositions.map do |position|
             names = position.getMembers.map do |member|
@@ -540,7 +541,7 @@ module Mondrian
         :chapters => 4
       }.freeze
 
-      def recursive_values(value_method, axes_sequence, current_index, cell_params=[])
+      def recursive_values(value_method, axes_sequence, current_index, cell_params = [])
         if axis_number = axes_sequence[current_index]
           axis_number = AXIS_SYMBOL_TO_NUMBER[axis_number] if axis_number.is_a?(Symbol)
           positions_size = axes[axis_number].getPositions.size

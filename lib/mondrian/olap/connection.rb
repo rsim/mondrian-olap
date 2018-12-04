@@ -10,7 +10,7 @@ module Mondrian
       attr_reader :raw_connection, :raw_mondrian_connection, :raw_catalog, :raw_schema,
                   :raw_schema_reader, :raw_cache_control
 
-      def initialize(params={})
+      def initialize(params = {})
         @params = params
         @driver = params[:driver]
         @connected = false
@@ -214,7 +214,7 @@ module Mondrian
 
       def locale=(locale)
         locale_elements = locale.to_s.split('_')
-        raise ArgumentError, "invalid locale string #{locale.inspect}" unless [1,2,3].include?(locale_elements.length)
+        raise ArgumentError, "invalid locale string #{locale.inspect}" unless [1, 2, 3].include?(locale_elements.length)
         java_locale = Java::JavaUtil::Locale.new(*locale_elements)
         @raw_connection.setLocale(java_locale)
       end
@@ -394,7 +394,7 @@ module Mondrian
       end
 
       def quote_string(string)
-        "'#{string.gsub("'","''")}'"
+        "'#{string.gsub("'", "''")}'"
       end
 
       def set_statement_parameters(statement, parameters)

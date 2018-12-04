@@ -79,7 +79,7 @@ module Mondrian
         self
       end
 
-      def filter(condition, options={})
+      def filter(condition, options = {})
         raise ArgumentError, "cannot use filter method before axis or with_set method" unless @current_set
         @current_set.replace [:filter, @current_set.clone, condition]
         @current_set << options[:as] if options[:as]
@@ -138,7 +138,7 @@ module Mondrian
         end
       end
 
-      def hierarchize(order=nil, all=nil)
+      def hierarchize(order = nil, all = nil)
         raise ArgumentError, "cannot use hierarchize method before axis or with_set method" unless @current_set
         order = order && order.to_s.upcase
         raise ArgumentError, "invalid hierarchize order #{order.inspect}" unless order.nil? || order == 'POST'
@@ -152,7 +152,7 @@ module Mondrian
         self
       end
 
-      def hierarchize_all(order=nil)
+      def hierarchize_all(order = nil)
         hierarchize(order, :all)
       end
 
@@ -299,7 +299,7 @@ module Mondrian
         # if only one member which does not end with ]
         # then assume it is expression which returns set
         # TODO: maybe always include also single expressions in {...} to avoid some edge cases?
-        if members.length == 1 && members[0][-1,1] != ']'
+        if members.length == 1 && members[0][-1, 1] != ']'
           members[0]
         elsif members[0].is_a?(Symbol)
           case members[0]
