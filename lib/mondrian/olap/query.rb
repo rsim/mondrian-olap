@@ -376,8 +376,9 @@ module Mondrian
       end
 
       def extract_dimension_name(full_name)
-        if full_name =~ /\A[^\[]*\[([^\]]+)\]/
-          $1
+        # "[Foo [Bar]]].[Baz]" =>  "Foo [Bar]"
+        if full_name
+          full_name.gsub(/\A\[|\]\z/, '').split('].[').first.try(:gsub, ']]', ']')
         end
       end
     end
