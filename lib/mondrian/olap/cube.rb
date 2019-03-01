@@ -1,3 +1,5 @@
+require 'forwardable'
+
 module Mondrian
   module OLAP
     module Annotated
