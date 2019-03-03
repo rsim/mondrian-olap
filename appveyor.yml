@@ -2,11 +2,11 @@ environment:
   JRUBY_OPTS: '--dev --2.0 -J-Xmx1024m'
   matrix:
     - JRUBY_VERSION: "1.7.26"
-    - JRUBY_VERSION: "9.1.17.0"
-
-configuration:
-  - jdk1.7.0
-  - jdk1.8.0
+      JAVA_VERSION: jdk1.8.0
+    - JRUBY_VERSION: "9.2.6.0"
+      JAVA_VERSION: jdk1.8.0
+    - JRUBY_VERSION: "9.2.6.0"
+      JAVA_VERSION: jdk11
 
 services:
   - mssql2012sp1
@@ -28,9 +28,9 @@ install:
   - appveyor DownloadFile https://download.microsoft.com/download/0/2/A/02AAE597-3865-456C-AE7F-613F99F850A8/enu/sqljdbc_6.0.8112.100_enu.exe
   - 7z x sqljdbc_6.0.8112.100_enu.exe -y > nul
   - copy sqljdbc_6.0\enu\jre7\sqljdbc41.jar spec\support\jars\
-  - SET JAVA_HOME=C:\Program Files\Java\%CONFIGURATION%
+  - SET JAVA_HOME=C:\Program Files\Java\%JAVA_VERSION%
   - SET PATH=C:\projects\mondrian-olap\jruby-%JRUBY_VERSION%\bin;%JAVA_HOME%\bin;%PATH%
-  - gem install bundler
+  - gem install bundler -v 1.17.3
   - bundle install --jobs=1 --retry=3
 
 before_test:
