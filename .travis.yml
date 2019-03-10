@@ -8,7 +8,7 @@ notifications:
   email: false
 rvm:
   - jruby-1.7.26
-  - jruby-9.1.17.0
+  - jruby-9.2.6.0
 addons:
   postgresql: "9.4"
   hosts:
@@ -19,8 +19,8 @@ addons:
 services:
   - mysql
 jdk:
-  - openjdk7
   - oraclejdk8
+  - oraclejdk11
 env:
   global:
     - ORACLE_COOKIE=sqldev
@@ -36,13 +36,17 @@ env:
     - ORACLE_DATABASE_NAME=XE
     - DATABASE_NON_DEFAULT_TABLESPACE=USERS
     - JAVA_OPTS=-Xmx512m
-    - JRUBY_OPTS="--dev --2.0"
+    - JRUBY_OPTS="--dev"
 branches:
   only:
     - master
+matrix:
+  exclude:
+    - rvm: jruby-1.7.26
+      jdk: oraclejdk11
 
 before_install:
-  - gem install bundler
+  - gem install bundler -v 1.17.3
 
 install:
   - .travis/oracle/download.sh

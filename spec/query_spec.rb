@@ -828,18 +828,18 @@ describe "Query" do
           ]
         when 'mssql'
           [
-            Fixnum, String, Fixnum, Fixnum, Fixnum,
+            Integer, String, Integer, Integer, Integer,
             String, String, String, String, String, String,
-            # last one can be BigDecimal or Fixnum, probably depends on MS SQL version
+            # last one can be BigDecimal or Integer, probably depends on MS SQL version
             String, String, String, Numeric,
             String,
             BigDecimal
           ]
         else
           [
-            Fixnum, String, Fixnum, Fixnum, Fixnum,
+            Integer, String, Integer, Integer, Integer,
             String, String, String, String, String, String,
-            String, String, String, Fixnum,
+            String, String, String, Integer,
             String,
             BigDecimal
           ]

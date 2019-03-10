@@ -1,12 +1,12 @@
 == Creating test database
 
-By default unit tests use MySQL database but PostgreSQL, Oracle and SQL Server databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql", "oracle", "luciddb", "mssql" (jTDS) or "sqlserver" (Microsoft JDBC) to specify database driver that should be used.
+By default unit tests use MySQL database but PostgreSQL, Oracle and SQL Server databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql", "oracle", "luciddb" (deprecated), "mssql" (jTDS) or "sqlserver" (Microsoft JDBC) to specify database driver that should be used.
 
 If using MySQL, PostgreSQL or SQL Server database then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
 
 If using Oracle database then create database user mondrian_test with password mondrian_test. By default it is assumed that database orcl is located on localhost (can be overridden with DATABASE_NAME and DATABASE_HOST environment variables).
 
-If using LucidDB database then create schema MONDRIAN_TEST and create user MONDRIAN_TEST with password mondrian_test and with default schema MONDRIAN_TEST. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
+If using LucidDB database (deprecated) then create schema MONDRIAN_TEST and create user MONDRIAN_TEST with password mondrian_test and with default schema MONDRIAN_TEST. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
 
 See spec/spec_helper.rb for details of default connection parameters and how to override them.
 
@@ -63,4 +63,4 @@ You can also run all tests on all databases with
 
 == JRuby versions
 
-It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.7 and 9.0 on Java 7 and 8.
+It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.7 and 9.2 on Java 8 and 11.

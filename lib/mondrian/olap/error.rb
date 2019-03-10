@@ -11,15 +11,15 @@ module Mondrian
       def initialize(native_error, options = {})
         @native_error = native_error
         get_root_cause
-        super(native_error.message)
+        super(native_error.toString)
         add_root_cause_to_backtrace
         get_profiling(options)
       end
 
       def self.wrap_native_exception(options = {})
         yield
-      rescue NativeException => e
-        if e.message =~ NATIVE_ERROR_REGEXP
+      rescue Java::JavaLang::Exception => e
+        if e.toString =~ NATIVE_ERROR_REGEXP
           raise Mondrian::OLAP::Error.new(e, options)
         else
           raise

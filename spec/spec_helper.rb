@@ -32,7 +32,7 @@ when 'mssql'
   require 'jdbc/jtds'
   JDBC_DRIVER = 'net.sourceforge.jtds.jdbc.Driver'
 when 'sqlserver'
-  if File.exist?(jdbc_driver_file = File.expand_path('spec/support/jars/sqljdbc41.jar'))
+  Dir[File.expand_path("{mssql-jdbc,sqljdbc}*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
   JDBC_DRIVER = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
