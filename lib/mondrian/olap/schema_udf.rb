@@ -180,19 +180,21 @@ JS
           add_method_signature("getSyntax", [Java::mondrian.olap.Syntax])
 
           UDF_SCALAR_TYPES = {
-            "Numeric" => Java::mondrian.olap.type.NumericType,
-            "String" => Java::mondrian.olap.type.StringType,
-            "Boolean" => Java::mondrian.olap.type.BooleanType,
-            "DateTime" => Java::mondrian.olap.type.DateTimeType,
-            "Decimal" => Java::mondrian.olap.type.DecimalType,
-            "Scalar" => Java::mondrian.olap.type.ScalarType
+            'Numeric' => Java::mondrian.olap.type.NumericType,
+            'String' => Java::mondrian.olap.type.StringType,
+            'Boolean' => Java::mondrian.olap.type.BooleanType,
+            'DateTime' => Java::mondrian.olap.type.DateTimeType,
+            'Decimal' => Java::mondrian.olap.type.DecimalType,
+            'Scalar' => Java::mondrian.olap.type.ScalarType
           }
           UDF_OTHER_TYPES = {
-            "Member" => Java::mondrian.olap.type.MemberType::Unknown,
-            "Set" => Java::mondrian.olap.type.SetType.new(Java::mondrian.olap.type.MemberType::Unknown),
-            "Hierarchy" => Java::mondrian.olap.type.HierarchyType.new(nil, nil),
-            "Level" => Java::mondrian.olap.type.LevelType::Unknown
+            'Member' => Java::mondrian.olap.type.MemberType::Unknown,
+            'Tuple' => Java::mondrian.olap.type.TupleType.new([].to_java(Java::mondrian.olap.type.Type)),
+            'Hierarchy' => Java::mondrian.olap.type.HierarchyType.new(nil, nil),
+            'Level' => Java::mondrian.olap.type.LevelType::Unknown
           }
+          UDF_OTHER_TYPES['Set'] = UDF_OTHER_TYPES['MemberSet'] = Java::mondrian.olap.type.SetType.new(UDF_OTHER_TYPES['Member'])
+          UDF_OTHER_TYPES['TupleSet'] = Java::mondrian.olap.type.SetType.new(UDF_OTHER_TYPES['Tuple'])
 
           def getParameterTypes
             @parameterTypes ||= self.class.parameters.map{|p| get_java_type(p)}
@@ -239,9 +241,12 @@ JS
           end
 
           def self.stringified_type(type)
-            type = stringify(type)
-            raise ArgumentError, "invalid user defined function type #{type.inspect}" unless UDF_SCALAR_TYPES[type] || UDF_OTHER_TYPES[type]
-            type
+            type_as_string = stringify(type)
+            if UDF_SCALAR_TYPES[type_as_string] || UDF_OTHER_TYPES[type_as_string]
+              type_as_string
+            else
+              raise ArgumentError, "Invalid user defined function type #{type.inspect}"
+            end
           end
 
           def self.stringify(arg)

@@ -1103,12 +1103,21 @@ describe "Schema definition" do
         @schema.define do
           cube 'Sales' do
             table 'sales'
-            dimension 'Customers', :foreign_key => 'customer_id' do
-              hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+            dimension 'Time', foreign_key: 'time_id' do
+              hierarchy all_member_name: 'All Time', primary_key: 'time_id' do
+                table 'time_by_day'
+                level 'Year', column: 'the_year', type: 'Numeric'
+                level 'Quarter', column: 'quarter'
+                level 'Month', column: 'month_of_year', type: 'Numeric'
+                level 'Day', column: 'day_of_month', type: 'Numeric'
+              end
+            end
+            dimension 'Customers', foreign_key: 'customer_id' do
+              hierarchy all_member_name: 'All Customers', primary_key: 'id' do
                 table 'customers'
-                level 'Name', :column => 'fullname' do
+                level 'Name', column: 'fullname' do
                   member_formatter { ruby {|member| member.getName().upcase } }
-                  property 'City', :column => 'city' do
+                  property 'City', column: 'city' do
                     property_formatter { ruby {|member, property_name, property_value| property_value.upcase} }
                   end
                 end
@@ -1193,8 +1202,38 @@ describe "Schema definition" do
               end
             end
           end
+          user_defined_function 'ChildrenSet' do
+            ruby do
+              parameters :member
+              returns :member_set
+              syntax :function
+              def call_with_evaluator(evaluator, member)
+                evaluator.getSchemaReader.getMemberChildren(member)
+              end
+            end
+          end
+          user_defined_function 'SetFirstTuple' do
+            ruby do
+              parameters :set
+              returns :tuple
+              syntax :function
+              def call_with_evaluator(evaluator, set)
+                set.first
+              end
+            end
+          end
+          user_defined_function 'SetFirstTuples' do
+            ruby do
+              parameters :tuple_set, :numeric
+              returns :tuple_set
+              syntax :function
+              def call_with_evaluator(evaluator, set, count)
+                set.to_a[0, count]
+              end
+            end
+          end
         end
-        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema)
       end
 
       it "should execute user defined function" do
@@ -1267,6 +1306,35 @@ describe "Schema definition" do
         first_member = result.row_members.first
         result.row_members.each_with_index do |member, i|
           result.values[i].should == [first_member.name.upcase]
+        end
+      end
+
+      it "should execute user defined functions with a member set result" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[Children Set]').as("SetToStr(ChildrenSet([Customers].CurrentMember))").
+          columns('[Measures].[Children Set]').rows('[Customers].DefaultMember').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].first.should == "{#{member.children.map(&:full_name).join(', ')}}"
+        end
+      end
+
+      it "should execute user defined functions with a tuple result" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[First Tuple]').
+            as("TupleToStr(SetFirstTuple([Customers].CurrentMember.Children * [Time].DefaultMember))").
+          columns('[Measures].[First Tuple]').rows('[Customers].DefaultMember').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].first.should == "(#{member.children.first.full_name}, [Time].[All Time])"
+        end
+      end
+
+      it "should execute user defined functions with a tuple result" do
+        result = @olap.from('Sales').
+          with_member('[Measures].[First Tuple]').
+            as("SetToStr(SetFirstTuples([Customers].CurrentMember.Children * [Time].DefaultMember, 1))").
+          columns('[Measures].[First Tuple]').rows('[Customers].DefaultMember').execute
+        result.row_members.each_with_index do |member, i|
+          result.values[i].first.should == "{(#{member.children.first.full_name}, [Time].[All Time])}"
         end
       end
     end
