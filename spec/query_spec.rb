@@ -671,20 +671,25 @@ describe "Query" do
       end
 
       it "should return query including WITH SET clause" do
-        @query.with_set('SelectedRows').
+        @query.with_set('CrossJoinSet').
             as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          with_set('MemberSet').as('[Product].[All Products]').
+          with_set('FunctionSet').as('[Product].AllMembers').
+          with_set('ItemSet').as('[Product].AllMembers.Item(0)').
           with_member('[Measures].[Profit]').
             as('[Measures].[Store Sales] - [Measures].[Store Cost]').
           columns('[Measures].[Profit]').
-          rows('SelectedRows').
+          rows('CrossJoinSet').
           to_mdx.should be_like <<-SQL
             WITH
-               SET SelectedRows AS
-               'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
+               SET CrossJoinSet AS 'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
+               SET MemberSet AS '{[Product].[All Products]}'
+               SET FunctionSet AS '[Product].AllMembers'
+               SET ItemSet AS '{[Product].AllMembers.Item(0)}'
                MEMBER [Measures].[Profit] AS
                '[Measures].[Store Sales] - [Measures].[Store Cost]'
             SELECT  {[Measures].[Profit]} ON COLUMNS,
-                    SelectedRows ON ROWS
+                    CrossJoinSet ON ROWS
               FROM  [Sales]
           SQL
       end
