@@ -308,7 +308,7 @@ module Mondrian
 
       def jdbc_uri
         case @driver
-        when 'mysql', 'postgresql'
+        when 'mysql', 'postgresql', 'vertica'
           uri = "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
           uri << "?useUnicode=yes&characterEncoding=UTF-8" if @driver == 'mysql'
           if (properties = @params[:properties]).is_a?(Hash) && !properties.empty?
@@ -368,6 +368,8 @@ module Mondrian
           'net.sourceforge.jtds.jdbc.Driver'
         when 'sqlserver'
           'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+        when 'vertica'
+          'com.vertica.jdbc.Driver'
         when 'jdbc'
           @params[:jdbc_driver] or raise ArgumentError, 'missing jdbc_driver parameter'
         else

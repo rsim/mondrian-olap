@@ -36,6 +36,33 @@ when 'sqlserver'
     require jdbc_driver_file
   end
   JDBC_DRIVER = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+when 'vertica'
+  Dir[File.expand_path("vertica*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+    require jdbc_driver_file
+  end
+  JDBC_DRIVER = 'com.vertica.jdbc.Driver'
+  DATABASE_SCHEMA = ENV["#{env_prefix}_DATABASE_SCHEMA"] || ENV['DATABASE_SCHEMA'] || 'mondrian_test'
+  # patches for Vertica minimal AR support
+  require 'arjdbc/jdbc/adapter'
+  ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
+    def modify_types(tp)
+      # mapping of ActiveRecord data types to Vertica data types
+      tp[:primary_key] = "identity"
+      tp[:integer] = "int"
+    end
+    # by default LucidDB stores table and column names in uppercase
+    def quote_table_name(name)
+      "\"#{name.to_s}\""
+    end
+    def quote_column_name(name)
+      "\"#{name.to_s}\""
+    end
+    # exec_insert tries to use Statement.RETURN_GENERATED_KEYS which is not supported by Vertica
+    def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
+      exec_update(sql, name, binds)
+    end
+  end
+
 when 'luciddb'
   require 'jdbc/luciddb'
   CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
@@ -139,6 +166,14 @@ when 'sqlserver'
     :username => CONNECTION_PARAMS[:username],
     :password => CONNECTION_PARAMS[:password],
     :connection_alive_sql => 'SELECT 1'
+  }
+when 'vertica'
+  AR_CONNECTION_PARAMS = {
+    adapter: 'jdbc',
+    driver:   JDBC_DRIVER,
+    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}?SearchPath=#{DATABASE_SCHEMA}&LogLevel=DEBUG",
+    username: CONNECTION_PARAMS[:username],
+    password: CONNECTION_PARAMS[:password]
   }
 when /jdbc/
   AR_CONNECTION_PARAMS = {
