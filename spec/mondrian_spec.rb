@@ -2,7 +2,7 @@ require "spec_helper"
 
 describe "Mondrian features" do
   before(:all) do
-    @schema = Mondrian::OLAP::Schema.define do
+    @schema = Mondrian::OLAP::Schema.define upcase_data_dictionary: MONDRIAN_DRIVER == 'snowflake' do
       cube 'Sales' do
         table 'sales'
         dimension 'Gender', :foreign_key => 'customer_id' do

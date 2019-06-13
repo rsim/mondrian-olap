@@ -2,7 +2,7 @@ require "spec_helper"
 
 describe "Cube" do
   before(:all) do
-    @schema = Mondrian::OLAP::Schema.define do
+    @schema = Mondrian::OLAP::Schema.define upcase_data_dictionary: MONDRIAN_DRIVER == 'snowflake' do
       measures_caption 'Measures caption'
 
       cube 'Sales' do
@@ -87,7 +87,7 @@ describe "Cube" do
       SQL
 
       case MONDRIAN_DRIVER
-      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle'
+      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle', 'vertica', 'snowflake'
         @connection.execute 'CREATE TABLE sales_copy AS SELECT * FROM sales'
       when 'mssql', 'sqlserver'
         # Use raw_connection.execute to avoid detecting this query as a SELECT query
@@ -98,7 +98,7 @@ describe "Cube" do
 
     after(:each) do
       case MONDRIAN_DRIVER
-      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle'
+      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle', 'vertica', 'snowflake'
         @connection.execute 'TRUNCATE TABLE sales'
         @connection.execute 'INSERT INTO sales SELECT * FROM sales_copy'
       when 'mssql', 'sqlserver'
@@ -113,7 +113,7 @@ describe "Cube" do
 
     after(:all) do
       case MONDRIAN_DRIVER
-      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle'
+      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle', 'vertica', 'snowflake'
         @connection.execute 'DROP TABLE sales_copy'
       when 'mssql', 'sqlserver'
         @connection.execute 'DROP TABLE sales_copy'

@@ -347,6 +347,12 @@ module Mondrian
           uri << ";applicationName=#{@params[:application_name]}" if @params[:application_name]
           uri << ";instanceName=#{@params[:instance_name]}" if @params[:instance_name]
           uri
+        when 'snowflake'
+          uri = "jdbc:snowflake://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/?tracing=FINE"
+          uri << "&db=#{@params[:database]}" if @params[:database]
+          uri << "&schema=#{@params[:database_schema]}" if @params[:database_schema]
+          uri << "&warehouse=#{@params[:warehouse]}" if @params[:warehouse]
+          uri
         when 'jdbc'
           @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
         else
@@ -370,6 +376,8 @@ module Mondrian
           'com.microsoft.sqlserver.jdbc.SQLServerDriver'
         when 'vertica'
           'com.vertica.jdbc.Driver'
+        when 'snowflake'
+          'net.snowflake.client.jdbc.SnowflakeDriver'
         when 'jdbc'
           @params[:jdbc_driver] or raise ArgumentError, 'missing jdbc_driver parameter'
         else
