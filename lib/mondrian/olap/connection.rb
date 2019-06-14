@@ -351,6 +351,10 @@ module Mondrian
           uri = "jdbc:snowflake://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/?db=#{@params[:database]}"
           uri << "&schema=#{@params[:database_schema]}" if @params[:database_schema]
           uri << "&warehouse=#{@params[:warehouse]}" if @params[:warehouse]
+          if (properties = @params[:properties]).is_a?(Hash) && !properties.empty?
+            uri << '&'
+            uri << properties.map{|k, v| "#{k}=#{v}"}.join('&')
+          end
           uri
         when 'jdbc'
           @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
