@@ -348,8 +348,7 @@ module Mondrian
           uri << ";instanceName=#{@params[:instance_name]}" if @params[:instance_name]
           uri
         when 'snowflake'
-          uri = "jdbc:snowflake://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/?tracing=FINE"
-          uri << "&db=#{@params[:database]}" if @params[:database]
+          uri = "jdbc:snowflake://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/?db=#{@params[:database]}"
           uri << "&schema=#{@params[:database_schema]}" if @params[:database_schema]
           uri << "&warehouse=#{@params[:warehouse]}" if @params[:warehouse]
           uri
