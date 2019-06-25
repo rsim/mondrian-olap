@@ -761,6 +761,17 @@ describe "Query" do
       }
     end
 
+    it "should raise error when TokenMgrError is raised" do
+      expect {
+        @query.with_member('[Measures].[Dummy]').as('[Measures].[Store Sales]]').
+          columns('[Measures].[Dummy]').execute
+      }.to raise_error {|e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should =~ /mondrian\.parser\.TokenMgrError/
+        e.root_cause_message.should =~ /Lexical error/
+      }
+    end
+
   end
 
   describe "drill through cell" do
