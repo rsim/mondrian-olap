@@ -18,7 +18,8 @@ module Mondrian
 
       def self.wrap_native_exception(options = {})
         yield
-      rescue Java::JavaLang::Exception => e
+      # TokenMgrError for some unknown reason extends java.lang.Error which normally should not be rescued
+      rescue Java::JavaLang::Exception, Java::MondrianParser::TokenMgrError => e
         if e.toString =~ NATIVE_ERROR_REGEXP
           raise Mondrian::OLAP::Error.new(e, options)
         else
