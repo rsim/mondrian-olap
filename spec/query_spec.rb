@@ -1140,4 +1140,53 @@ Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type
     end
   end
 
+  describe "timeout" do
+    before(:all) do
+      @schema = Mondrian::OLAP::Schema.new
+      @schema.define do
+        cube 'Sales' do
+          table 'sales'
+          dimension 'Customers', foreign_key: 'customer_id' do
+            hierarchy all_member_name: 'All Customers', primary_key: 'id' do
+              table 'customers'
+              level 'Name', column: 'fullname'
+            end
+          end
+          calculated_member 'Sleep 5' do
+            dimension 'Measures'
+            formula 'Sleep(5)'
+          end
+          calculated_member 'Sleep 0' do
+            dimension 'Measures'
+            formula 'Sleep(0)'
+          end
+        end
+        user_defined_function 'Sleep' do
+          ruby do
+            parameters :numeric
+            returns :numeric
+            def call(n)
+              sleep n
+              n
+            end
+          end
+        end
+      end
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema)
+    end
+
+    it "should raise timeout error for long queries" do
+      expect do
+        @olap.from('Sales').columns('[Measures].[Sleep 5]').execute(timeout: 0.1)
+      end.to raise_error do |e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == 'org.olap4j.OlapException: Mondrian Error:Query timeout of 0 seconds reached'
+      end
+    end
+
+    it "should not raise timeout error for short queries" do
+      @olap.from('Sales').columns('[Measures].[Sleep 0]').execute(timeout: 1).values.should == [0]
+    end
+  end
+
 end
