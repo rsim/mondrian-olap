@@ -308,7 +308,7 @@ module Mondrian
 
       def jdbc_uri
         case @driver
-        when 'mysql', 'postgresql'
+        when 'mysql', 'postgresql', 'vertica'
           uri = "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
           uri << "?useUnicode=yes&characterEncoding=UTF-8" if @driver == 'mysql'
           if (properties = @params[:properties]).is_a?(Hash) && !properties.empty?
@@ -347,6 +347,15 @@ module Mondrian
           uri << ";applicationName=#{@params[:application_name]}" if @params[:application_name]
           uri << ";instanceName=#{@params[:instance_name]}" if @params[:instance_name]
           uri
+        when 'snowflake'
+          uri = "jdbc:snowflake://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/?db=#{@params[:database]}"
+          uri << "&schema=#{@params[:database_schema]}" if @params[:database_schema]
+          uri << "&warehouse=#{@params[:warehouse]}" if @params[:warehouse]
+          if (properties = @params[:properties]).is_a?(Hash) && !properties.empty?
+            uri << '&'
+            uri << properties.map{|k, v| "#{k}=#{v}"}.join('&')
+          end
+          uri
         when 'jdbc'
           @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
         else
@@ -368,6 +377,10 @@ module Mondrian
           'net.sourceforge.jtds.jdbc.Driver'
         when 'sqlserver'
           'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+        when 'vertica'
+          'com.vertica.jdbc.Driver'
+        when 'snowflake'
+          'net.snowflake.client.jdbc.SnowflakeDriver'
         when 'jdbc'
           @params[:jdbc_driver] or raise ArgumentError, 'missing jdbc_driver parameter'
         else
