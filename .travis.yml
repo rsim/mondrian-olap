@@ -8,19 +8,19 @@ notifications:
   email: false
 rvm:
   - jruby-1.7.26
-  - jruby-9.2.7.0
+  - jruby-9.2.9.0
 addons:
   postgresql: "9.4"
   hosts:
     - oracle.vm
   apt:
     packages:
-     - haveged
+      - haveged
 services:
   - mysql
 jdk:
-  - oraclejdk8
-  - oraclejdk11
+  - openjdk8
+  - openjdk11
 env:
   global:
     - ORACLE_COOKIE=sqldev
@@ -43,7 +43,7 @@ branches:
 matrix:
   exclude:
     - rvm: jruby-1.7.26
-      jdk: oraclejdk11
+      jdk: openjdk11
 
 before_install:
   - gem install bundler -v 1.17.3

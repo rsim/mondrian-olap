@@ -412,10 +412,9 @@ module Mondrian
 
       def set_statement_parameters(statement, parameters)
         if parameters && !parameters.empty?
+          parameters = parameters.dup
           # define addtional parameters which can be accessed from user defined functions
-          if parameters[:define_parameters]
-            parameters = parameters.dup
-            define_parameters = parameters.delete(:define_parameters)
+          if define_parameters = parameters.delete(:define_parameters)
             query_validator = statement.getQuery.createValidator
             define_parameters.each do |dp_name, dp_value|
               dp_type_class = dp_value.is_a?(Numeric) ? Java::MondrianOlapType::NumericType : Java::MondrianOlapType::StringType
@@ -423,11 +422,11 @@ module Mondrian
               parameters[dp_name] = dp_value
             end
           end
-          if parameters.key?(:profiling)
-            parameters = parameters.dup
-            if parameters.delete(:profiling)
-              statement.enableProfiling(ProfilingHandler.new)
-            end
+          if parameters.delete(:profiling)
+            statement.enableProfiling(ProfilingHandler.new)
+          end
+          if timeout = parameters.delete(:timeout)
+            statement.getQuery.setQueryTimeoutMillis(timeout * 1000)
           end
           parameters.each do |parameter_name, value|
             statement.getQuery.setParameter(parameter_name, value)

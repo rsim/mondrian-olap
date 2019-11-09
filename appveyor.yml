@@ -3,9 +3,9 @@ environment:
   matrix:
     - JRUBY_VERSION: "1.7.26"
       JAVA_VERSION: jdk1.8.0
-    - JRUBY_VERSION: "9.2.7.0"
+    - JRUBY_VERSION: "9.2.9.0"
       JAVA_VERSION: jdk1.8.0
-    - JRUBY_VERSION: "9.2.7.0"
+    - JRUBY_VERSION: "9.2.9.0"
       JAVA_VERSION: jdk11
 
 services:
