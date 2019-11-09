@@ -1,4 +1,31 @@
-### 0.9.0 / Not yet released
+### 1.1.0 / 2019-11-09
+
+* New features
+  * Upgrade to the latest Mondrian version 8.3.0.5
+  * Tested with JRuby 9.2.9.0
+  * Set query specific timeout
+  * Support for Vertica and Snowflake databases
+* Bug fixes
+  * Handle and wrap TokenMgrError exception
+  * Patch for MONDRIAN-2660
+  * Patch for MONDRIAN-2661
+
+### 1.0.0 / 2019-03-04
+
+* New features
+  * Upgrade to the latest Mondrian version 8.2.0.4
+  * Desupport Java 7, added support for Java 11, tested with JRuby 9.2.6.0
+  * Remove deprecated NativeException, Fixnum
+  * Added Mondrian query profiling option
+  * Added connection flush_schema method and flush_schema(schema_key) class method
+  * Added pin_schema_timeout connection parameter
+* Bug fixes
+  * Fixed parsing of drill through queries with newlines
+  * Do not log Mondrian errors on the console
+  * Fixed handling of dimension names with escaped ]
+  * Patch for MONDRIAN-2641
+
+### 0.9.0 / 2017-10-07
 
 * New features
   * Upgraded to the latest Mondrian version 3.14.0.5
