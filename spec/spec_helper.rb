@@ -50,7 +50,7 @@ when 'vertica'
       tp[:primary_key] = "identity"
       tp[:integer] = "int"
     end
-    # by default LucidDB stores table and column names in uppercase
+    # by default Vertica stores table and column names in uppercase
     def quote_table_name(name)
       "\"#{name.to_s}\""
     end
