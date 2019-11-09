@@ -2,7 +2,7 @@ require "spec_helper"
 
 describe "Cube" do
   before(:all) do
-    @schema = Mondrian::OLAP::Schema.define upcase_data_dictionary: MONDRIAN_DRIVER == 'snowflake' do
+    @schema = Mondrian::OLAP::Schema.define do
       measures_caption 'Measures caption'
 
       cube 'Sales' do

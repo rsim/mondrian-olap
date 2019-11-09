@@ -1100,7 +1100,7 @@ describe "Schema definition" do
 
     describe "User defined functions and formatters in Ruby" do
       before(:each) do
-        @schema.define upcase_data_dictionary: MONDRIAN_DRIVER == 'snowflake' do
+        @schema.define do
           cube 'Sales' do
             table 'sales'
             dimension 'Time', foreign_key: 'time_id' do
@@ -1628,7 +1628,7 @@ describe "Schema definition" do
 
   describe "connection with schema" do
     before(:all) do
-      @schema = Mondrian::OLAP::Schema.define upcase_data_dictionary: MONDRIAN_DRIVER == 'snowflake' do
+      @schema = Mondrian::OLAP::Schema.define do
         cube 'Sales' do
           table 'sales'
           dimension 'Gender', :foreign_key => 'customer_id' do

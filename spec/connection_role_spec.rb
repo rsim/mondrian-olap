@@ -12,7 +12,7 @@ describe "Connection role" do
         @intermediate_union_role_name = intermediate_union_role_name = "Intermediate #{union_role_name}"
       ]
 
-      @schema = Mondrian::OLAP::Schema.define upcase_data_dictionary: MONDRIAN_DRIVER == 'snowflake' do
+      @schema = Mondrian::OLAP::Schema.define do
         cube 'Sales' do
           table 'sales'
           dimension 'Gender', :foreign_key => 'customer_id' do
