@@ -53,7 +53,7 @@ describe "Connection" do
         when 'mssql' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
         when 'sqlserver' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
         when 'vertica' then 'mondrian.spi.impl.VerticaDialect'
-        when 'snowflake' then 'mondrian.spi.impl.JdbcDialectImpl'
+        when 'snowflake' then 'mondrian.spi.impl.SnowflakeDialect'
         end
     end
 
