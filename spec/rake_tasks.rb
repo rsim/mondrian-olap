@@ -238,7 +238,7 @@ namespace :db do
       end
 
     when 'snowflake'
-      conn.execute <<~SQL
+      conn.execute <<-SQL
         CREATE OR REPLACE FILE FORMAT csv
         TYPE = 'CSV' COMPRESSION = 'AUTO' FIELD_DELIMITER = ',' RECORD_DELIMITER = '\\n' SKIP_HEADER = 1
         FIELD_OPTIONALLY_ENCLOSED_BY = '\\042' TRIM_SPACE = FALSE ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE ESCAPE = 'NONE'
