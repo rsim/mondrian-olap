@@ -47,7 +47,7 @@ when 'vertica'
   ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
     def modify_types(tp)
       # mapping of ActiveRecord data types to Vertica data types
-      tp[:primary_key] = "identity"
+      tp[:primary_key] = "int" # Use int instead of identity as data cannot be loaded into identity columns
       tp[:integer] = "int"
     end
     # by default Vertica stores table and column names in uppercase
@@ -76,6 +76,10 @@ when 'snowflake'
       # mapping of ActiveRecord data types to Snowflake data types
       tp[:primary_key] = "integer"
       tp[:integer] = "integer"
+    end
+    # exec_insert tries to use Statement.RETURN_GENERATED_KEYS which is not supported by Snowflake
+    def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
+      exec_update(sql, name, binds)
     end
   end
   require 'arjdbc/jdbc/type_converter'
