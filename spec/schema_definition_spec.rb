@@ -85,13 +85,13 @@ describe "Schema definition" do
         XML
       end
 
-      it "should render table name in uppercase when using Oracle or LucidDB driver" do
+      it "should render table name in uppercase when using Oracle or Snowflake driver" do
         @schema.define do
           cube 'Sales' do
             table 'sales_fact', :alias => 'sales', :schema => 'facts'
           end
         end
-        %w(oracle luciddb).each do |driver|
+        %w(oracle snowflake).each do |driver|
           @schema.to_xml(:driver => driver).should be_like <<-XML
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
@@ -119,13 +119,13 @@ describe "Schema definition" do
         XML
       end
 
-      it "should render table name in lowercase when using Oracle or LucidDB driver but with :upcase_data_dictionary set to false" do
+      it "should render table name in lowercase when using Oracle or Snowflake driver but with :upcase_data_dictionary set to false" do
         @schema.define :upcase_data_dictionary => false do
           cube 'Sales' do
             table 'sales_fact', :alias => 'sales', :schema => 'facts'
           end
         end
-        %w(oracle luciddb).each do |driver|
+        %w(oracle snowflake).each do |driver|
           @schema.to_xml(:driver => driver).should be_like <<-XML
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">

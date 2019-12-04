@@ -1,3 +1,9 @@
+### Master
+
+* New features
+  * Improved Vertica and Snowflake tests to use bulk data loading
+  * Removed support of LucidDB (which is abandoned a long time ago)
+
 ### 1.1.0 / 2019-11-09
 
 * New features

@@ -140,8 +140,8 @@ module Mondrian
 
       def xmlized_attributes(options)
         # data dictionary values should be in uppercase if schema defined with :upcase_data_dictionary => true
-        # or by default when using Oracle or LucidDB driver (can be overridden by :upcase_data_dictionary => false)
-        upcase_attributes = if options[:upcase_data_dictionary].nil? && %w(oracle luciddb snowflake).include?(options[:driver]) ||
+        # or by default when using Oracle or Snowflake driver (can be overridden by :upcase_data_dictionary => false)
+        upcase_attributes = if options[:upcase_data_dictionary].nil? && %w(oracle snowflake).include?(options[:driver]) ||
                             options[:upcase_data_dictionary]
           self.class.data_dictionary_names
         else

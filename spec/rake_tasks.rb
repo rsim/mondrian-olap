@@ -91,7 +91,7 @@ namespace :db do
   end
 
   desc "Create test data"
-  task :create_data => [:create_tables] + ( %w(luciddb vertica snowflake).include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
+  task :create_data => [:create_tables] + ( %w(vertica snowflake).include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
     [ :create_time_data, :create_product_data, :create_customer_data, :create_sales_data ] )
 
   task :create_time_data  => :define_models do
@@ -116,7 +116,6 @@ namespace :db do
         :product_subcategory => "Subcategory #{i}"
       )
       Product.create!(
-        # LucidDB is not returning inserted ID therefore doing it hard way
         :product_class_id => ProductClass.where(:product_category => "Category #{i}").to_a.first.id,
         :brand_name => "Brand #{i}",
         :product_name => "Product #{i}"
@@ -178,7 +177,6 @@ namespace :db do
     puts "==> Creating sales data"
     Sales.delete_all
     count = 100
-    # LucidDB does not support LIMIT therefore select all and limit in Ruby
     products = Product.order("id").to_a[0...count]
     times = TimeDimension.order("id").to_a[0...count]
     customers = Customer.order("id").to_a[0...count]
@@ -227,34 +225,6 @@ namespace :db do
     conn = ActiveRecord::Base.connection
 
     case MONDRIAN_DRIVER
-    when 'luciddb'
-      # create link to mysql database to import tables
-      # see description at http://pub.eigenbase.org/wiki/LucidDbCreateForeignServer
-      conn.execute "drop schema mondrian_test_source cascade" rescue nil
-      conn.execute "drop server mondrian_test_source" rescue nil
-      conn.execute "create schema mondrian_test_source"
-      conn.execute <<-SQL
-        create server mondrian_test_source
-        foreign data wrapper sys_jdbc
-        options(
-            driver_class 'com.mysql.jdbc.Driver',
-            url 'jdbc:mysql://localhost/mondrian_test?characterEncoding=utf-8&useCursorFetch=true',
-            user_name 'mondrian_test',
-            password 'mondrian_test',
-            login_timeout '10',
-            fetch_size '1000',
-            validation_query 'select 1',
-            schema_name 'MONDRIAN_TEST',
-            table_types 'TABLE')
-      SQL
-      conn.execute "import foreign schema mondrian_test from server mondrian_test_source into mondrian_test_source"
-      table_names.each do |table_name|
-        quoted_table_name = "\"#{table_name.upcase}\""
-        conn.execute "truncate table #{quoted_table_name}"
-        conn.execute "insert into #{quoted_table_name} select * from mondrian_test_source.\"#{table_name}\""
-        conn.execute "analyze table #{quoted_table_name} compute statistics for all columns"
-      end
-
     when 'vertica'
       table_names.each do |table_name|
         puts "==> Truncate #{table_name}"
@@ -292,7 +262,7 @@ namespace :db do
 end
 
 namespace :spec do
-  %w(mysql jdbc_mysql postgresql oracle luciddb mssql sqlserver vertica snowflake).each do |driver|
+  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake).each do |driver|
     desc "Run specs with #{driver} driver"
     task driver do
       ENV['MONDRIAN_DRIVER'] = driver

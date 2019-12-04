@@ -330,10 +330,6 @@ module Mondrian
               "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}#{database}"
             end
           end
-        when 'luciddb'
-          uri = "jdbc:luciddb:http://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
-          uri << ";schema=#{@params[:database_schema]}" if @params[:database_schema]
-          uri
         when 'mssql'
           uri = "jdbc:jtds:sqlserver://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
           uri << ";instance=#{@params[:instance]}" if @params[:instance]
@@ -371,8 +367,6 @@ module Mondrian
           'org.postgresql.Driver'
         when 'oracle'
           'oracle.jdbc.OracleDriver'
-        when 'luciddb'
-          'org.luciddb.jdbc.LucidDbClientDriver'
         when 'mssql'
           'net.sourceforge.jtds.jdbc.Driver'
         when 'sqlserver'

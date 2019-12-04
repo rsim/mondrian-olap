@@ -86,35 +86,6 @@ when 'snowflake'
   # Hack to disable :text and :binary types for Snowflake
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:text)
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:binary)
-when 'luciddb'
-  require 'jdbc/luciddb'
-  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
-
-  # Hack to disable :text type for LucidDB
-  require 'arjdbc/jdbc/type_converter'
-  ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:text)
-
-  # patches for LucidDB minimal AR support
-  require 'arjdbc/jdbc/adapter'
-  ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
-    def modify_types(tp)
-      # mapping of ActiveRecord data types to LucidDB data types
-      # data will be imported into LucidDB therefore primary key is defined as simple integer field
-      tp[:primary_key] = "INT"
-      tp[:integer] = "INT"
-    end
-    # by default LucidDB stores table and column names in uppercase
-    def quote_table_name(name)
-      "\"#{name.to_s.upcase}\""
-    end
-    def quote_column_name(name)
-      "\"#{name.to_s.upcase}\""
-    end
-  end
-  JDBC_DRIVER = 'org.luciddb.jdbc.LucidDbClientDriver'
-  DATABASE_USER.upcase! if DATABASE_USER == 'mondrian_test'
-  DATABASE_NAME = nil
-  DATABASE_SCHEMA = ENV['DATABASE_SCHEMA'] || 'mondrian_test'
 end
 
 puts "==> Using #{MONDRIAN_DRIVER} driver"
@@ -154,16 +125,6 @@ when 'oracle'
     :adapter  => 'oracle_enhanced',
     :host     => CONNECTION_PARAMS[:host],
     :database => CONNECTION_PARAMS[:database],
-    :username => CONNECTION_PARAMS[:username],
-    :password => CONNECTION_PARAMS[:password]
-  }
-when 'luciddb'
-  CONNECTION_PARAMS[:database] = nil
-  CONNECTION_PARAMS[:database_schema] = DATABASE_SCHEMA
-  AR_CONNECTION_PARAMS = {
-    :adapter  => 'jdbc',
-    :driver   => JDBC_DRIVER,
-    :url      => "jdbc:#{MONDRIAN_DRIVER}:http://#{CONNECTION_PARAMS[:host]};schema=#{CONNECTION_PARAMS[:database_schema]}",
     :username => CONNECTION_PARAMS[:username],
     :password => CONNECTION_PARAMS[:password]
   }

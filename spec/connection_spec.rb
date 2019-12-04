@@ -49,7 +49,6 @@ describe "Connection" do
         when 'mysql' then 'mondrian.spi.impl.MySqlDialect'
         when 'postgresql' then 'mondrian.spi.impl.PostgreSqlDialect'
         when 'oracle' then 'mondrian.spi.impl.OracleDialect'
-        when 'luciddb' then 'mondrian.spi.impl.LucidDbDialect'
         when 'mssql' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
         when 'sqlserver' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
         when 'vertica' then 'mondrian.spi.impl.VerticaDialect'
