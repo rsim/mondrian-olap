@@ -191,20 +191,28 @@ when 'sqlserver'
     :connection_alive_sql => 'SELECT 1'
   }
 when 'vertica'
+  CONNECTION_PARAMS[:properties] = {
+    'SearchPath' => DATABASE_SCHEMA
+  }
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver:   JDBC_DRIVER,
-    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}?SearchPath=#{DATABASE_SCHEMA}&LogLevel=DEBUG",
+    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}" \
+      "?SearchPath=#{DATABASE_SCHEMA}", # &LogLevel=DEBUG
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password]
   }
 when 'snowflake'
   CONNECTION_PARAMS[:database_schema] = DATABASE_SCHEMA
   CONNECTION_PARAMS[:warehouse] = WAREHOUSE_NAME
+  CONNECTION_PARAMS[:properties] = {
+    # 'tracing' => 'ALL'
+  }
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver:   JDBC_DRIVER,
-    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/?db=#{CONNECTION_PARAMS[:database]}&schema=#{DATABASE_SCHEMA}&warehouse=#{WAREHOUSE_NAME}&tracing=ALL",
+    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/?db=#{CONNECTION_PARAMS[:database]}" \
+      "&schema=#{DATABASE_SCHEMA}&warehouse=#{WAREHOUSE_NAME}", # &tracing=ALL
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password]
   }
