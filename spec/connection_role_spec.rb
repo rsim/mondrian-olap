@@ -3,7 +3,7 @@ require "spec_helper"
 describe "Connection role" do
 
   describe "create connection" do
-    before(:each) do
+    before(:all) do
       @all_roles = [
         @role_name = role_name = 'California manager',
         @role_name2 = role_name2 = 'Dummy, with comma',
@@ -86,6 +86,9 @@ describe "Connection role" do
           end
         end
       end
+    end
+
+    before(:each) do
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
     end
 

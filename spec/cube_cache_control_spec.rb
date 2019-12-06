@@ -72,7 +72,8 @@ describe "Cube" do
     @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
   end
 
-  describe 'cache', unless: MONDRIAN_DRIVER == 'luciddb' do
+  # Do not execute tests on analytical databases with slow individual inserts
+  describe 'cache', unless: %w(vertica snowflake).include?(MONDRIAN_DRIVER) do
     def qt(name)
       @connection.quote_table_name(name.to_s)
     end

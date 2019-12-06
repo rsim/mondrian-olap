@@ -14,7 +14,7 @@ env_prefix = MONDRIAN_DRIVER.upcase
 
 DATABASE_HOST     = ENV["#{env_prefix}_DATABASE_HOST"]     || ENV['DATABASE_HOST']     || 'localhost'
 DATABASE_USER     = ENV["#{env_prefix}_DATABASE_USER"]     || ENV['DATABASE_USER']     || 'mondrian_test'
-DATABASE_PASSWORD = ENV["#{env_prefix}_DATABASE_PASSOWRD"] || ENV['DATABASE_PASSWORD'] || 'mondrian_test'
+DATABASE_PASSWORD = ENV["#{env_prefix}_DATABASE_PASSWORD"] || ENV['DATABASE_PASSWORD'] || 'mondrian_test'
 DATABASE_NAME     = ENV["#{env_prefix}_DATABASE_NAME"]     || ENV['DATABASE_NAME']     || 'mondrian_test'
 DATABASE_INSTANCE = ENV["#{env_prefix}_DATABASE_INSTANCE"] || ENV['DATABASE_INSTANCE']
 
@@ -47,7 +47,7 @@ when 'vertica'
   ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
     def modify_types(tp)
       # mapping of ActiveRecord data types to Vertica data types
-      tp[:primary_key] = "identity"
+      tp[:primary_key] = "int" # Use int instead of identity as data cannot be loaded into identity columns
       tp[:integer] = "int"
     end
     # by default Vertica stores table and column names in uppercase
@@ -77,40 +77,15 @@ when 'snowflake'
       tp[:primary_key] = "integer"
       tp[:integer] = "integer"
     end
+    # exec_insert tries to use Statement.RETURN_GENERATED_KEYS which is not supported by Snowflake
+    def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
+      exec_update(sql, name, binds)
+    end
   end
   require 'arjdbc/jdbc/type_converter'
   # Hack to disable :text and :binary types for Snowflake
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:text)
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:binary)
-when 'luciddb'
-  require 'jdbc/luciddb'
-  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
-
-  # Hack to disable :text type for LucidDB
-  require 'arjdbc/jdbc/type_converter'
-  ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:text)
-
-  # patches for LucidDB minimal AR support
-  require 'arjdbc/jdbc/adapter'
-  ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
-    def modify_types(tp)
-      # mapping of ActiveRecord data types to LucidDB data types
-      # data will be imported into LucidDB therefore primary key is defined as simple integer field
-      tp[:primary_key] = "INT"
-      tp[:integer] = "INT"
-    end
-    # by default LucidDB stores table and column names in uppercase
-    def quote_table_name(name)
-      "\"#{name.to_s.upcase}\""
-    end
-    def quote_column_name(name)
-      "\"#{name.to_s.upcase}\""
-    end
-  end
-  JDBC_DRIVER = 'org.luciddb.jdbc.LucidDbClientDriver'
-  DATABASE_USER.upcase! if DATABASE_USER == 'mondrian_test'
-  DATABASE_NAME = nil
-  DATABASE_SCHEMA = ENV['DATABASE_SCHEMA'] || 'mondrian_test'
 end
 
 puts "==> Using #{MONDRIAN_DRIVER} driver"
@@ -153,16 +128,6 @@ when 'oracle'
     :username => CONNECTION_PARAMS[:username],
     :password => CONNECTION_PARAMS[:password]
   }
-when 'luciddb'
-  CONNECTION_PARAMS[:database] = nil
-  CONNECTION_PARAMS[:database_schema] = DATABASE_SCHEMA
-  AR_CONNECTION_PARAMS = {
-    :adapter  => 'jdbc',
-    :driver   => JDBC_DRIVER,
-    :url      => "jdbc:#{MONDRIAN_DRIVER}:http://#{CONNECTION_PARAMS[:host]};schema=#{CONNECTION_PARAMS[:database_schema]}",
-    :username => CONNECTION_PARAMS[:username],
-    :password => CONNECTION_PARAMS[:password]
-  }
 when 'mssql'
   url = "jdbc:jtds:sqlserver://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}"
   url << ";instance=#{DATABASE_INSTANCE}" if DATABASE_INSTANCE
@@ -187,20 +152,28 @@ when 'sqlserver'
     :connection_alive_sql => 'SELECT 1'
   }
 when 'vertica'
+  CONNECTION_PARAMS[:properties] = {
+    'SearchPath' => DATABASE_SCHEMA
+  }
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver:   JDBC_DRIVER,
-    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}?SearchPath=#{DATABASE_SCHEMA}&LogLevel=DEBUG",
+    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}" \
+      "?SearchPath=#{DATABASE_SCHEMA}", # &LogLevel=DEBUG
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password]
   }
 when 'snowflake'
   CONNECTION_PARAMS[:database_schema] = DATABASE_SCHEMA
   CONNECTION_PARAMS[:warehouse] = WAREHOUSE_NAME
+  CONNECTION_PARAMS[:properties] = {
+    # 'tracing' => 'ALL'
+  }
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver:   JDBC_DRIVER,
-    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/?db=#{CONNECTION_PARAMS[:database]}&schema=#{DATABASE_SCHEMA}&warehouse=#{WAREHOUSE_NAME}&tracing=ALL",
+    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/?db=#{CONNECTION_PARAMS[:database]}" \
+      "&schema=#{DATABASE_SCHEMA}&warehouse=#{WAREHOUSE_NAME}", # &tracing=ALL
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password]
   }
