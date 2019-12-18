@@ -339,7 +339,9 @@ module Mondrian
         when 'sqlserver'
           uri = "jdbc:sqlserver://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
           uri << ";databaseName=#{@params[:database]}" if @params[:database]
-          uri << ";integratedSecurity=#{@params[:integrated_security]}" if @params[:integrated_security]
+          integrated_security = @params[:integrated_security] || @params.dig(:properties, 'integratedSecurity')
+          uri << ";integratedSecurity=#{integrated_security}" if integrated_security
+          uri << ";domain=#{@params[:domain]}" if @params[:domain]
           uri << ";applicationName=#{@params[:application_name]}" if @params[:application_name]
           uri << ";instanceName=#{@params[:instance_name]}" if @params[:instance_name]
           uri
