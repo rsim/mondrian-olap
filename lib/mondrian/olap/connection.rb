@@ -294,88 +294,133 @@ module Mondrian
       def connection_string
         string = "jdbc:mondrian:Jdbc=#{quote_string(jdbc_uri)};JdbcDrivers=#{jdbc_driver};"
         # by default use content checksum to reload schema when catalog has changed
-        string << "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
-        string << "PinSchemaTimeout=#{@params[:pin_schema_timeout]};" if @params[:pin_schema_timeout]
+        string += "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
+        string += "PinSchemaTimeout=#{@params[:pin_schema_timeout]};" if @params[:pin_schema_timeout]
         if role = @params[:role] || @params[:roles]
           roles = Array(role).map{|r| r && r.to_s.gsub(',', ',,')}.compact
-          string << "Role=#{quote_string(roles.join(','))};" unless roles.empty?
+          string += "Role=#{quote_string(roles.join(','))};" unless roles.empty?
         end
         if locale = @params[:locale]
-          string << "Locale=#{quote_string(locale.to_s)};"
+          string += "Locale=#{quote_string(locale.to_s)};"
         end
-        string << (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
+        string + (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
 
       def jdbc_uri
-        case @driver
-        when 'mysql', 'postgresql', 'vertica'
-          uri = "jdbc:#{@driver}://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
-          uri << "?useUnicode=yes&characterEncoding=UTF-8" if @driver == 'mysql'
-          if (properties = @params[:properties]).is_a?(Hash) && !properties.empty?
-            uri << (@driver == 'mysql' ? '&' : '?')
-            uri << properties.map{|k, v| "#{k}=#{v}"}.join('&')
-          end
-          uri
-        when 'oracle'
-          # connection using TNS alias
-          if @params[:database] && !@params[:host] && !@params[:url] && ENV['TNS_ADMIN']
-            "jdbc:oracle:thin:@#{@params[:database]}"
-          else
-            @params[:url] || begin
-              database = @params[:database]
-              unless database =~ %r{^(:|/)}
-                # assume database is a SID if no colon or slash are supplied (backward-compatibility)
-                database = ":#{database}"
-              end
-              "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}#{database}"
-            end
-          end
-        when 'mssql'
-          uri = "jdbc:jtds:sqlserver://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/#{@params[:database]}"
-          uri << ";instance=#{@params[:instance]}" if @params[:instance]
-          uri << ";domain=#{@params[:domain]}" if @params[:domain]
-          uri << ";appname=#{@params[:appname]}" if @params[:appname]
-          uri
-        when 'sqlserver'
-          uri = "jdbc:sqlserver://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
-          uri << ";databaseName=#{@params[:database]}" if @params[:database]
-          uri << ";integratedSecurity=#{@params[:integrated_security]}" if @params[:integrated_security]
-          uri << ";applicationName=#{@params[:application_name]}" if @params[:application_name]
-          uri << ";instanceName=#{@params[:instance_name]}" if @params[:instance_name]
-          uri
-        when 'snowflake'
-          uri = "jdbc:snowflake://#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}/?db=#{@params[:database]}"
-          uri << "&schema=#{@params[:database_schema]}" if @params[:database_schema]
-          uri << "&warehouse=#{@params[:warehouse]}" if @params[:warehouse]
-          if (properties = @params[:properties]).is_a?(Hash) && !properties.empty?
-            uri << '&'
-            uri << properties.map{|k, v| "#{k}=#{v}"}.join('&')
-          end
-          uri
-        when 'jdbc'
-          @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
+        if respond_to?(method_name = "jdbc_uri_#{@driver}", true)
+          send method_name
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
       end
 
+      def jdbc_uri_generic(options = {})
+        uri_prefix = options[:uri_prefix] || "jdbc:#{@driver}://"
+        uri = "#{uri_prefix}#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
+        uri += "/#{@params[:database]}" if @params[:database] && options[:add_database] != false
+        properties = new_empty_properties
+        properties.merge!(options[:default_properties]) if options[:default_properties].is_a?(Hash)
+        properties.merge!(@params[:properties]) if @params[:properties].is_a?(Hash)
+        "#{uri}#{uri_properties_string(properties, options[:separator], options[:first_separator])}"
+      end
+
+      def new_empty_properties
+        # If ActiveSupport::HashWithIndifferentAccess is present then treat symbol and string keys as equal
+        defined?(ActiveSupport::HashWithIndifferentAccess) ? ActiveSupport::HashWithIndifferentAccess.new : {}
+      end
+
+      def uri_properties_string(properties, separator = nil, first_separator = nil)
+        properties_string = properties.map { |k, v| "#{k}=#{v}" }.join(separator || '&')
+        if properties_string
+          first_separator ||= '?'
+          "#{first_separator}#{properties_string}"
+        end
+      end
+
+      def jdbc_uri_mysql
+        jdbc_uri_generic(default_properties: {useUnicode: 'yes', characterEncoding: 'UTF-8'})
+      end
+
+      alias_method :jdbc_uri_postgresql, :jdbc_uri_generic
+      alias_method :jdbc_uri_vertica, :jdbc_uri_generic
+
+      def jdbc_uri_oracle
+        # connection using TNS alias
+        if @params[:database] && !@params[:host] && !@params[:url] && ENV['TNS_ADMIN']
+          "jdbc:oracle:thin:@#{@params[:database]}"
+        else
+          @params[:url] || begin
+            database = @params[:database]
+            unless database =~ %r{^(:|/)}
+              # assume database is a SID if no colon or slash are supplied (backward-compatibility)
+              database = ":#{database}"
+            end
+            "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}#{database}"
+          end
+        end
+      end
+
+      def jdbc_uri_mssql
+        jdbc_uri_generic(
+          uri_prefix: 'jdbc:jtds:sqlserver://', separator: ';', first_separator: ';',
+          default_properties: @params.slice(:instance, :domain, :appname)
+        )
+      end
+
+      JDBC_SQLSERVER_PARAM_PROPERTIES = {
+        database: 'databaseName',
+        integrated_security: 'integratedSecurity',
+        application_name: 'applicationName',
+        instance_name: 'instanceName'
+      }
+
+      def jdbc_uri_sqlserver
+        jdbc_uri_generic(
+          uri_prefix: 'jdbc:sqlserver://', add_database: false, separator: ';', first_separator: ';',
+          default_properties: uri_default_param_properties(JDBC_SQLSERVER_PARAM_PROPERTIES)
+        )
+      end
+
+      def uri_default_param_properties(param_properties)
+        default_properties = {}
+        param_properties.each do |key, property|
+          if value = @params[key]
+            default_properties[property] = value
+          end
+        end
+        default_properties
+      end
+
+      JDBC_SNOWFLAKE_PARAM_PROPERTIES = {
+        database: 'db',
+        database_schema: 'schema',
+        warehouse: 'warehouse'
+      }
+
+      def jdbc_uri_snowflake
+        jdbc_uri_generic(
+          add_database: false, separator: '&', first_separator: '/?',
+          default_properties: uri_default_param_properties(JDBC_SNOWFLAKE_PARAM_PROPERTIES)
+        )
+      end
+
+      def jdbc_uri_jdbc
+        @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
+      end
+
+      JDBC_DRIVER_CLASS = {
+        'mysql' => 'com.mysql.jdbc.Driver',
+        'postgresql' => 'org.postgresql.Driver',
+        'oracle' => 'oracle.jdbc.OracleDriver',
+        'mssql' => 'net.sourceforge.jtds.jdbc.Driver',
+        'sqlserver' => 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
+        'vertica' => 'com.vertica.jdbc.Driver',
+        'snowflake' => 'net.snowflake.client.jdbc.SnowflakeDriver'
+      }
+
       def jdbc_driver
-        case @driver
-        when 'mysql'
-          'com.mysql.jdbc.Driver'
-        when 'postgresql'
-          'org.postgresql.Driver'
-        when 'oracle'
-          'oracle.jdbc.OracleDriver'
-        when 'mssql'
-          'net.sourceforge.jtds.jdbc.Driver'
-        when 'sqlserver'
-          'com.microsoft.sqlserver.jdbc.SQLServerDriver'
-        when 'vertica'
-          'com.vertica.jdbc.Driver'
-        when 'snowflake'
-          'net.snowflake.client.jdbc.SnowflakeDriver'
-        when 'jdbc'
+        JDBC_DRIVER_CLASS[@driver] ||
+        if @driver == 'jdbc'
           @params[:jdbc_driver] or raise ArgumentError, 'missing jdbc_driver parameter'
         else
           raise ArgumentError, 'unknown JDBC driver'
