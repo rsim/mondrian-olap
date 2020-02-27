@@ -912,15 +912,20 @@ describe "Query" do
         return: [
           "Name([Customers].[Name])",
           "Property([Customers].[Name], 'Gender')",
-          "Property([Customers].[Name], 'Description')"
+          "Property([Customers].[Name], 'Description')",
+          "Property([Customers].[Name], 'Very long non-existing property name')"
         ]
       )
-      @drill_through.column_labels.should == [ "Name", "Gender", "Description" ]
+      @drill_through.column_labels.should == [
+        "Name", "Gender", "Description",
+        "Very long non-existing property name"[0, MONDRIAN_DRIVER == 'oracle' ? 30 : 9999]
+      ]
       @drill_through.rows.should == @sql.select_rows(<<-SQL
         SELECT
           customers.fullname,
           customers.gender,
-          customers.description
+          customers.description,
+          ''
         FROM
           sales,
           customers,

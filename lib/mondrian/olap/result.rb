@@ -394,6 +394,11 @@ module Mondrian
                   end
               end
 
+              # Old versions of Oracle had a limit of 30 character identifiers.
+              # Do not limit it for other databases (as e.g. in MySQL aliases can be longer than column names)
+              max_alias_length = dialect.getMaxColumnNameLength
+              max_alias_length = nil if max_alias_length && max_alias_length > 30
+
               return_fields.size.times do |i|
                 member_full_name = return_fields[i][:member_full_name]
                 begin
@@ -402,7 +407,7 @@ module Mondrian
                   raise ArgumentError, "invalid return field #{member_full_name}"
                 end
 
-                # if this is property field then the name is initilized already
+                # if this is property field then the name is initialized already
                 return_fields[i][:name] ||= segment_list.to_a.last.name
                 level_or_member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
                 return_fields[i][:member] = level_or_member
@@ -448,7 +453,9 @@ module Mondrian
                 else
                   return_fields[i][:name]
                 end
-                return_fields[i][:column_alias] = dialect.quoteIdentifier(column_alias)
+                return_fields[i][:column_alias] = dialect.quoteIdentifier(
+                  max_alias_length ? column_alias[0, max_alias_length] : column_alias
+                )
               end
             end
 
