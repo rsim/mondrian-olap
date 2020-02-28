@@ -28,7 +28,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "rake", "~> 10.3.2"
   gem.add_development_dependency "rspec", "~> 2.14.0"
   gem.add_development_dependency "rdoc", "~> 4.2.2"
-  gem.add_development_dependency "jdbc-mysql"
+  gem.add_development_dependency "jdbc-mysql", "~> 5.1.47"
   gem.add_development_dependency "jdbc-postgres"
   gem.add_development_dependency "jdbc-jtds", "~> 1.2.8" # version 1.3 is not compatible with Java 6
   gem.add_development_dependency "activerecord", "~> 4.0.0"
