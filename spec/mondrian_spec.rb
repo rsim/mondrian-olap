@@ -50,4 +50,15 @@ describe "Mondrian features" do
     end.should_not raise_error
   end
 
+  # test for https://jira.pentaho.com/browse/MONDRIAN-2683
+  it "should order crossjoin of rows" do
+    lambda do
+      @olap.from('Sales').
+      columns('[Measures].[Unit Sales]').
+      rows('[Customers].[Country].Members').crossjoin('[Gender].[Gender].Members').
+        order('[Measures].[Unit Sales]', :bdesc).
+      execute
+    end.should_not raise_error
+  end
+
 end
