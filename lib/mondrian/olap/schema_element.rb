@@ -153,7 +153,7 @@ module Mondrian
           hash[
             # camelcase attribute name
             attr.to_s.gsub(/_([^_]+)/){|m| $1.capitalize}
-          ] = value
+          ] = (value.respond_to?(:value) ? value.value : value)
         end
         hash
       end
