@@ -191,7 +191,9 @@ describe "Schema definition" do
                 all_member_name 'All Genders'
                 primary_key 'customer_id'
                 table 'customer'
-                level 'Gender', :column => 'gender', :unique_members => true
+                level 'Gender', :column => 'gender', :unique_members => true,
+                  # Test attribute with a future value
+                  :approx_row_count => Thread.new { sleep 0.1; 2 }
               end
             end
           end
@@ -203,7 +205,7 @@ describe "Schema definition" do
             <Dimension foreignKey="customer_id" name="Gender">
               <Hierarchy allMemberName="All Genders" hasAll="true" primaryKey="customer_id">
                 <Table name="customer"/>
-                <Level column="gender" name="Gender" uniqueMembers="true"/>
+                <Level approxRowCount="2" column="gender" name="Gender" uniqueMembers="true"/>
               </Hierarchy>
             </Dimension>
           </Cube>
