@@ -149,7 +149,10 @@ module Mondrian
         end
         hash = {}
         @attributes.each do |attr, value|
-          value = value.upcase if upcase_attributes.include?(attr)
+          # Support value calculation in parallel threads.
+          # value could be either Thread or a future object from concurrent-ruby
+          value = value.value if value.respond_to?(:value)
+          value = value.upcase if upcase_attributes.include?(attr) && value.is_a?(String)
           hash[
             # camelcase attribute name
             attr.to_s.gsub(/_([^_]+)/){|m| $1.capitalize}
