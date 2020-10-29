@@ -74,4 +74,11 @@ describe "Mondrian features" do
     result.column_names.should == ["10000000000"]
   end
 
+  # test for https://jira.pentaho.com/browse/MONDRIAN-990
+  it "should return result when diacritical marks used" do
+    full_name = '[Customers].[USA].[CA].[Rīga]'
+    result = @olap.from('Sales').columns(full_name).execute
+    result.column_full_names.should == [full_name]
+  end
+
 end
