@@ -19,6 +19,12 @@ describe "Mondrian features" do
             level 'City', :column => 'city', :unique_members => false
             level 'Name', :column => 'fullname', :unique_members => true
           end
+          hierarchy 'ID', :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+            table 'customers'
+            level 'ID', :column => 'id', :type => 'Numeric', :unique_members => true do
+              property 'Name', :column => 'fullname'
+            end
+          end
         end
         dimension 'Time', :foreign_key => 'time_id', :type => 'TimeDimension' do
           hierarchy :has_all => false, :primary_key => 'id' do
@@ -59,6 +65,13 @@ describe "Mondrian features" do
         order('[Measures].[Unit Sales]', :bdesc).
       execute
     end.should_not raise_error
+  end
+
+  it "should generate correct member name from large number key" do
+    result = @olap.from('Sales').
+      columns("Filter([Customers.ID].[ID].Members, [Customers.ID].CurrentMember.Properties('Name') = 'Big Number')").
+      execute
+    result.column_names.should == ["10000000000"]
   end
 
 end
