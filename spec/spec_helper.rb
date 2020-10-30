@@ -200,9 +200,10 @@ end
 # Avoid "Establishing SSL connection without server's identity verification ..." warnings
 case MONDRIAN_DRIVER
 when 'mysql'
-  AR_CONNECTION_PARAMS[:properties] = CONNECTION_PARAMS[:properties] = {useSSL: false}
+  CONNECTION_PARAMS[:properties] = {useSSL: false}
+  AR_CONNECTION_PARAMS[:properties] = {useUnicode: true, characterEncoding: 'UTF-8', useSSL: false}
 when 'jdbc_mysql'
-  AR_CONNECTION_PARAMS[:url] = CONNECTION_PARAMS[:jdbc_url] << '?useSSL=false'
+  AR_CONNECTION_PARAMS[:url] = CONNECTION_PARAMS[:jdbc_url] << '?useUnicode=true&characterEncoding=UTF-8&useSSL=false'
 end
 
 CONNECTION_PARAMS_WITH_CATALOG = CONNECTION_PARAMS.merge(:catalog => CATALOG_FILE)

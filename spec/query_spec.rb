@@ -788,7 +788,7 @@ describe "Query" do
       @drill_through.column_types.should == [
         :INT, :VARCHAR, :INT, :INT, :INT,
         :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR,
-        :VARCHAR, :VARCHAR, :VARCHAR, :INT,
+        :VARCHAR, :VARCHAR, :VARCHAR, :BIGINT,
         :VARCHAR,
         :DECIMAL
       ]

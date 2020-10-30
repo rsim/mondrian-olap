@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 namespace :db do
   task :require_spec_helper do
     require File.expand_path("../spec_helper", __FILE__)
@@ -47,7 +49,19 @@ namespace :db do
         else
           t.text        :description
         end
+      end
 
+      case MONDRIAN_DRIVER
+      when /mysql/
+        execute "ALTER TABLE customers MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT"
+      when /postgresql/
+        execute "ALTER TABLE customers ALTER COLUMN id SET DATA TYPE bigint"
+      when /mssql|sqlserver/
+        sql = "SELECT name FROM sysobjects WHERE xtype = 'PK' AND parent_obj=OBJECT_ID('customers')"
+        primary_key_constraint = select_value(sql)
+        execute "ALTER TABLE customers DROP CONSTRAINT #{primary_key_constraint}"
+        execute "ALTER TABLE customers ALTER COLUMN id BIGINT"
+        execute "ALTER TABLE customers ADD CONSTRAINT #{primary_key_constraint} PRIMARY KEY (id)"
       end
 
       create_table :sales, :force => true, :id => false do |t|
@@ -170,6 +184,25 @@ namespace :db do
         :gender => i % 2 == 0 ? "M" : "F",
         :description => 100.times.map{"1234567890"}.join("\n")
       )
+    end
+    # Create additional customer with large ID
+    attributes = {
+      :id => 10_000_000_000,
+      :country => "USA",
+      :state_province => "CA",
+      :city => "Rīga", # For testing UTF-8 characters
+      :fname => "Big",
+      :lname => "Number",
+      :fullname => "Big Number",
+      :gender => "M"
+    }
+    case MONDRIAN_DRIVER
+    when /mssql|sqlserver/
+      Customer.connection.with_identity_insert_enabled("customers") do
+        Customer.create!(attributes)
+      end
+    else
+      Customer.create!(attributes)
     end
   end
 
