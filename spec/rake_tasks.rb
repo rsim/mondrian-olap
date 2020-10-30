@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 namespace :db do
   task :require_spec_helper do
     require File.expand_path("../spec_helper", __FILE__)
