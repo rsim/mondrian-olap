@@ -920,12 +920,12 @@ describe "Query" do
         "Name", "Gender", "Description",
         "Very long non-existing property name"[0, MONDRIAN_DRIVER == 'oracle' ? 30 : 9999]
       ]
-      @drill_through.rows.should == @sql.select_rows(<<-SQL
+      @drill_through.rows.should == @sql.select_rows(<<-SQL)
         SELECT
           customers.fullname,
           customers.gender,
           customers.description,
-          ''
+          '' as non_existing
         FROM
           sales,
           customers,
@@ -945,7 +945,6 @@ describe "Query" do
           customers.gender,
           customers.description
       SQL
-      )
     end
 
     it "should group by" do
