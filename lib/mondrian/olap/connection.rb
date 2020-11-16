@@ -409,7 +409,7 @@ module Mondrian
       end
 
       JDBC_DRIVER_CLASS = {
-        'mysql' => 'com.mysql.jdbc.Driver',
+        'mysql' => (Java::com.mysql.cj.jdbc.Driver rescue nil) ? 'com.mysql.cj.jdbc.Driver' : 'com.mysql.jdbc.Driver',
         'postgresql' => 'org.postgresql.Driver',
         'oracle' => 'oracle.jdbc.OracleDriver',
         'mssql' => 'net.sourceforge.jtds.jdbc.Driver',
