@@ -1,6 +1,8 @@
 require 'rdoc'
 require 'rspec'
 require 'active_record'
+# Patched adapter_java.jar with MySQL 8 JDBC driver support
+require_relative 'support/jars/adapter_java.jar'
 require 'activerecord-jdbc-adapter'
 require 'coffee-script'
 require 'rhino'
@@ -200,8 +202,8 @@ end
 # Avoid "Establishing SSL connection without server's identity verification ..." warnings
 case MONDRIAN_DRIVER
 when 'mysql'
-  CONNECTION_PARAMS[:properties] = {useSSL: false}
-  AR_CONNECTION_PARAMS[:properties] = {useUnicode: true, characterEncoding: 'UTF-8', useSSL: false}
+  CONNECTION_PARAMS[:properties] = {useSSL: false, serverTimezone: 'UTC'}
+  AR_CONNECTION_PARAMS[:properties] = CONNECTION_PARAMS[:properties].merge(useUnicode: true, characterEncoding: 'UTF-8')
 when 'jdbc_mysql'
   AR_CONNECTION_PARAMS[:url] = CONNECTION_PARAMS[:jdbc_url] << '?useUnicode=true&characterEncoding=UTF-8&useSSL=false'
 end
