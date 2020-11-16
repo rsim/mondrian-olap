@@ -7,7 +7,6 @@ cache:
 notifications:
   email: false
 rvm:
-  - jruby-1.7.26
   - jruby-9.2.13.0
 addons:
   postgresql: "9.4"
@@ -40,10 +39,6 @@ env:
 branches:
   only:
     - master
-matrix:
-  exclude:
-    - rvm: jruby-1.7.26
-      jdk: openjdk11
 
 before_install:
   - gem install bundler -v 1.17.3

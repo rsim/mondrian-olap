@@ -68,4 +68,4 @@ You can also run all tests on all standard databases (mysql jdbc_mysql postgresq
 
 == JRuby versions
 
-It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 1.7 and 9.2 on Java 8 and 11.
+It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 9.2 on Java 8 and 11.
