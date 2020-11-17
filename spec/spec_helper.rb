@@ -120,8 +120,19 @@ else
     :password => DATABASE_PASSWORD
   }
 end
+case MONDRIAN_DRIVER
+when 'mysql'
+  CONNECTION_PARAMS[:properties] = {useSSL: false, serverTimezone: 'UTC'}
+when 'jdbc_mysql'
+  CONNECTION_PARAMS[:jdbc_url] << '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC'
+end
 
 case MONDRIAN_DRIVER
+when 'mysql', 'postgresql'
+  AR_CONNECTION_PARAMS = CONNECTION_PARAMS.slice(:host, :database, :username, :password).merge(
+    :adapter => MONDRIAN_DRIVER,
+    :properties => CONNECTION_PARAMS[:properties].dup || {}
+  )
 when 'oracle'
   AR_CONNECTION_PARAMS = {
     :adapter  => 'oracle_enhanced',
@@ -189,23 +200,12 @@ when /jdbc/
   }
 else
   AR_CONNECTION_PARAMS = {
-    # uncomment to test PostgreSQL SSL connection
-    # :properties => CONNECTION_PARAMS[:properties],
     :adapter  => 'jdbc',
     :driver   => JDBC_DRIVER,
     :url      => "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}",
     :username => CONNECTION_PARAMS[:username],
     :password => CONNECTION_PARAMS[:password]
   }
-end
-
-# Avoid "Establishing SSL connection without server's identity verification ..." warnings
-case MONDRIAN_DRIVER
-when 'mysql'
-  CONNECTION_PARAMS[:properties] = {useSSL: false, serverTimezone: 'UTC'}
-  AR_CONNECTION_PARAMS[:properties] = CONNECTION_PARAMS[:properties].merge(useUnicode: true, characterEncoding: 'UTF-8')
-when 'jdbc_mysql'
-  AR_CONNECTION_PARAMS[:url] = CONNECTION_PARAMS[:jdbc_url] << '?useUnicode=true&characterEncoding=UTF-8&useSSL=false'
 end
 
 CONNECTION_PARAMS_WITH_CATALOG = CONNECTION_PARAMS.merge(:catalog => CATALOG_FILE)
