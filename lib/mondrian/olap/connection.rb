@@ -331,7 +331,7 @@ module Mondrian
 
       def uri_properties_string(properties, separator = nil, first_separator = nil)
         properties_string = properties.map { |k, v| "#{k}=#{v}" }.join(separator || '&')
-        if properties_string
+        unless properties_string.empty?
           first_separator ||= '?'
           "#{first_separator}#{properties_string}"
         end
