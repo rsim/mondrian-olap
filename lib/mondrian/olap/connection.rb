@@ -331,14 +331,14 @@ module Mondrian
 
       def uri_properties_string(properties, separator = nil, first_separator = nil)
         properties_string = properties.map { |k, v| "#{k}=#{v}" }.join(separator || '&')
-        if properties_string
+        unless properties_string.empty?
           first_separator ||= '?'
           "#{first_separator}#{properties_string}"
         end
       end
 
       def jdbc_uri_mysql
-        jdbc_uri_generic(default_properties: {useUnicode: 'yes', characterEncoding: 'UTF-8'})
+        jdbc_uri_generic(default_properties: {useUnicode: true, characterEncoding: 'UTF-8'})
       end
 
       alias_method :jdbc_uri_postgresql, :jdbc_uri_generic
@@ -409,7 +409,7 @@ module Mondrian
       end
 
       JDBC_DRIVER_CLASS = {
-        'mysql' => 'com.mysql.jdbc.Driver',
+        'mysql' => (Java::com.mysql.cj.jdbc.Driver rescue nil) ? 'com.mysql.cj.jdbc.Driver' : 'com.mysql.jdbc.Driver',
         'postgresql' => 'org.postgresql.Driver',
         'oracle' => 'oracle.jdbc.OracleDriver',
         'mssql' => 'net.sourceforge.jtds.jdbc.Driver',

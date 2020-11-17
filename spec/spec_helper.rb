@@ -1,6 +1,8 @@
 require 'rdoc'
 require 'rspec'
 require 'active_record'
+# Patched adapter_java.jar with MySQL 8 JDBC driver support
+require_relative 'support/jars/adapter_java.jar'
 require 'activerecord-jdbc-adapter'
 require 'coffee-script'
 require 'rhino'
@@ -21,7 +23,7 @@ DATABASE_INSTANCE = ENV["#{env_prefix}_DATABASE_INSTANCE"] || ENV['DATABASE_INST
 case MONDRIAN_DRIVER
 when 'mysql', 'jdbc_mysql'
   require 'jdbc/mysql'
-  JDBC_DRIVER = 'com.mysql.jdbc.Driver'
+  JDBC_DRIVER = (Java::com.mysql.cj.jdbc.Driver rescue nil) ? 'com.mysql.cj.jdbc.Driver' : 'com.mysql.jdbc.Driver'
 when 'postgresql'
   require 'jdbc/postgres'
   JDBC_DRIVER = 'org.postgresql.Driver'
@@ -118,8 +120,19 @@ else
     :password => DATABASE_PASSWORD
   }
 end
+case MONDRIAN_DRIVER
+when 'mysql'
+  CONNECTION_PARAMS[:properties] = {useSSL: false, serverTimezone: 'UTC'}
+when 'jdbc_mysql'
+  CONNECTION_PARAMS[:jdbc_url] << '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC'
+end
 
 case MONDRIAN_DRIVER
+when 'mysql', 'postgresql'
+  AR_CONNECTION_PARAMS = CONNECTION_PARAMS.slice(:host, :database, :username, :password).merge(
+    :adapter => MONDRIAN_DRIVER,
+    :properties => CONNECTION_PARAMS[:properties].dup || {}
+  )
 when 'oracle'
   AR_CONNECTION_PARAMS = {
     :adapter  => 'oracle_enhanced',
@@ -187,23 +200,12 @@ when /jdbc/
   }
 else
   AR_CONNECTION_PARAMS = {
-    # uncomment to test PostgreSQL SSL connection
-    # :properties => CONNECTION_PARAMS[:properties],
     :adapter  => 'jdbc',
     :driver   => JDBC_DRIVER,
     :url      => "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}",
     :username => CONNECTION_PARAMS[:username],
     :password => CONNECTION_PARAMS[:password]
   }
-end
-
-# Avoid "Establishing SSL connection without server's identity verification ..." warnings
-case MONDRIAN_DRIVER
-when 'mysql'
-  CONNECTION_PARAMS[:properties] = {useSSL: false}
-  AR_CONNECTION_PARAMS[:properties] = {useUnicode: true, characterEncoding: 'UTF-8', useSSL: false}
-when 'jdbc_mysql'
-  AR_CONNECTION_PARAMS[:url] = CONNECTION_PARAMS[:jdbc_url] << '?useUnicode=true&characterEncoding=UTF-8&useSSL=false'
 end
 
 CONNECTION_PARAMS_WITH_CATALOG = CONNECTION_PARAMS.merge(:catalog => CATALOG_FILE)

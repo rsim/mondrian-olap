@@ -88,7 +88,7 @@ describe "Cube" do
       SQL
 
       case MONDRIAN_DRIVER
-      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle', 'vertica', 'snowflake'
+      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle'
         @connection.execute 'CREATE TABLE sales_copy AS SELECT * FROM sales'
       when 'mssql', 'sqlserver'
         # Use raw_connection.execute to avoid detecting this query as a SELECT query
@@ -98,14 +98,8 @@ describe "Cube" do
     end
 
     after(:each) do
-      case MONDRIAN_DRIVER
-      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle', 'vertica', 'snowflake'
-        @connection.execute 'TRUNCATE TABLE sales'
-        @connection.execute 'INSERT INTO sales SELECT * FROM sales_copy'
-      when 'mssql', 'sqlserver'
-        @connection.execute 'TRUNCATE TABLE sales'
-        @connection.execute 'INSERT INTO sales SELECT * FROM sales_copy'
-      end
+      @connection.execute 'TRUNCATE TABLE sales'
+      @connection.execute 'INSERT INTO sales SELECT * FROM sales_copy'
 
       @olap.flush_schema_cache
       @olap.close
@@ -113,12 +107,7 @@ describe "Cube" do
     end
 
     after(:all) do
-      case MONDRIAN_DRIVER
-      when 'mysql', 'jdbc_mysql', 'postgresql', 'oracle', 'vertica', 'snowflake'
-        @connection.execute 'DROP TABLE sales_copy'
-      when 'mssql', 'sqlserver'
-        @connection.execute 'DROP TABLE sales_copy'
-      end
+      @connection.execute 'DROP TABLE sales_copy'
     end
 
     it 'should clear cache for deleted data at lower level with segments' do

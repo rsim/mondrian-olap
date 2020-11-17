@@ -1,8 +1,13 @@
 ### Master
 
 * New features
+  * Upgrade to the latest Mondrian version 9.1.0.0
   * Improved Vertica and Snowflake tests to use bulk data loading
-  * Removed support of LucidDB (which is abandoned a long time ago)
+  * Remove support of LucidDB (which is abandoned a long time ago)
+  * Improve bigint key columns support
+  * Add MySQL 8 JDBC driver support
+  * Tested with JRuby 9.2.13.0
+  * Remove JRuby 1.7 support
 
 ### 1.1.0 / 2019-11-09
 
