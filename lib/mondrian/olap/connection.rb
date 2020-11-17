@@ -338,7 +338,7 @@ module Mondrian
       end
 
       def jdbc_uri_mysql
-        jdbc_uri_generic(default_properties: {useUnicode: 'yes', characterEncoding: 'UTF-8'})
+        jdbc_uri_generic(default_properties: {useUnicode: true, characterEncoding: 'UTF-8'})
       end
 
       alias_method :jdbc_uri_postgresql, :jdbc_uri_generic
