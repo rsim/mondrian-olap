@@ -409,7 +409,6 @@ module Mondrian
       end
 
       JDBC_DRIVER_CLASS = {
-        'mysql' => (Java::com.mysql.cj.jdbc.Driver rescue nil) ? 'com.mysql.cj.jdbc.Driver' : 'com.mysql.jdbc.Driver',
         'postgresql' => 'org.postgresql.Driver',
         'oracle' => 'oracle.jdbc.OracleDriver',
         'mssql' => 'net.sourceforge.jtds.jdbc.Driver',
@@ -419,11 +418,13 @@ module Mondrian
       }
 
       def jdbc_driver
-        JDBC_DRIVER_CLASS[@driver] ||
-        if @driver == 'jdbc'
+        case @driver
+        when 'mysql'
+          (Java::com.mysql.cj.jdbc.Driver rescue nil) ? 'com.mysql.cj.jdbc.Driver' : 'com.mysql.jdbc.Driver'
+        when 'jdbc'
           @params[:jdbc_driver] or raise ArgumentError, 'missing jdbc_driver parameter'
         else
-          raise ArgumentError, 'unknown JDBC driver'
+          JDBC_DRIVER_CLASS[@driver] or raise ArgumentError, 'unknown JDBC driver'
         end
       end
 
