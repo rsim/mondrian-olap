@@ -66,7 +66,7 @@ namespace :db do
             PRIMARY KEY ("ID")
           )
         SQL
-        execute "CREATE SEQUENCE PROMOTIONS_SEQ";
+        execute "CREATE SEQUENCE PROMOTIONS_SEQ"
       else
         create_table :promotions, :force => true do |t|
           t.string      :promotion, :limit => 30
