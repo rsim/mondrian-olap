@@ -104,7 +104,7 @@ describe "Mondrian features" do
   end
 
   it "should execute MDX with join tables" do
-    mdx = <<~SQL
+    mdx = <<~MDX
       SELECT
         NON EMPTY FILTER(
           CROSSJOIN({[Linked Promotions].[Promotion].[Promotion 2]}, [Customers].[Name].Members),
@@ -112,7 +112,7 @@ describe "Mondrian features" do
         ) ON ROWS,
         [Measures].[Unit Sales] ON COLUMNS
       FROM [Sales]
-    SQL
+    MDX
 
     @olap.execute mdx
   end
