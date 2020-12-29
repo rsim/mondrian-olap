@@ -104,6 +104,9 @@ describe "Mondrian features" do
   end
 
   it "should execute MDX with join tables" do
+    # Load dimension members in Mondrian cache as the problem occurred when searching members in the cache
+    @olap.from('Sales').columns('CROSSJOIN({[Linked Promotions].[Promotion].[Promotion 2]}, [Customers].[Name].Members)').execute
+
     mdx = <<~MDX
       SELECT
         NON EMPTY FILTER(
@@ -114,7 +117,7 @@ describe "Mondrian features" do
       FROM [Sales]
     MDX
 
-    @olap.execute mdx
+    expect { @olap.execute mdx }.not_to raise_error
   end
 
 end
