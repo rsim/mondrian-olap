@@ -165,7 +165,7 @@ namespace :db do
     puts "==> Creating promotion data"
     Promotion.delete_all
     (1..10).each do |i|
-      Promotion.create!(id: i, promotion: "Promotion #{i}", sequence: i)
+      Promotion.create!(promotion: "Promotion #{i}", sequence: i)
     end
   end
 
