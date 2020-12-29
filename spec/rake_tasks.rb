@@ -56,8 +56,9 @@ namespace :db do
       if MONDRIAN_DRIVER == 'oracle'
 
         execute "DROP TABLE PROMOTIONS" rescue nil
+        execute "DROP SEQUENCE PROMOTIONS_SEQ" rescue nil
 
-        execute <<-SQL
+        execute <<~SQL
           CREATE TABLE PROMOTIONS(
             ID NUMBER(*,0) NOT NULL,
             PROMOTION VARCHAR2(30 CHAR),
@@ -65,6 +66,7 @@ namespace :db do
             PRIMARY KEY ("ID")
           )
         SQL
+        execute "CREATE SEQUENCE PROMOTIONS_SEQ";
       else
         create_table :promotions, :force => true do |t|
           t.string      :promotion, :limit => 30
