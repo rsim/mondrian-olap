@@ -13,13 +13,33 @@ describe "Mondrian features" do
             level 'Gender', :column => 'gender', :unique_members => true
           end
         end
+        dimension 'Promotions', :foreign_key => 'promotion_id' do
+          hierarchy :has_all => true, :primary_key => 'id' do
+            table 'promotions'
+            level 'Promotion', :column => 'id', :name_column => 'promotion', :unique_members => true, :ordinal_column => 'sequence', :type => 'Numeric'
+          end
+        end
+        dimension 'Linked Promotions', :foreign_key => 'customer_id' do
+          hierarchy :has_all => true, :primary_key => 'id', :primary_key_table => 'customers' do
+            join :left_key => 'related_fullname', :right_key => 'fullname' do
+              table "customers"
+              join :left_key => "promotion_id", :right_key => "id" do
+                table "customers", :alias => "customers_bt"
+                table "promotions"
+              end
+            end
+            level 'Promotion', :column => 'id', :name_column => 'promotion', :unique_members => true, :table => 'promotions', :ordinal_column => 'sequence', :type => 'Numeric', :approx_row_count => 10
+          end
+        end
         dimension 'Customers', :foreign_key => 'customer_id' do
           hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
             table 'customers'
             level 'Country', :column => 'country', :unique_members => true
             level 'State Province', :column => 'state_province', :unique_members => true
             level 'City', :column => 'city', :unique_members => false
-            level 'Name', :column => 'fullname', :unique_members => true
+            level 'Name', :column => 'fullname', :unique_members => true do
+              property 'Related name', :column => 'related_fullname', :type => "String"
+            end
           end
           hierarchy 'ID', :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
             table 'customers'
@@ -81,6 +101,20 @@ describe "Mondrian features" do
     full_name = '[Customers].[USA].[CA].[Rīga]'
     result = @olap.from('Sales').columns(full_name).execute
     result.column_full_names.should == [full_name]
+  end
+
+  it "should execute MDX with join tables" do
+    mdx = <<~SQL
+      SELECT
+        NON EMPTY FILTER(
+          CROSSJOIN({[Linked Promotions].[Promotion].[Promotion 2]}, [Customers].[Name].Members),
+          (([Measures].[Unit Sales]) <> 0)
+        ) ON ROWS,
+        [Measures].[Unit Sales] ON COLUMNS
+      FROM [Sales]
+    SQL
+
+    @olap.execute mdx
   end
 
 end

@@ -42,12 +42,33 @@ namespace :db do
         t.string      :lname, :limit => 30
         t.string      :fullname, :limit => 60
         t.string      :gender, :limit => 30
+        t.integer     :promotion_id
+        t.string      :related_fullname, :limit => 60
         # Mondrian does not support properties with Oracle CLOB type
         # as it tries to GROUP BY all columns when loading a dimension table
         if MONDRIAN_DRIVER == 'oracle'
           t.string      :description, :limit => 4000
         else
           t.text        :description
+        end
+      end
+
+      if MONDRIAN_DRIVER == 'oracle'
+
+        execute "DROP TABLE PROMOTIONS" rescue nil
+
+        execute <<-SQL
+          CREATE TABLE PROMOTIONS(
+            ID NUMBER(*,0) NOT NULL,
+            PROMOTION VARCHAR2(30 CHAR),
+            SEQUENCE NUMBER(38,0),
+            PRIMARY KEY ("ID")
+          )
+        SQL
+      else
+        create_table :promotions, :force => true do |t|
+          t.string      :promotion, :limit => 30
+          t.integer     :sequence
         end
       end
 
@@ -68,6 +89,7 @@ namespace :db do
         t.integer     :product_id
         t.integer     :time_id
         t.integer     :customer_id
+        t.integer     :promotion_id
         t.decimal     :store_sales, :precision => 10, :scale => 4
         t.decimal     :store_cost, :precision => 10, :scale => 4
         t.decimal     :unit_sales, :precision => 10, :scale => 4
@@ -96,6 +118,8 @@ namespace :db do
     end
     class Customer < ActiveRecord::Base
     end
+    class Promotion < ActiveRecord::Base
+    end
     class Sales < ActiveRecord::Base
       self.table_name = "sales"
       belongs_to :time_by_day
@@ -106,7 +130,7 @@ namespace :db do
 
   desc "Create test data"
   task :create_data => [:create_tables] + ( %w(vertica snowflake).include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
-    [ :create_time_data, :create_product_data, :create_customer_data, :create_sales_data ] )
+    [ :create_time_data, :create_product_data, :create_promotion_data, :create_customer_data, :create_sales_data ] )
 
   task :create_time_data  => :define_models do
     puts "==> Creating time dimension"
@@ -137,9 +161,18 @@ namespace :db do
     end
   end
 
+  task :create_promotion_data => :define_models do
+    puts "==> Creating promotion data"
+    Promotion.delete_all
+    (1..10).each do |i|
+      Promotion.create!(id: i, promotion: "Promotion #{i}", sequence: i)
+    end
+  end
+
   task :create_customer_data => :define_models do
     puts "==> Creating customer data"
     Customer.delete_all
+    promotions = Promotion.order("id").to_a
     i = 0
     [
       ["Canada", "BC", "Burnaby"],["Canada", "BC", "Cliffside"],["Canada", "BC", "Haney"],["Canada", "BC", "Ladner"],
@@ -182,6 +215,8 @@ namespace :db do
         :lname => "Last#{i}",
         :fullname => "First#{i} Last#{i}",
         :gender => i % 2 == 0 ? "M" : "F",
+        :promotion_id => promotions[i % 10].id,
+        :related_fullname => "First#{i} Last#{i}",
         :description => 100.times.map{"1234567890"}.join("\n")
       )
     end
@@ -194,7 +229,9 @@ namespace :db do
       :fname => "Big",
       :lname => "Number",
       :fullname => "Big Number",
-      :gender => "M"
+      :gender => "M",
+      :promotion_id => promotions.first.id,
+      :related_fullname => "Big Number"
     }
     case MONDRIAN_DRIVER
     when /mssql|sqlserver/
@@ -213,11 +250,13 @@ namespace :db do
     products = Product.order("id").to_a[0...count]
     times = TimeDimension.order("id").to_a[0...count]
     customers = Customer.order("id").to_a[0...count]
+    promotions = Promotion.order("id").to_a[0...count]
     count.times do |i|
       Sales.create!(
         :product_id => products[i].id,
         :time_id => times[i].id,
         :customer_id => customers[i].id,
+        :promotion_id => promotions[i % 10].id,
         :store_sales => BigDecimal("2#{i}.12"),
         :store_cost => BigDecimal("1#{i}.1234"),
         :unit_sales => i+1
