@@ -43,7 +43,7 @@ describe "Mondrian features" do
           end
           hierarchy 'ID', :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
             table 'customers'
-            level 'ID', :column => 'id', :type => 'Numeric', :unique_members => true do
+            level 'ID', :column => 'id', :type => 'Numeric', :internal_type => 'long', :unique_members => true do
               property 'Name', :column => 'fullname'
             end
           end
