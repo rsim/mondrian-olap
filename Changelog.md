@@ -1,5 +1,7 @@
 ### Master
 
+### 1.2.0 / 2021-03-06
+
 * New features
   * Upgrade to the latest Mondrian version 9.1.0.0
   * Improved Vertica and Snowflake tests to use bulk data loading
