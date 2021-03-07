@@ -475,7 +475,7 @@ module Mondrian
       end
 
       # Starting from Mondrian 9.2 additional QueryBody plan string is added at the end which will be ignored.
-      QUERY_BODY_PLAN_STRING = "QueryBody:\n"
+      QUERY_BODY_PLAN_REGEXP = /\AQueryBody:/
 
       class ProfilingHandler
         java_implements Java::mondrian.spi.ProfileHandler
@@ -485,7 +485,7 @@ module Mondrian
         java_signature 'void explain(String plan, mondrian.olap.QueryTiming timing)'
         def explain(plan, timing)
           if @plan
-            @plan += "\n" + plan unless plan == QUERY_BODY_PLAN_STRING
+            @plan += "\n" + plan unless plan =~ QUERY_BODY_PLAN_REGEXP
           else
             @plan = plan
           end
