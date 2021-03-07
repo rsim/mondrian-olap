@@ -127,9 +127,11 @@ module Mondrian
         profiling_timing && profiling_timing.markFull(name, duration)
       end
 
+      QUERY_TIMING_CUMULATIVE_REGEXP = /\AQuery Timing \(Cumulative\):\n/
+
       def profiling_timing_string
         if profiling_timing && (timing_string = profiling_timing.toString)
-          timing_string.gsub("\r\n", "\n")
+          timing_string.gsub("\r\n", "\n").sub(QUERY_TIMING_CUMULATIVE_REGEXP, '')
         end
       end
 

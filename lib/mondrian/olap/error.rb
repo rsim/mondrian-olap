@@ -39,7 +39,7 @@ module Mondrian
 
       def profiling_timing_string
         if profiling_timing && (timing_string = profiling_timing.toString)
-          timing_string.gsub("\r\n", "\n")
+          timing_string.gsub("\r\n", "\n").sub(Mondrian::OLAP::Result::QUERY_TIMING_CUMULATIVE_REGEXP, '')
         end
       end
 
