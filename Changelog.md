@@ -1,5 +1,8 @@
 ### Master
 
+* New features
+  * Upgrade to the latest Mondrian version 9.2.0.0
+
 ### 1.2.0 / 2021-03-06
 
 * New features

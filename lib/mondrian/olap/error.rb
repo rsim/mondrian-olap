@@ -39,7 +39,7 @@ module Mondrian
 
       def profiling_timing_string
         if profiling_timing && (timing_string = profiling_timing.toString)
-          timing_string.gsub("\r\n", "\n")
+          timing_string.gsub("\r\n", "\n").sub(Mondrian::OLAP::Result::QUERY_TIMING_CUMULATIVE_REGEXP, '')
         end
       end
 
@@ -76,7 +76,15 @@ module Mondrian
           f.accessible = true
           if cell_set = f.value(statement)
             cell_set.close
-            @profiling_handler = statement.getProfileHandler
+            # Starting from Mondrian 9.2 query plan was not available in case of error, need to get it explicitly.
+            if (@profiling_handler = statement.getProfileHandler) && !@profiling_handler.timing
+              query = statement.getQuery
+              string_writer = Java::java.io.StringWriter.new
+              print_writer = Java::java.io.PrintWriter.new(string_writer)
+              query.explain(print_writer)
+              print_writer.close
+              @profiling_handler.explain(string_writer.toString, cell_set.getQueryTiming)
+            end
           end
         end
       end
