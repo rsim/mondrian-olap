@@ -52,6 +52,14 @@ when 'vertica'
       tp[:primary_key] = "int" # Use int instead of identity as data cannot be loaded into identity columns
       tp[:integer] = "int"
     end
+    def type_to_sql(type, limit = nil, precision = nil, scale = nil)
+      case type.to_sym
+      when :integer, :primary_key
+        'int' # All integers are 64-bit in Vertica and limit should be ignored
+      else
+        super
+      end
+    end
     # by default Vertica stores table and column names in uppercase
     def quote_table_name(name)
       "\"#{name.to_s}\""
