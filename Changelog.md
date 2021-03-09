@@ -2,6 +2,7 @@
 
 * New features
   * Upgrade to the latest Mondrian version 9.2.0.0
+  * Support for ClickHouse database
 
 ### 1.2.0 / 2021-03-06
 

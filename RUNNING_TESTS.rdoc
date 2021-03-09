@@ -1,6 +1,6 @@
 == Creating test database
 
-By default unit tests use MySQL database but PostgreSQL, Oracle and SQL Server databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql", "oracle", "mssql" (jTDS), "sqlserver" (Microsoft JDBC), "vertica" or "snowflake" to specify database driver that should be used.
+By default unit tests use MySQL database but PostgreSQL, Oracle and SQL Server databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql", "oracle", "mssql" (jTDS), "sqlserver" (Microsoft JDBC), "vertica", "snowflake", or "clickhouse" to specify database driver that should be used.
 
 If using MySQL, PostgreSQL or SQL Server database then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
 
@@ -8,7 +8,9 @@ If using Oracle database then create database user mondrian_test with password m
 
 if using Vertica then specify environment variables VERTICA_DATABASE_HOST, VERTICA_DATABASE_NAME, VERTICA_DATABASE_USER, VERTICA_DATABASE_PASSWORD and create the "mondrian_test" schema.
 
-If using Snowflakw then create MONDRIANT_TEST user, database and schema and specify environment variables SNOWFLAKE_DATABASE_HOST and SNOWFLAKE_DATABASE_PASSWORD.
+If using Snowflake then create MONDRIAN_TEST user, database and schema and specify environment variables SNOWFLAKE_DATABASE_HOST and SNOWFLAKE_DATABASE_PASSWORD.
+
+If using ClickHouse then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. Specify environment variable CLICKHOUSE_DATABASE_HOST. Download clickhouse4j-*.jar and copy to spec/support/jars.
 
 See spec/spec_helper.rb for details of default connection parameters and how to override them.
 
@@ -30,11 +32,12 @@ or specify which database driver to use
   rake db:create_data MONDRIAN_DRIVER=mssql
   rake db:create_data MONDRIAN_DRIVER=sqlserver
 
-In case of Vertica and Snowflake at first create test data in MySQL and export test data into CSV files and then import CSV files into Vertica or Snowflake (because inserting individual records into these analytical databases is very slow):
+In case of Vertica, Snowflake, and ClickHouse at first create test data in MySQL and export test data into CSV files and then import CSV files into Vertica or Snowflake (because inserting individual records into these analytical databases is very slow):
 
   rake db:export_data MONDRIAN_DRIVER=mysql
   rake db:create_data MONDRIAN_DRIVER=vertica
   rake db:create_data MONDRIAN_DRIVER=snowflake
+  rake db:create_data MONDRIAN_DRIVER=clickhouse
 
 == Running tests
 
@@ -51,6 +54,7 @@ or specify which database driver to use
   rake spec MONDRIAN_DRIVER=sqlserver
   rake spec MONDRIAN_DRIVER=vertica
   rake spec MONDRIAN_DRIVER=snowflake
+  rake spec MONDRIAN_DRIVER=clickhouse
 
 or also alternatively with
 
@@ -61,6 +65,7 @@ or also alternatively with
   rake spec:sqlserver
   rake spec:vertica
   rake spec:snowflake
+  rake spec:clickhouse
 
 You can also run all tests on all standard databases (mysql jdbc_mysql postgresql oracle mssql) with
 
