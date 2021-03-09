@@ -398,8 +398,8 @@ module Mondrian
 
               # Old versions of Oracle had a limit of 30 character identifiers.
               # Do not limit it for other databases (as e.g. in MySQL aliases can be longer than column names)
-              max_alias_length = dialect.getMaxColumnNameLength
-              max_alias_length = nil if max_alias_length && max_alias_length > 30
+              max_alias_length = dialect.getMaxColumnNameLength # 0 means that there is no limit
+              max_alias_length = nil if max_alias_length && (max_alias_length > 30 || max_alias_length == 0)
 
               return_fields.size.times do |i|
                 member_full_name = return_fields[i][:member_full_name]
