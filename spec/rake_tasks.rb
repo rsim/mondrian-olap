@@ -85,16 +85,18 @@ namespace :db do
         execute "ALTER TABLE customers DROP CONSTRAINT #{primary_key_constraint}"
         execute "ALTER TABLE customers ALTER COLUMN id BIGINT"
         execute "ALTER TABLE customers ADD CONSTRAINT #{primary_key_constraint} PRIMARY KEY (id)"
+      when /clickhouse/
+        execute "ALTER TABLE customers MODIFY COLUMN id Int64"
       end
 
       create_table :sales, :force => true, :id => false do |t|
         t.integer     :product_id
         t.integer     :time_id
-        t.integer     :customer_id
+        t.integer     :customer_id, limit: 8
         t.integer     :promotion_id
-        t.decimal     :store_sales, :precision => 10, :scale => 4
-        t.decimal     :store_cost, :precision => 10, :scale => 4
-        t.decimal     :unit_sales, :precision => 10, :scale => 4
+        t.decimal     :store_sales, precision: 10, scale: 4
+        t.decimal     :store_cost, precision: 10, scale: 4
+        t.decimal     :unit_sales, precision: 10, scale: 4
       end
     end
   end
@@ -131,7 +133,7 @@ namespace :db do
   end
 
   desc "Create test data"
-  task :create_data => [:create_tables] + ( %w(vertica snowflake).include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
+  task :create_data => [:create_tables] + ( %w(vertica snowflake clickhouse).include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
     [ :create_time_data, :create_product_data, :create_promotion_data, :create_customer_data, :create_sales_data ] )
 
   task :create_time_data  => :define_models do
@@ -267,7 +269,7 @@ namespace :db do
   end
 
   export_data_dir = File.expand_path("spec/support/data")
-  table_names = %w(time product_classes products customers sales)
+  table_names = %w(time product_classes products customers promotions sales)
 
   desc "Export test data"
   task :export_data => :create_data do
@@ -330,13 +332,27 @@ namespace :db do
           "FILE_FORMAT = (FORMAT_NAME = csv)"
         puts "==> Loaded #{count} records"
       end
+
+    when 'clickhouse'
+      table_names.each do |table_name|
+        puts "==> Truncate #{table_name}"
+        conn.execute "TRUNCATE TABLE #{table_name}"
+        puts "==> Copy into #{table_name}"
+        file_path = "#{export_data_dir}/#{table_name}.csv"
+        columns_string = File.open(file_path) { |f| f.gets }.chomp
+        copyManager = Java::cc.blynk.clickhouse.copy.CopyManagerFactory.create(conn.jdbc_connection)
+        sql = "INSERT INTO #{table_name}(#{columns_string}) FORMAT CSVWithNames"
+        copyManager.copyToDb(sql, Java::java.nio.file.Paths.get(file_path))
+        count = conn.select_value "SELECT COUNT(*) FROM #{table_name}"
+        puts "==> Loaded #{count} records"
+      end
     end
   end
 
 end
 
 namespace :spec do
-  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake).each do |driver|
+  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake clickhouse).each do |driver|
     desc "Run specs with #{driver} driver"
     task driver do
       ENV['MONDRIAN_DRIVER'] = driver
