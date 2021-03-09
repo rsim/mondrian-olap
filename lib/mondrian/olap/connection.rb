@@ -316,7 +316,8 @@ module Mondrian
 
       def jdbc_uri_generic(options = {})
         uri_prefix = options[:uri_prefix] || "jdbc:#{@driver}://"
-        uri = "#{uri_prefix}#{@params[:host]}#{@params[:port] && ":#{@params[:port]}"}"
+        port = @params[:port] || options[:default_port]
+        uri = "#{uri_prefix}#{@params[:host]}#{port && ":#{port}"}"
         uri += "/#{@params[:database]}" if @params[:database] && options[:add_database] != false
         properties = new_empty_properties
         properties.merge!(options[:default_properties]) if options[:default_properties].is_a?(Hash)
@@ -404,6 +405,10 @@ module Mondrian
         )
       end
 
+      def jdbc_uri_clickhouse
+        jdbc_uri_generic(default_port: 8123)
+      end
+
       def jdbc_uri_jdbc
         @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
       end
@@ -414,7 +419,8 @@ module Mondrian
         'mssql' => 'net.sourceforge.jtds.jdbc.Driver',
         'sqlserver' => 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
         'vertica' => 'com.vertica.jdbc.Driver',
-        'snowflake' => 'net.snowflake.client.jdbc.SnowflakeDriver'
+        'snowflake' => 'net.snowflake.client.jdbc.SnowflakeDriver',
+        'clickhouse' => 'cc.blynk.clickhouse.ClickHouseDriver'
       }
 
       def jdbc_driver
