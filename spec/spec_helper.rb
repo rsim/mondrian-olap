@@ -52,6 +52,14 @@ when 'vertica'
       tp[:primary_key] = "int" # Use int instead of identity as data cannot be loaded into identity columns
       tp[:integer] = "int"
     end
+    def type_to_sql(type, limit = nil, precision = nil, scale = nil)
+      case type.to_sym
+      when :integer, :primary_key
+        'int' # All integers are 64-bit in Vertica and limit should be ignored
+      else
+        super
+      end
+    end
     # by default Vertica stores table and column names in uppercase
     def quote_table_name(name)
       "\"#{name.to_s}\""
@@ -88,6 +96,79 @@ when 'snowflake'
   # Hack to disable :text and :binary types for Snowflake
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:text)
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:binary)
+when 'clickhouse'
+  Dir[File.expand_path("clickhouse*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+    require jdbc_driver_file
+  end
+  JDBC_DRIVER = 'cc.blynk.clickhouse.ClickHouseDriver'
+  DATABASE_SCHEMA = ENV["#{env_prefix}_DATABASE_SCHEMA"] || ENV['DATABASE_SCHEMA'] || 'mondrian_test'
+  # patches for ClickHouse minimal AR support
+  require 'arjdbc/jdbc/adapter'
+  ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
+    NATIVE_DATABASE_TYPES = {
+      primary_key: "Int32", # We do not need automatic primary key generation and need to allow inserting PK values
+      string: {name: "String"},
+      text: {name: "String"},
+      integer: {name: "Int32"},
+      float: {name: "Float64"},
+      numeric: {name: "Decimal"},
+      decimal: {name: "Decimal"},
+      datetime: {name: "DateTime"},
+      timestamp: {name: "DateTime"},
+      time: {name: "DateTime"},
+      date: {name: "Date"},
+      binary: {name: "String"},
+      boolean: {name: "Boolean"},
+    }
+    def native_database_types
+      NATIVE_DATABASE_TYPES
+    end
+    def modify_types(tp)
+      # mapping of ActiveRecord data types to ClickHouse data types
+      tp[:primary_key] = 'Int32'
+      tp[:integer] = 'Int32'
+    end
+    def type_to_sql(type, limit = nil, precision = nil, scale = nil)
+      case type.to_sym
+      when :integer, :primary_key
+        return 'Int32' unless limit
+        case limit.to_i
+        when 1 then 'Int8'
+        when 2 then 'Int16'
+        when 3, 4 then 'Int32'
+        when 5..8 then 'Int64'
+        else raise(ActiveRecord::ActiveRecordError,
+          "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
+        end
+      # Ignore limit for string and text
+      when :string, :text
+        super(type, nil, nil, nil)
+      else
+        super
+      end
+    end
+    def quote_table_name(name)
+      "`#{name.to_s}`"
+    end
+    def quote_column_name(name)
+      "`#{name.to_s}`"
+    end
+    def create_table(name, options = {})
+      super(name, {options: "ENGINE=MergeTree ORDER BY tuple()"}.merge(options))
+    end
+    alias_method :exec_update_original, :exec_update
+    # exec_insert tries to use Statement.RETURN_GENERATED_KEYS which is not supported by ClickHouse
+    def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
+      exec_update_original(sql, name, binds)
+    end
+    # Modify UPDATE statements for ClickHouse specific syntax
+    def exec_update(sql, name, binds)
+      if sql =~ /\AUPDATE (.*) SET (.*)\z/
+        sql = "ALTER TABLE #{$1} UPDATE #{$2}"
+      end
+      exec_update_original(sql, name, binds)
+    end
+  end
 end
 
 puts "==> Using #{MONDRIAN_DRIVER} driver"
@@ -187,6 +268,17 @@ when 'snowflake'
     driver:   JDBC_DRIVER,
     url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/?db=#{CONNECTION_PARAMS[:database]}" \
       "&schema=#{DATABASE_SCHEMA}&warehouse=#{WAREHOUSE_NAME}", # &tracing=ALL
+    username: CONNECTION_PARAMS[:username],
+    password: CONNECTION_PARAMS[:password]
+  }
+when 'clickhouse'
+  # CREATE USER mondrian_test IDENTIFIED WITH plaintext_password BY 'mondrian_test';
+  # CREATE DATABASE mondrian_test;
+  # GRANT ALL ON mondrian_test.* TO mondrian_test;
+  AR_CONNECTION_PARAMS = {
+    adapter: 'jdbc',
+    driver:   JDBC_DRIVER,
+    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}:8123/#{CONNECTION_PARAMS[:database]}",
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password]
   }
