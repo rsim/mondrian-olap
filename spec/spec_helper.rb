@@ -125,19 +125,20 @@ when 'clickhouse'
     end
     def modify_types(tp)
       # mapping of ActiveRecord data types to ClickHouse data types
-      tp[:primary_key] = 'Int64' # Use int instead of identity as data cannot be loaded into identity columns
-      tp[:integer] = 'Int64'
+      tp[:primary_key] = 'Int32'
+      tp[:integer] = 'Int32'
     end
     def type_to_sql(type, limit = nil, precision = nil, scale = nil)
       case type.to_sym
       when :integer, :primary_key
         return 'Int32' unless limit
         case limit.to_i
-          when 1, 2; 'Int16'
-          when 3, 4; 'Int32'
-          when 5..8; 'Int64'
-          else raise(ActiveRecord::ActiveRecordError,
-            "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
+        when 1 then 'Int8'
+        when 2 then 'Int16'
+        when 3, 4 then 'Int32'
+        when 5..8 then 'Int64'
+        else raise(ActiveRecord::ActiveRecordError,
+          "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
         end
       # Ignore limit for string and text
       when :string, :text
