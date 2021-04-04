@@ -344,6 +344,7 @@ module Mondrian
 
       alias_method :jdbc_uri_postgresql, :jdbc_uri_generic
       alias_method :jdbc_uri_vertica, :jdbc_uri_generic
+      alias_method :jdbc_uri_mariadb, :jdbc_uri_generic
 
       def jdbc_uri_oracle
         # connection using TNS alias
@@ -420,7 +421,8 @@ module Mondrian
         'sqlserver' => 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
         'vertica' => 'com.vertica.jdbc.Driver',
         'snowflake' => 'net.snowflake.client.jdbc.SnowflakeDriver',
-        'clickhouse' => 'cc.blynk.clickhouse.ClickHouseDriver'
+        'clickhouse' => 'cc.blynk.clickhouse.ClickHouseDriver',
+        'mariadb' => 'org.mariadb.jdbc.Driver'
       }
 
       def jdbc_driver
