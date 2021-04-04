@@ -169,6 +169,56 @@ when 'clickhouse'
       exec_update_original(sql, name, binds)
     end
   end
+when 'mariadb'
+  Dir[File.expand_path("mariadb*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+    require jdbc_driver_file
+  end
+  JDBC_DRIVER = 'org.mariadb.jdbc.Driver'
+  # patches for ClickHouse minimal AR support
+  require 'arjdbc/jdbc/adapter'
+  ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
+    def modify_types(tp)
+      tp[:primary_key] = "integer"
+      tp[:integer] = "integer"
+    end
+    def type_to_sql(type, limit = nil, precision = nil, scale = nil)
+      case type.to_sym
+      when :integer, :primary_key
+        return 'integer' unless limit
+        case limit.to_i
+        when 1 then 'tinyint'
+        when 2 then 'smallint'
+        when 3 then 'mediumint'
+        when 4 then 'integer'
+        when 5..8 then 'bigint'
+        else raise(ActiveRecord::ActiveRecordError,
+          "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
+        end
+      when :text
+        case limit
+        when 0..0xff then 'tinytext'
+        when nil, 0x100..0xffff then 'text'
+        when 0x10000..0xffffff then'mediumtext'
+        when 0x1000000..0xffffffff then 'longtext'
+        else raise(ActiveRecordError, "No text type has character length #{limit}")
+        end
+      else
+        super
+      end
+    end
+    def quote_table_name(name)
+      "`#{name.to_s}`"
+    end
+    def quote_column_name(name)
+      "`#{name.to_s}`"
+    end
+    def execute(sql, name = nil, binds = nil)
+      exec_update(sql, name, binds)
+    end
+    def create_table(name, options = {})
+      super(name, {options: "ENGINE=Columnstore DEFAULT CHARSET=utf8"}.merge(options))
+    end
+  end
 end
 
 puts "==> Using #{MONDRIAN_DRIVER} driver"

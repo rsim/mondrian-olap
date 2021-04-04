@@ -3,3 +3,4 @@ mssql-jdbc*.jar
 vertica-jdbc*.jar
 snowflake-jdbc*.jar
 clickhouse*.jar
+mariadb*.jar
