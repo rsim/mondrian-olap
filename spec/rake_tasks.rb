@@ -5,6 +5,8 @@ namespace :db do
     require File.expand_path("../spec_helper", __FILE__)
   end
 
+  import_data_drivers = %w(vertica snowflake clickhouse mariadb)
+
   desc "Create test database tables"
   task :create_tables => :require_spec_helper do
     puts "==> Creating tables for test data"
@@ -34,7 +36,8 @@ namespace :db do
         t.string      :product_family, :limit => 30
       end
 
-      create_table :customers, :force => true do |t|
+      create_table :customers, :force => true, id: !import_data_drivers.include?(MONDRIAN_DRIVER) do |t|
+        t.integer     :id, :limit => 8 if import_data_drivers.include?(MONDRIAN_DRIVER)
         t.string      :country, :limit => 30
         t.string      :state_province, :limit => 30
         t.string      :city, :limit => 30
@@ -85,8 +88,6 @@ namespace :db do
         execute "ALTER TABLE customers DROP CONSTRAINT #{primary_key_constraint}"
         execute "ALTER TABLE customers ALTER COLUMN id BIGINT"
         execute "ALTER TABLE customers ADD CONSTRAINT #{primary_key_constraint} PRIMARY KEY (id)"
-      when /clickhouse/
-        execute "ALTER TABLE customers MODIFY COLUMN id Int64"
       end
 
       create_table :sales, :force => true, :id => false do |t|
@@ -133,7 +134,7 @@ namespace :db do
   end
 
   desc "Create test data"
-  task :create_data => [:create_tables] + ( %w(vertica snowflake clickhouse).include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
+  task :create_data => [:create_tables] + (import_data_drivers.include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
     [ :create_time_data, :create_product_data, :create_promotion_data, :create_customer_data, :create_sales_data ] )
 
   task :create_time_data  => :define_models do
@@ -346,13 +347,26 @@ namespace :db do
         count = conn.select_value "SELECT COUNT(*) FROM #{table_name}"
         puts "==> Loaded #{count} records"
       end
+
+    when 'mariadb'
+      table_names.each do |table_name|
+        puts "==> Truncate #{table_name}"
+        conn.execute "TRUNCATE TABLE `#{table_name}`"
+        puts "==> Copy into #{table_name}"
+        file_path = "#{export_data_dir}/#{table_name}.csv"
+        columns_string = File.open(file_path) { |f| f.gets }.chomp
+        count = conn.execute "LOAD DATA LOCAL INFILE '#{file_path}' INTO TABLE `#{table_name}` CHARACTER SET UTF8 " \
+          "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' IGNORE 1 LINES (#{columns_string})"
+        puts "==> Loaded #{count} records"
+      end
+
     end
   end
 
 end
 
 namespace :spec do
-  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake clickhouse).each do |driver|
+  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake clickhouse mariadb).each do |driver|
     desc "Run specs with #{driver} driver"
     task driver do
       ENV['MONDRIAN_DRIVER'] = driver
