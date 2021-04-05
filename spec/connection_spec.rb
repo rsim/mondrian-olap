@@ -54,6 +54,7 @@ describe "Connection" do
         when 'vertica' then 'mondrian.spi.impl.VerticaDialect'
         when 'snowflake' then 'mondrian.spi.impl.SnowflakeDialect'
         when 'clickhouse' then 'mondrian.spi.impl.JdbcDialectImpl'
+        when 'mariadb' then 'mondrian.spi.impl.MariaDBDialect'
         end
     end
 
