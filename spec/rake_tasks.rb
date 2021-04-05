@@ -36,7 +36,9 @@ namespace :db do
         t.string      :product_family, :limit => 30
       end
 
-      create_table :customers, :force => true, id: !import_data_drivers.include?(MONDRIAN_DRIVER) do |t|
+      customers_options = {force: true}
+      customers_options[:id] = false if import_data_drivers.include?(MONDRIAN_DRIVER)
+      create_table :customers, customers_options do |t|
         t.integer     :id, :limit => 8 if import_data_drivers.include?(MONDRIAN_DRIVER)
         t.string      :country, :limit => 30
         t.string      :state_province, :limit => 30
