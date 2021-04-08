@@ -15,6 +15,7 @@ MONDRIAN_DRIVER   = ENV['MONDRIAN_DRIVER']   || 'mysql'
 env_prefix = MONDRIAN_DRIVER.upcase
 
 DATABASE_HOST     = ENV["#{env_prefix}_DATABASE_HOST"]     || ENV['DATABASE_HOST']     || 'localhost'
+DATABASE_PORT     = ENV["#{env_prefix}_DATABASE_PORT"]     || ENV['DATABASE_PORT']
 DATABASE_USER     = ENV["#{env_prefix}_DATABASE_USER"]     || ENV['DATABASE_USER']     || 'mondrian_test'
 DATABASE_PASSWORD = ENV["#{env_prefix}_DATABASE_PASSWORD"] || ENV['DATABASE_PASSWORD'] || 'mondrian_test'
 DATABASE_NAME     = ENV["#{env_prefix}_DATABASE_NAME"]     || ENV['DATABASE_NAME']     || 'mondrian_test'
@@ -174,7 +175,7 @@ when 'mariadb'
     require jdbc_driver_file
   end
   JDBC_DRIVER = 'org.mariadb.jdbc.Driver'
-  # patches for ClickHouse minimal AR support
+  # Patches for MariaDB minimal AR support
   require 'arjdbc/jdbc/adapter'
   ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
     def modify_types(tp)
@@ -219,6 +220,70 @@ when 'mariadb'
       super(name, {options: "ENGINE=Columnstore DEFAULT CHARSET=utf8"}.merge(options))
     end
   end
+when 'singlestore'
+  # SingleStore recommends MariaDB JDBC driver
+  Dir[File.expand_path("mariadb*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+    require jdbc_driver_file
+  end
+  JDBC_DRIVER = 'org.mariadb.jdbc.Driver'
+  # Patches for SingleStore minimal AR support
+  require 'arjdbc/jdbc/adapter'
+  ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
+    def modify_types(tp)
+      tp[:primary_key] = "integer"
+      tp[:integer] = "integer"
+    end
+    def type_to_sql(type, limit = nil, precision = nil, scale = nil)
+      case type.to_sym
+      when :integer, :primary_key
+        return 'integer' unless limit
+        case limit.to_i
+        when 1 then 'tinyint'
+        when 2 then 'smallint'
+        when 3 then 'mediumint'
+        when 4 then 'integer'
+        when 5..8 then 'bigint'
+        else raise(ActiveRecord::ActiveRecordError,
+          "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
+        end
+      when :text
+        case limit
+        when 0..0xff then 'tinytext'
+        when nil, 0x100..0xffff then 'text'
+        when 0x10000..0xffffff then'mediumtext'
+        when 0x1000000..0xffffffff then 'longtext'
+        else raise(ActiveRecordError, "No text type has character length #{limit}")
+        end
+      else
+        super
+      end
+    end
+    def quote_table_name(name)
+      "`#{name.to_s}`"
+    end
+    def quote_column_name(name)
+      "`#{name.to_s}`"
+    end
+    def execute(sql, name = nil, binds = nil)
+      exec_update(sql, name, binds)
+    end
+
+    class SingleStoreSchemaCreation < ::ActiveRecord::ConnectionAdapters::AbstractAdapter::SchemaCreation
+      def visit_TableDefinition(o)
+        name = o.name
+        create_sql = "CREATE#{' TEMPORARY' if o.temporary} TABLE #{quote_table_name(name)} "
+        statements = o.columns.map { |c| accept c }
+        statements << "KEY () USING CLUSTERED COLUMNSTORE"
+        create_sql << "(#{statements.join(', ')}) " if statements.present?
+        create_sql << "#{o.options}"
+        create_sql << " AS #{@conn.to_sql(o.as)}" if o.as
+        create_sql
+      end
+    end
+    def schema_creation
+      SingleStoreSchemaCreation.new self
+    end
+  end
 end
 
 puts "==> Using #{MONDRIAN_DRIVER} driver"
@@ -246,10 +311,11 @@ else
     # :properties => {'ssl'=>'true','sslfactory'=>'org.postgresql.ssl.NonValidatingFactory'},
     :driver   => MONDRIAN_DRIVER,
     :host     => DATABASE_HOST,
+    :port     => DATABASE_PORT,
     :database => DATABASE_NAME,
     :username => DATABASE_USER,
     :password => DATABASE_PASSWORD
-  }
+  }.compact
 end
 case MONDRIAN_DRIVER
 when 'mysql'
@@ -332,6 +398,17 @@ when 'clickhouse'
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password]
   }
+when 'singlestore'
+  jdbc_url = "jdbc:mariadb://#{CONNECTION_PARAMS[:host]}" + (CONNECTION_PARAMS[:port] ? ":#{CONNECTION_PARAMS[:port]}" : "") +
+      "/#{CONNECTION_PARAMS[:database]}"
+  AR_CONNECTION_PARAMS = {
+    adapter: 'jdbc',
+    driver:   JDBC_DRIVER,
+    dialect: 'SingleStore',
+    url:      jdbc_url,
+    username: CONNECTION_PARAMS[:username],
+    password: CONNECTION_PARAMS[:password]
+  }
 when /jdbc/
   AR_CONNECTION_PARAMS = {
     :adapter  => 'jdbc',
@@ -344,7 +421,8 @@ else
   AR_CONNECTION_PARAMS = {
     :adapter  => 'jdbc',
     :driver   => JDBC_DRIVER,
-    :url      => "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}",
+    :url      => "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}" +
+      (CONNECTION_PARAMS[:port] ? ":#{CONNECTION_PARAMS[:port]}" : "") + "/#{CONNECTION_PARAMS[:database]}",
     :username => CONNECTION_PARAMS[:username],
     :password => CONNECTION_PARAMS[:password]
   }
