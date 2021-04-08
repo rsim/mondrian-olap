@@ -23,7 +23,11 @@ DATABASE_INSTANCE = ENV["#{env_prefix}_DATABASE_INSTANCE"] || ENV['DATABASE_INST
 
 case MONDRIAN_DRIVER
 when 'mysql', 'jdbc_mysql'
-  require 'jdbc/mysql'
+  if jdbc_driver_file = Dir[File.expand_path("mysql*.jar", 'spec/support/jars')].first
+    require jdbc_driver_file
+  else
+    require 'jdbc/mysql'
+  end
   JDBC_DRIVER = (Java::com.mysql.cj.jdbc.Driver rescue nil) ? 'com.mysql.cj.jdbc.Driver' : 'com.mysql.jdbc.Driver'
 when 'postgresql'
   require 'jdbc/postgres'
