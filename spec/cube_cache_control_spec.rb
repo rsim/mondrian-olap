@@ -73,7 +73,7 @@ describe "Cube" do
   end
 
   # Do not execute tests on analytical databases with slow individual inserts
-  describe 'cache', unless: %w(vertica snowflake clickhouse mariadb).include?(MONDRIAN_DRIVER) do
+  describe 'cache', unless: %w(vertica snowflake clickhouse mariadb singlestore).include?(MONDRIAN_DRIVER) do
     def qt(name)
       @connection.quote_table_name(name.to_s)
     end
