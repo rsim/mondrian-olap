@@ -410,6 +410,10 @@ module Mondrian
         jdbc_uri_generic(default_port: 8123)
       end
 
+      def jdbc_uri_singlestore
+        jdbc_uri_generic(uri_prefix: 'jdbc:mysql://')
+      end
+
       def jdbc_uri_jdbc
         @params[:jdbc_url] or raise ArgumentError, 'missing jdbc_url parameter'
       end
@@ -422,7 +426,8 @@ module Mondrian
         'vertica' => 'com.vertica.jdbc.Driver',
         'snowflake' => 'net.snowflake.client.jdbc.SnowflakeDriver',
         'clickhouse' => 'cc.blynk.clickhouse.ClickHouseDriver',
-        'mariadb' => 'org.mariadb.jdbc.Driver'
+        'mariadb' => 'org.mariadb.jdbc.Driver',
+        'singlestore' => 'org.mariadb.jdbc.Driver'
       }
 
       def jdbc_driver
