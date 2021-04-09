@@ -54,6 +54,9 @@ describe "Mondrian features" do
             level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true, :level_type => 'TimeYears'
             level 'Quarter', :column => 'quarter', :unique_members => false, :level_type => 'TimeQuarters'
             level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false, :level_type => 'TimeMonths'
+            level 'Day', :column => 'day_of_month', :type => 'Numeric', :unique_members => false, :level_type => 'TimeDays' do
+              property 'Date', :column => 'the_date', :type => "String"
+            end
           end
           hierarchy 'Weekly', :has_all => false, :primary_key => 'id' do
             table 'time'
@@ -120,4 +123,16 @@ describe "Mondrian features" do
     expect { @olap.execute mdx }.not_to raise_error
   end
 
+  # Test for https://jira.pentaho.com/browse/MONDRIAN-2714
+  it "should return datetime property as java.sql.Timestamp" do
+    full_name = '[2010].[Q1].[1].[1]'
+    member = @olap.cube('Sales').member(full_name)
+    member.property_value('Date').should be_a(java.sql.Timestamp)
+
+    result = @olap.from('Sales').
+      with_member('[Measures].[date]').as("#{full_name}.Properties('Date')", format_string: 'dd.mm.yyyy').
+      columns('[Measures].[date]').execute
+    result.values.first.should be_a(java.sql.Timestamp)
+    result.formatted_values.first.should == '01.01.2010'
+  end
 end

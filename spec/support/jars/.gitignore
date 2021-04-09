@@ -1,3 +1,4 @@
+mysql*.jar
 sqljdbc*.jar
 mssql-jdbc*.jar
 vertica-jdbc*.jar
