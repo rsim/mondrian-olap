@@ -95,7 +95,9 @@ module Mondrian
           :type,
           # The name of the column in the fact table which joins to the leaf level of this dimension.
           # Required in a private Dimension or a DimensionUsage, but not in a public Dimension.
-          :foreign_key
+          :foreign_key,
+          # Flag to mark this dimension as a high cardinality one and avoid caching.
+          :high_cardinality
         data_dictionary_names :foreign_key # values in XML will be uppercased when using Oracle driver
         elements :annotations, :hierarchy
       end
@@ -113,7 +115,9 @@ module Mondrian
           :usage_prefix,
           # The name of the column in the fact table which joins to the leaf level of this dimension.
           # Required in a private Dimension or a DimensionUsage, but not in a public Dimension.
-          :foreign_key
+          :foreign_key,
+          # Flag to mark this dimensions as a high cardinality one and avoid caching.
+          :high_cardinality
         data_dictionary_names :usage_prefix, :foreign_key # values in XML will be uppercased when using Oracle driver
         elements :annotations
 
@@ -347,7 +351,9 @@ module Mondrian
           # Name of the cube which the dimension belongs to, or unspecified if the dimension is shared
           :cube_name,
           # Whether this dimension is visible in the user-interface. Default true.
-          :visible
+          :visible,
+          # Flag to mark this dimensions as a high cardinality one and avoid caching.
+          :high_cardinality
         elements :annotations
       end
 
