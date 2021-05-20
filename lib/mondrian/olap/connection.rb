@@ -289,6 +289,14 @@ module Mondrian
         true
       end
 
+      def jdbc_uri
+        if respond_to?(method_name = "jdbc_uri_#{@driver}", true)
+          send method_name
+        else
+          raise ArgumentError, 'unknown JDBC driver'
+        end
+      end
+
       private
 
       def connection_string
@@ -306,13 +314,6 @@ module Mondrian
         string + (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
 
-      def jdbc_uri
-        if respond_to?(method_name = "jdbc_uri_#{@driver}", true)
-          send method_name
-        else
-          raise ArgumentError, 'unknown JDBC driver'
-        end
-      end
 
       def jdbc_uri_generic(options = {})
         uri_prefix = options[:uri_prefix] || "jdbc:#{@driver}://"
