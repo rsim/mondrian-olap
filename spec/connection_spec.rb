@@ -95,7 +95,7 @@ describe "Connection" do
   describe "jdbc_uri" do
     before(:all) { @olap_connection = Mondrian::OLAP::Connection }
 
-    describe "MSSQL" do
+    describe "MS SQL jTDS driver" do
       it "should return a valid JDBC URI" do
         @olap_connection.new(
           driver: 'mssql',
