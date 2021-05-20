@@ -92,4 +92,59 @@ describe "Connection" do
 
   end
 
+  describe "jdbc_uri" do
+    before(:all) { @olap_connection = Mondrian::OLAP::Connection }
+
+    describe "MSSQL" do
+      it "should return a valid JDBC URI" do
+        @olap_connection.new(
+          driver: 'mssql',
+          host: 'example.com',
+          port: 1234,
+          instance: 'MSSQLSERVER',
+          database: 'example_db',
+          domain: 'win_domain'
+        ).jdbc_uri.should == 'jdbc:jtds:sqlserver://example.com:1234/example_db;instance=MSSQLSERVER;domain=win_domain'
+      end
+    end
+
+    describe "SQL Server" do
+      it "should return a valid JDBC URI with port" do
+        @olap_connection.new(
+          driver: 'sqlserver',
+          host: 'example.com',
+          port: 1234,
+          instance: 'MSSQLSERVER',
+          database: 'example_db'
+        ).jdbc_uri.should == 'jdbc:sqlserver://example.com:1234;databaseName=example_db'
+      end
+
+      it "should return a valid JDBC URI with instance name" do
+        @olap_connection.new(
+          driver: 'sqlserver',
+          host: 'example.com',
+          instance: 'MSSQLSERVER',
+          database: 'example_db'
+        ).jdbc_uri.should == 'jdbc:sqlserver://example.com\MSSQLSERVER;databaseName=example_db'
+      end
+
+      it "should return a valid JDBC URI with instance name as property" do
+        @olap_connection.new(
+          driver: 'sqlserver',
+          host: 'example.com',
+          properties: {
+            instanceName: "MSSQLSERVER"
+          }
+        ).jdbc_uri.should == 'jdbc:sqlserver://example.com;instanceName=MSSQLSERVER'
+      end
+
+      it "should return a valid JDBC URI with enabled integratedSecurity" do
+        @olap_connection.new(
+          driver: 'sqlserver',
+          host: 'example.com',
+          integrated_security: 'true'
+        ).jdbc_uri.should == 'jdbc:sqlserver://example.com;integratedSecurity=true'
+      end
+    end
+  end
 end
