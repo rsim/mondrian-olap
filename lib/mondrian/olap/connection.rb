@@ -318,7 +318,7 @@ module Mondrian
       def jdbc_uri_generic(options = {})
         uri_prefix = options[:uri_prefix] || "jdbc:#{@driver}://"
         port = @params[:port] || options[:default_port]
-        uri = "#{uri_prefix}#{@params[:host]}#{port && ":#{port}" || @params[:instance] && "\\#{@params[:instance]}"}"
+        uri = "#{uri_prefix}#{@params[:host]}#{port && ":#{port}"}"
         uri += "/#{@params[:database]}" if @params[:database] && options[:add_database] != false
         properties = new_empty_properties
         properties.merge!(options[:default_properties]) if options[:default_properties].is_a?(Hash)
@@ -378,6 +378,9 @@ module Mondrian
       }
 
       def jdbc_uri_sqlserver
+        if !@params[:port] && @params[:instance]
+          @params[:host] = "#{@params[:host]}\\#{@params[:instance]}"
+        end
         jdbc_uri_generic(
           uri_prefix: 'jdbc:sqlserver://', add_database: false, separator: ';', first_separator: ';',
           default_properties: uri_default_param_properties(JDBC_SQLSERVER_PARAM_PROPERTIES)
