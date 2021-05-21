@@ -109,23 +109,14 @@ describe "Connection" do
     end
 
     describe "SQL Server" do
-      it "should return a valid JDBC URI with port" do
+      it "should return a valid JDBC URI" do
         @olap_connection.new(
           driver: 'sqlserver',
           host: 'example.com',
           port: 1234,
           instance: 'MSSQLSERVER',
           database: 'example_db'
-        ).jdbc_uri.should == 'jdbc:sqlserver://example.com:1234;databaseName=example_db'
-      end
-
-      it "should return a valid JDBC URI with instance name" do
-        @olap_connection.new(
-          driver: 'sqlserver',
-          host: 'example.com',
-          instance: 'MSSQLSERVER',
-          database: 'example_db'
-        ).jdbc_uri.should == 'jdbc:sqlserver://example.com\MSSQLSERVER;databaseName=example_db'
+        ).jdbc_uri.should == 'jdbc:sqlserver://example.com:1234;databaseName=example_db;instanceName=MSSQLSERVER'
       end
 
       it "should return a valid JDBC URI with instance name as property" do
