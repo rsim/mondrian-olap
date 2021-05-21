@@ -314,7 +314,6 @@ module Mondrian
         string + (@params[:catalog] ? "Catalog=#{catalog_uri}" : "CatalogContent=#{quote_string(catalog_content)}")
       end
 
-
       def jdbc_uri_generic(options = {})
         uri_prefix = options[:uri_prefix] || "jdbc:#{@driver}://"
         port = @params[:port] || options[:default_port]
@@ -374,13 +373,11 @@ module Mondrian
         database: 'databaseName',
         integrated_security: 'integratedSecurity',
         application_name: 'applicationName',
-        instance_name: 'instanceName'
+        instance_name: 'instanceName',
+        instance: 'instanceName'
       }
 
       def jdbc_uri_sqlserver
-        if !@params[:port] && @params[:instance]
-          @params[:host] = "#{@params[:host]}\\#{@params[:instance]}"
-        end
         jdbc_uri_generic(
           uri_prefix: 'jdbc:sqlserver://', add_database: false, separator: ';', first_separator: ';',
           default_properties: uri_default_param_properties(JDBC_SQLSERVER_PARAM_PROPERTIES)
