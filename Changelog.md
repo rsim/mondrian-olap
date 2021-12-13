@@ -1,9 +1,12 @@
 ### Master
 
 * New features
-  * Upgrade to the latest Mondrian version 9.2.0.0
+  * Upgrade to the latest Mondrian version 9.3.0.0
   * Support for ClickHouse database
   * Support for MariaDB ColumnStore engine
+  * Improve Aggregate performance of large compound slicers when mondrian.rolap.EnableInMemoryRollup=false
+  * Support instance parameter for SQL Server connection
+  * Allow to specify high_cardinality for dimension
 * Bug fixes
   * Patch for MONDRIAN-2714 (fixed support for MySQL JDBC driver version 8.0.23)
 
