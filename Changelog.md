@@ -4,7 +4,6 @@
   * Upgrade to the latest Mondrian version 9.2.0.0
   * Support for ClickHouse database
   * Support for MariaDB ColumnStore engine
-  * Support for SingleStore with column store storage
 * Bug fixes
   * Patch for MONDRIAN-2714 (fixed support for MySQL JDBC driver version 8.0.23)
 

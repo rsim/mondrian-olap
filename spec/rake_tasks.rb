@@ -5,7 +5,7 @@ namespace :db do
     require File.expand_path("../spec_helper", __FILE__)
   end
 
-  import_data_drivers = %w(vertica snowflake clickhouse mariadb singlestore)
+  import_data_drivers = %w(vertica snowflake clickhouse mariadb)
 
   desc "Create test database tables"
   task :create_tables => :require_spec_helper do
@@ -350,7 +350,7 @@ namespace :db do
         puts "==> Loaded #{count} records"
       end
 
-    when 'mariadb', 'singlestore'
+    when 'mariadb'
       table_names.each do |table_name|
         puts "==> Truncate #{table_name}"
         conn.execute "TRUNCATE TABLE `#{table_name}`"
@@ -368,7 +368,7 @@ namespace :db do
 end
 
 namespace :spec do
-  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake clickhouse mariadb singlestore).each do |driver|
+  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake clickhouse mariadb).each do |driver|
     desc "Run specs with #{driver} driver"
     task driver do
       ENV['MONDRIAN_DRIVER'] = driver
