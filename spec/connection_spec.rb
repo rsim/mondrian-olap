@@ -55,7 +55,6 @@ describe "Connection" do
         when 'snowflake' then 'mondrian.spi.impl.SnowflakeDialect'
         when 'clickhouse' then 'mondrian.spi.impl.JdbcDialectImpl'
         when 'mariadb' then 'mondrian.spi.impl.MariaDBDialect'
-        when 'singlestore' then 'mondrian.spi.impl.SingleStoreDialect'
         end
     end
 
