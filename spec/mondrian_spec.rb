@@ -135,4 +135,56 @@ describe "Mondrian features" do
     result.values.first.should be_a(java.sql.Timestamp)
     result.formatted_values.first.should == '01.01.2010'
   end
+
+  describe "optimized Aggregate" do
+    def expected_value(crossjoin_members = nil)
+      query = @olap.from('Sales').columns('[Measures].[Unit Sales]')
+      query = query.crossjoin(crossjoin_members) if crossjoin_members
+      query.rows('[Customers].[USA].[CA]', '[Customers].[USA].[OR]').
+        execute.values.map(&:first).inject(&:+)
+    end
+
+    it "should aggregate stored members" do
+      result = @olap.from('Sales').
+        with_member('[Customers].[CA and OR]').as("Aggregate({[Customers].[USA].[CA], [Customers].[USA].[OR]})").
+        columns('[Measures].[Unit Sales]').
+        rows('[Customers].[CA and OR]').execute
+      result.values[0][0].should == expected_value
+    end
+
+    it "should aggregate stored members from several dimensions" do
+      result = @olap.from('Sales').
+        with_member('[Customers].[CA and OR]').
+          as("Aggregate({[Gender].[F]} * {[Customers].[USA].[CA], [Customers].[USA].[OR]})").
+        columns('[Measures].[Unit Sales]').
+        rows('[Customers].[CA and OR]').execute
+      result.values[0][0].should == expected_value('[Gender].[F]')
+    end
+
+    it "should aggregate stored members and a measure" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[CA and OR]').
+          as("Aggregate({[Customers].[USA].[CA], [Customers].[USA].[OR]} * {[Measures].[Unit Sales]})").
+        columns('[Measures].[CA and OR]').execute
+      result.values[0].should == expected_value
+    end
+
+    it "should aggregate stored members with expression" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[CA and OR twice]').
+          as("Aggregate({[Customers].[USA].[CA], [Customers].[USA].[OR]}, [Measures].[Unit Sales] * 2)").
+        columns('[Measures].[CA and OR twice]').execute
+      result.values[0].should == expected_value * 2
+    end
+
+    it "should aggregate calculated aggregate members" do
+      result = @olap.from('Sales').
+        with_member('[Customers].[CA calculated]').as("Aggregate({[Customers].[USA].[CA]})").
+        with_member('[Customers].[OR calculated]').as("Aggregate({[Customers].[USA].[OR]})").
+        with_member('[Customers].[CA and OR]').as("Aggregate({[Customers].[CA calculated], [Customers].[OR calculated]})").
+        columns('[Measures].[Unit Sales]').
+        rows('[Customers].[CA and OR]').execute
+      result.values[0][0].should == expected_value
+    end
+  end
 end

@@ -228,6 +228,9 @@ end
 
 puts "==> Using #{MONDRIAN_DRIVER} driver"
 
+# Necessary for Aggregate optimizations test
+Java::JavaLang::System.setProperty("mondrian.rolap.EnableInMemoryRollup", "false")
+
 require 'mondrian/olap'
 require_relative 'support/matchers/be_like'
 
