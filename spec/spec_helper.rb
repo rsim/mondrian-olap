@@ -270,8 +270,9 @@ end
 case MONDRIAN_DRIVER
 when 'mysql', 'postgresql'
   AR_CONNECTION_PARAMS = CONNECTION_PARAMS.slice(:host, :database, :username, :password).merge(
-    :adapter => MONDRIAN_DRIVER,
-    :properties => CONNECTION_PARAMS[:properties].dup || {}
+    adapter: MONDRIAN_DRIVER,
+    driver: JDBC_DRIVER,
+    properties: CONNECTION_PARAMS[:properties].dup || {}
   )
 when 'oracle'
   AR_CONNECTION_PARAMS = {
