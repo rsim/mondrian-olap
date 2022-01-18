@@ -32,6 +32,40 @@ when 'mysql', 'jdbc_mysql'
 when 'postgresql'
   require 'jdbc/postgres'
   JDBC_DRIVER = 'org.postgresql.Driver'
+  require 'arjdbc/postgresql'
+  ::ArJdbc::PostgreSQL.module_eval do
+    def standard_conforming_strings=(enable)
+      client_min_messages = self.client_min_messages
+      begin
+        # PATCH: changed 'panic' to 'error' (panic is an invalid level >= PG12)
+        self.client_min_messages = 'error'
+        value = enable ? "on" : "off"
+        execute("SET standard_conforming_strings = #{value}", 'SCHEMA')
+        @standard_conforming_strings = ( value == "on" )
+      rescue
+        @standard_conforming_strings = :unsupported
+      ensure
+        self.client_min_messages = client_min_messages
+      end
+    end
+
+    def standard_conforming_strings?
+      if @standard_conforming_strings.nil?
+        client_min_messages = self.client_min_messages
+        begin
+          # PATCH: changed 'panic' to 'error' (panic is an invalid level >= PG12)
+          self.client_min_messages = 'error'
+          value = select_one('SHOW standard_conforming_strings', 'SCHEMA')['standard_conforming_strings']
+          @standard_conforming_strings = ( value == "on" )
+        rescue
+          @standard_conforming_strings = :unsupported
+        ensure
+          self.client_min_messages = client_min_messages
+        end
+      end
+      @standard_conforming_strings == true # return false if :unsupported
+    end
+  end
 when 'oracle'
   require 'active_record/connection_adapters/oracle_enhanced_adapter'
   CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
