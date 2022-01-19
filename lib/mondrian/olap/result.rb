@@ -155,7 +155,6 @@ module Mondrian
 
       class DrillThrough
         def self.from_raw_cell(raw_cell, params = {})
-          max_rows = params[:max_rows] || -1
           # workaround to avoid calling raw_cell.drillThroughInternal private method
           # which fails when running inside TorqueBox
           cell_field = raw_cell.java_class.declared_field('cell')
@@ -251,7 +250,6 @@ module Mondrian
           result_set_type = Java::JavaSql::ResultSet::TYPE_FORWARD_ONLY
           result_set_concurrency = Java::JavaSql::ResultSet::CONCUR_READ_ONLY
           schema = statement.getSchema
-          dialect = schema.getDialect
 
           Java::MondrianRolap::RolapUtil.executeQuery(
             connection.getDataSource,
@@ -344,7 +342,6 @@ module Mondrian
           outer_join_from_parts.reverse.each do |part|
             part_elements = part.split(/\s+/)
             # first is original table, then optional 'as' and the last is alias
-            table_name = part_elements.first
             table_alias = part_elements.last
             join_conditions = where_parts.select do |where_part|
               where_part.include?(" = #{table_alias}.")
