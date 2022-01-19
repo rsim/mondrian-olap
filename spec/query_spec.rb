@@ -101,7 +101,7 @@ describe "Query" do
     end
 
     it "should return formatted cells" do
-      @result.formatted_values.map{|r| r.map{|s| BigDecimal.new(s.gsub(',',''))}}.should == @expected_result_values
+      @result.formatted_values.map{|r| r.map{|s| BigDecimal(s.gsub(',',''))}}.should == @expected_result_values
     end
 
   end
