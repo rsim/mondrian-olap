@@ -249,7 +249,6 @@ module Mondrian
           connection = statement.getMondrianConnection
           result_set_type = Java::JavaSql::ResultSet::TYPE_FORWARD_ONLY
           result_set_concurrency = Java::JavaSql::ResultSet::CONCUR_READ_ONLY
-          schema = statement.getSchema
 
           Java::MondrianRolap::RolapUtil.executeQuery(
             connection.getDataSource,
