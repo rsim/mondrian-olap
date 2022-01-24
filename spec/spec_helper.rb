@@ -320,24 +320,27 @@ when 'mssql'
   url = "jdbc:jtds:sqlserver://#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}"
   url << ";instance=#{DATABASE_INSTANCE}" if DATABASE_INSTANCE
   AR_CONNECTION_PARAMS = {
-    :adapter  => 'jdbc',
-    :dialect  => 'Microsoft SQL Server',
-    :driver   => JDBC_DRIVER,
-    :url      => url,
-    :username => CONNECTION_PARAMS[:username],
-    :password => CONNECTION_PARAMS[:password],
-    :connection_alive_sql => 'SELECT 1'
+    adapter: 'jdbc',
+    dialect: 'Microsoft SQL Server',
+    driver: JDBC_DRIVER,
+    url: url,
+    username: CONNECTION_PARAMS[:username],
+    password: CONNECTION_PARAMS[:password],
+    connection_alive_sql: 'SELECT 1',
+    sqlserver_version: ENV['SQLSERVER_VERSION']
+
   }
 when 'sqlserver'
   url = "jdbc:sqlserver://#{CONNECTION_PARAMS[:host]};databaseName=#{CONNECTION_PARAMS[:database]};"
   url << ";instanceName=#{DATABASE_INSTANCE}" if DATABASE_INSTANCE
   AR_CONNECTION_PARAMS = {
-    :adapter  => 'jdbc',
-    :driver   => JDBC_DRIVER,
-    :url      => url,
-    :username => CONNECTION_PARAMS[:username],
-    :password => CONNECTION_PARAMS[:password],
-    :connection_alive_sql => 'SELECT 1'
+    adapter: 'jdbc',
+    driver: JDBC_DRIVER,
+    url: url,
+    username: CONNECTION_PARAMS[:username],
+    password: CONNECTION_PARAMS[:password],
+    connection_alive_sql: 'SELECT 1',
+    sqlserver_version: ENV['SQLSERVER_VERSION']
   }
 when 'vertica'
   CONNECTION_PARAMS[:properties] = {
