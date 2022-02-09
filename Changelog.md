@@ -7,6 +7,7 @@
   * Improve Aggregate performance of large compound slicers when mondrian.rolap.EnableInMemoryRollup=false
   * Support instance parameter for SQL Server connection
   * Allow to specify high_cardinality for dimension
+  * Upgrade to log4j2
 * Bug fixes
   * Patch for MONDRIAN-2714 (fixed support for MySQL JDBC driver version 8.0.23)
 
