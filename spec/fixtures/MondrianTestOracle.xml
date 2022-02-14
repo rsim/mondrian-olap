@@ -126,4 +126,26 @@ FULLNAME
   </CalculatedMember>
 </Cube>
 
+<Cube name="Warehouse">
+  <Table name="WAREHOUSE"/>
+  <DimensionUsage name="Time" source="Time" foreignKey="TIME_ID"/>
+  <DimensionUsage name="Product" source="Product" foreignKey="PRODUCT_ID"/>
+  <Measure aggregator="sum" column="UNITS_SHIPPED" formatString="#,##0" name="Units Shipped"/>
+  <Measure aggregator="sum" column="STORE_INVOICE" formatString="#,##0.00" name="Store Invoice"/>
+</Cube>
+
+<VirtualCube name="Sales and Warehouse">
+  <VirtualCubeDimension name="Customers" cubeName="Sales"/>
+  <VirtualCubeDimension name="Gender" cubeName="Sales"/>
+  <VirtualCubeDimension name="Product"/>
+  <VirtualCubeDimension name="Time"/>
+  <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Unit Sales]"/>
+  <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Store Cost]"/>
+  <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Store Sales]"/>
+  <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Sales Count]"/>
+  <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Customer Count]"/>
+  <VirtualCubeMeasure cubeName="Warehouse" name="[Measures].[Units Shipped]"/>
+  <VirtualCubeMeasure cubeName="Warehouse" name="[Measures].[Store Invoice]"/>
+</VirtualCube>
+
 </Schema>

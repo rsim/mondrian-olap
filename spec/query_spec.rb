@@ -981,6 +981,33 @@ describe "Query" do
     end
   end
 
+  describe "drill through cell with return for shared measure" do
+    before(:all) do
+      @query = @olap.from('Sales and Warehouse')
+      @result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]', '[Measures].[Units Shipped]').
+        rows('[Product].children').
+        where('[Time].[2010].[Q1]', '[Time].[2010].[Q2]').
+        execute
+    end
+
+    it "should return only specified fields in specified order" do
+      @drill_through = @result.drill_through(:row => 0, :column => 2, :return => [
+        '[Time].[Month]',
+        '[Product].[Product Family]',
+        '[Customers].[City]',
+        '[Measures].[Unit Sales]',
+        '[Measures].[Units Shipped]'
+      ])
+      @drill_through.column_labels.should == [
+        "Month (Key)",
+        "Product Family (Key)",
+        "City (Key)",
+        "Unit Sales",
+        "Units Shipped"
+      ]
+    end
+  end
+
   describe "drill through statement" do
     before(:all) do
       @query = @olap.from('Sales').

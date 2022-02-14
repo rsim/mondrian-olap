@@ -313,8 +313,9 @@ module Mondrian
 
             return_fields.size.times do |i|
               column_alias = return_fields[i][:column_alias]
+              column_expression = return_fields[i][:column_expression]
               new_select_columns <<
-                if column_expression = return_fields[i][:column_expression]
+                if column_expression && extended_from.include?(return_fields[i][:quoted_table_name])
                   new_order_by_columns << column_expression
                   new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
                   "#{column_expression} AS #{column_alias}"
@@ -414,6 +415,10 @@ module Mondrian
                   raise ArgumentError, "cannot use calculated member #{member_full_name} as return field" if level_or_member.isCalculated
                 elsif !level_or_member.is_a? Java::MondrianOlap::Level
                   raise ArgumentError, "return field #{member_full_name} should be level or measure"
+                end
+
+                if table_name = (level_or_member.try(:getTableName) || level_or_member.try(:getMondrianDefExpression).try(:table))
+                  return_fields[i][:quoted_table_name] = dialect.quoteIdentifier(table_name)
                 end
 
                 return_fields[i][:column_expression] = case return_fields[i][:type]
