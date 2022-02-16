@@ -101,6 +101,13 @@ namespace :db do
         t.decimal     :store_cost, precision: 10, scale: 4
         t.decimal     :unit_sales, precision: 10, scale: 4
       end
+
+      create_table :warehouse, :force => true, :id => false do |t|
+        t.integer     :product_id
+        t.integer     :time_id
+        t.integer     :units_shipped
+        t.decimal     :store_invoice, precision: 10, scale: 4
+      end
     end
   end
 
@@ -133,11 +140,17 @@ namespace :db do
       belongs_to :product
       belongs_to :customer
     end
+    class Warehouse < ActiveRecord::Base
+      self.table_name = "warehouse"
+      belongs_to :time_by_day
+      belongs_to :product
+    end
   end
 
   desc "Create test data"
   task :create_data => [:create_tables] + (import_data_drivers.include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
-    [ :create_time_data, :create_product_data, :create_promotion_data, :create_customer_data, :create_sales_data ] )
+    [ :create_time_data, :create_product_data, :create_promotion_data, :create_customer_data, :create_sales_data,
+      :create_warehouse_data ] )
 
   task :create_time_data  => :define_models do
     puts "==> Creating time dimension"
@@ -267,6 +280,22 @@ namespace :db do
         :store_sales => BigDecimal("2#{i}.12"),
         :store_cost => BigDecimal("1#{i}.1234"),
         :unit_sales => i+1
+      )
+    end
+  end
+
+  task :create_warehouse_data => :define_models do
+    puts "==> Creating warehouse data"
+    Warehouse.delete_all
+    count = 100
+    products = Product.order("id").to_a[0...count]
+    times = TimeDimension.order("id").to_a[0...count]
+    count.times do |i|
+      Warehouse.create!(
+        :product_id => products[i].id,
+        :time_id => times[i].id,
+        :units_shipped => i+1,
+        :store_invoice => BigDecimal("1#{i}.1234")
       )
     end
   end
