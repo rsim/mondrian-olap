@@ -1006,7 +1006,9 @@ describe "Query" do
         "Units Shipped"
       ]
       # City and Unit Sales values
-      @drill_through.rows.map { |r| [r[2], r[3]] }.uniq.should == [["", ""]]
+      @drill_through.rows.map { |r| [r[2], r[3]] }.uniq.should == [
+        MONDRIAN_DRIVER == 'oracle' ? [nil, nil] : ["", ""]
+      ]
     end
   end
 
