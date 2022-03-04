@@ -984,30 +984,35 @@ describe "Query" do
   describe "drill through virtual cube cell with return" do
     before(:all) do
       @query = @olap.from('Sales and Warehouse')
-      @result = @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]', '[Measures].[Units Shipped]').
+      @result = @query.columns(
+          '[Measures].[Unit Sales]', '[Measures].[Store Sales]',
+          '[Measures].[Units Shipped]', '[Measures].[Products with units shipped]'
+        ).
         rows('[Product].children').
         where('[Time].[2010].[Q1]', '[Time].[2010].[Q2]').
         execute
     end
 
     it "should return specified fields from other cubes as empty strings" do
-      @drill_through = @result.drill_through(:row => 0, :column => 2, :return => [
+      @drill_through = @result.drill_through(:row => 0, :column => 3, :return => [
         '[Time].[Month]',
         '[Product].[Product Family]',
         '[Customers].[City]', # missing in Warehouse cube
         '[Measures].[Unit Sales]', # missing in Warehouse cube
-        '[Measures].[Units Shipped]'
+        '[Measures].[Units Shipped]',
+        '[Measures].[Products with units shipped]'
       ])
       @drill_through.column_labels.should == [
         "Month (Key)",
         "Product Family (Key)",
         "City (Key)",
         "Unit Sales",
-        "Units Shipped"
+        "Units Shipped",
+        "Products with units shipped"
       ]
-      # City and Unit Sales values
-      @drill_through.rows.map { |r| [r[2], r[3]] }.uniq.should == [
-        MONDRIAN_DRIVER == 'oracle' ? [nil, nil] : ["", ""]
+      # Validate that only City and Unit Sales values are missing
+      @drill_through.rows.map { |r| r.map(&:present?) }.uniq.should == [
+        [true, true, false, false, true, true]
       ]
     end
   end

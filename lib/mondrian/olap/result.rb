@@ -314,8 +314,9 @@ module Mondrian
             return_fields.size.times do |i|
               column_alias = return_fields[i][:column_alias]
               column_expression = return_fields[i][:column_expression]
+              quoted_table_name = return_fields[i][:quoted_table_name]
               new_select_columns <<
-                if column_expression && extended_from.include?(return_fields[i][:quoted_table_name])
+                if column_expression && (!quoted_table_name || extended_from.include?(quoted_table_name))
                   new_order_by_columns << column_expression
                   new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
                   "#{column_expression} AS #{column_alias}"

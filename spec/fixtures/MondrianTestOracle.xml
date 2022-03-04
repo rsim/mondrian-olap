@@ -132,6 +132,13 @@ FULLNAME
   <DimensionUsage name="Product" source="Product" foreignKey="PRODUCT_ID"/>
   <Measure aggregator="sum" column="UNITS_SHIPPED" formatString="#,##0" name="Units Shipped"/>
   <Measure aggregator="sum" column="STORE_INVOICE" formatString="#,##0.00" name="Store Invoice"/>
+  <Measure name="Products with units shipped" aggregator="distinct-count" formatString="#,###">
+    <MeasureExpression>
+      <SQL dialect="generic">
+CASE WHEN UNITS_SHIPPED IS NOT NULL THEN PRODUCT_ID END
+      </SQL>
+    </MeasureExpression>
+  </Measure>
 </Cube>
 
 <VirtualCube name="Sales and Warehouse">
@@ -146,6 +153,7 @@ FULLNAME
   <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Customer Count]"/>
   <VirtualCubeMeasure cubeName="Warehouse" name="[Measures].[Units Shipped]"/>
   <VirtualCubeMeasure cubeName="Warehouse" name="[Measures].[Store Invoice]"/>
+  <VirtualCubeMeasure cubeName="Warehouse" name="[Measures].[Products with units shipped]"/>
 </VirtualCube>
 
 </Schema>
