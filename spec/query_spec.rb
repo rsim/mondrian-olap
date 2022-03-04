@@ -1010,9 +1010,9 @@ describe "Query" do
         "Units Shipped",
         "Products with units shipped"
       ]
-      # City and Unit Sales values
-      @drill_through.rows.map { |r| [r[2], r[3]] }.uniq.should == [
-        MONDRIAN_DRIVER == 'oracle' ? [nil, nil] : ["", ""]
+      # Validate that only City and Unit Sales values are missing
+      @drill_through.rows.map { |r| r.map(&:present?) }.uniq.should == [
+        [true, true, false, false, true, true]
       ]
     end
   end
