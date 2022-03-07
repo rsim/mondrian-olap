@@ -301,7 +301,7 @@ namespace :db do
   end
 
   export_data_dir = File.expand_path("spec/support/data")
-  table_names = %w(time product_classes products customers promotions sales)
+  table_names = %w(time product_classes products customers promotions sales warehouse)
 
   desc "Export test data"
   task :export_data => :create_data do
