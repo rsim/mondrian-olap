@@ -139,7 +139,7 @@ when 'clickhouse'
   Dir[File.expand_path("clickhouse*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
-  JDBC_DRIVER = 'cc.blynk.clickhouse.ClickHouseDriver'
+  JDBC_DRIVER = 'com.clickhouse.jdbc.ClickHouseDriver'
   DATABASE_SCHEMA = ENV["#{env_prefix}_DATABASE_SCHEMA"] || ENV['DATABASE_SCHEMA'] || 'mondrian_test'
   # patches for ClickHouse minimal AR support
   require 'arjdbc/jdbc/adapter'
@@ -375,7 +375,7 @@ when 'clickhouse'
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver:   JDBC_DRIVER,
-    url:      "jdbc:#{MONDRIAN_DRIVER}://#{CONNECTION_PARAMS[:host]}:8123/#{CONNECTION_PARAMS[:database]}",
+    url:      "jdbc:ch://#{CONNECTION_PARAMS[:host]}:8123/#{CONNECTION_PARAMS[:database]}",
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password]
   }
