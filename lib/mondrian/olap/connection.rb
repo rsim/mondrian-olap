@@ -408,7 +408,7 @@ module Mondrian
       end
 
       def jdbc_uri_clickhouse
-        jdbc_uri_generic(default_port: 8123)
+        jdbc_uri_generic(uri_prefix: 'jdbc:ch://', default_port: 8123)
       end
 
       def jdbc_uri_jdbc
@@ -422,7 +422,7 @@ module Mondrian
         'sqlserver' => 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
         'vertica' => 'com.vertica.jdbc.Driver',
         'snowflake' => 'net.snowflake.client.jdbc.SnowflakeDriver',
-        'clickhouse' => 'cc.blynk.clickhouse.ClickHouseDriver',
+        'clickhouse' => 'com.clickhouse.jdbc.ClickHouseDriver',
         'mariadb' => 'org.mariadb.jdbc.Driver'
       }
 

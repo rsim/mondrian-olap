@@ -372,10 +372,11 @@ namespace :db do
         puts "==> Copy into #{table_name}"
         file_path = "#{export_data_dir}/#{table_name}.csv"
         columns_string = File.open(file_path) { |f| f.gets }.chomp
-        copyManager = Java::cc.blynk.clickhouse.copy.CopyManagerFactory.create(conn.jdbc_connection)
-        sql = "INSERT INTO #{table_name}(#{columns_string}) FORMAT CSVWithNames"
-        copyManager.copyToDb(sql, Java::java.nio.file.Paths.get(file_path))
-        count = conn.select_value "SELECT COUNT(*) FROM #{table_name}"
+        conn.jdbc_connection.createStatement.write.
+          query("INSERT INTO #{table_name}(#{columns_string})").
+          format(Java::com.clickhouse.client.ClickHouseFormat::CSVWithNames).
+          data(file_path).send
+        count = conn.select_value("SELECT COUNT(*) FROM #{table_name}").to_i
         puts "==> Loaded #{count} records"
       end
 
