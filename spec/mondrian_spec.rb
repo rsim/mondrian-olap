@@ -67,6 +67,17 @@ describe "Mondrian features" do
         measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
         measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
       end
+
+      user_defined_function 'IsDirty' do
+        ruby do
+          returns :scalar
+          syntax :function
+          def call_with_evaluator(evaluator)
+            evaluator.isDirty
+          end
+        end
+      end
+
     end
     @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
   end
@@ -186,5 +197,12 @@ describe "Mondrian features" do
         rows('[Customers].[CA and OR]').execute
       result.values[0][0].should == expected_value
     end
+  end
+
+  it "should call evaluator isDirty method" do
+    result = @olap.from('Sales').
+      with_member('[Measures].[is dirty]').as('IsDirty()').
+      columns('[Measures].[is dirty]').execute
+    result.values[0].should be_false
   end
 end
