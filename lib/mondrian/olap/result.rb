@@ -338,9 +338,7 @@ module Mondrian
           outer_join_from_parts = extended_from.split(/,\s*/) - new_from_parts
           where_parts = extended_where.split(' and ')
 
-          # reverse outer_join_from_parts to support dimensions with several table joins
-          # where join with detailed level table should be constructed first
-          outer_join_from_parts.reverse.each do |part|
+          outer_join_from_parts.each do |part|
             part_elements = part.split(/\s+/)
             # first is original table, then optional 'as' and the last is alias
             table_alias = part_elements.last
