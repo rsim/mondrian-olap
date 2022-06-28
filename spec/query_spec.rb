@@ -896,6 +896,25 @@ describe "Query" do
       ]
     end
 
+    it "should return rows also for field dimension that is not present in the report query" do
+      result = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[Canada].[BC].[Burnaby]').execute
+      drill_through = result.drill_through(row: 0, column: 0, return: ["[Product].[Product Family]"])
+      drill_through.rows.should == @sql.select_rows(<<-SQL)
+        SELECT
+          product_classes.product_family
+        FROM
+          sales,
+          products,
+          product_classes,
+          customers
+        WHERE
+          products.product_class_id = product_classes.id AND
+          sales.product_id = products.id AND
+          sales.customer_id = customers.id AND
+          customers.country = 'Canada' AND customers.state_province = 'BC' AND customers.city = 'Burnaby'
+      SQL
+    end
+
     it "should return only nonempty measures" do
       @drill_through = @result.drill_through(:row => 0, :column => 0,
         :return => "[Measures].[Unit Sales], [Measures].[Store Sales]",
