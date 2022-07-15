@@ -186,7 +186,7 @@ module Mondrian
         @raw_hierarchy = raw_hierarchy
       end
 
-      attr_reader :raw_hierarchy
+      attr_reader :raw_hierarchy, :dimension
 
       def name
         @name ||= @raw_hierarchy.getName
@@ -198,6 +198,10 @@ module Mondrian
 
       def caption
         @caption ||= @raw_hierarchy.getCaption
+      end
+
+      def dimension_name
+        @dimension.name
       end
 
       def levels
