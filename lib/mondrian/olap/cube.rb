@@ -56,15 +56,35 @@ module Mondrian
       end
 
       def dimensions
-        @dimenstions ||= @raw_cube.getDimensions.map{|d| Dimension.new(self, d)}
+        @dimenstions ||= @raw_cube.getDimensions.map { |d| dimension_from_raw(d) }
       end
 
       def dimension_names
-        dimensions.map{|d| d.name}
+        dimensions.map(&:name)
       end
 
       def dimension(name)
-        dimensions.detect{|d| d.name == name}
+        if @dimensions
+          @dimensions.detect { |d| d.name == name }
+        elsif raw_dimension = @raw_cube.getDimensions.detect { |d| d.getName == name }
+          dimension_from_raw(raw_dimension)
+        end
+      end
+
+      def hierarchies
+        @hierarchies ||= @raw_cube.getHierarchies.map { |h| hierarchy_from_raw(h) }
+      end
+
+      def hierarchy_names
+        hierarchies.map(&:name)
+      end
+
+      def hierarchy(name)
+        if @hierarchies
+          @hierarchies.detect { |h| h.name == name }
+        elsif raw_hierarchy = @raw_cube.getHierarchies.detect { |h| h.getName == name }
+          hierarchy_from_raw(raw_hierarchy)
+        end
       end
 
       def query
@@ -85,6 +105,16 @@ module Mondrian
 
       def_delegators :@cache_control, :flush_region_cache_with_segments, :flush_region_cache_with_segments
       def_delegators :@cache_control, :flush_region_cache_with_full_names, :flush_region_cache_with_full_names
+
+      private
+
+      def dimension_from_raw(raw_dimension)
+        Dimension.new(self, raw_dimension)
+      end
+
+      def hierarchy_from_raw(raw_hierarchy)
+        Hierarchy.new(dimension_from_raw(raw_hierarchy.getDimension), raw_hierarchy)
+      end
     end
 
     class Dimension

@@ -166,6 +166,25 @@ describe "Cube" do
 
   end
 
+  describe "cube hierarchies" do
+    before(:all) do
+      @cube = @olap.cube('Sales')
+      @hierarchy_names = %w(Measures Gender Customers Time Time.Weekly)
+    end
+
+    it "should get hierarchy names" do
+      @cube.hierarchy_names.should == @hierarchy_names
+    end
+
+    it "should get hierarchy by name" do
+      @cube.hierarchy('Gender').name.should == 'Gender'
+    end
+
+    it "should return nil when getting dimension with invalid name" do
+      @cube.hierarchy('invalid').should be_nil
+    end
+  end
+
   describe "dimension hierarchies" do
     before(:all) do
       @cube = @olap.cube('Sales')
