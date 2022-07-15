@@ -180,6 +180,12 @@ describe "Cube" do
       @cube.hierarchy('Gender').name.should == 'Gender'
     end
 
+    it "should get hierarchy dimension name" do
+      hierarchy = @cube.hierarchy('Time.Weekly')
+      hierarchy.dimension.name.should == 'Time'
+      hierarchy.dimension_name.should == 'Time'
+    end
+
     it "should return nil when getting dimension with invalid name" do
       @cube.hierarchy('invalid').should be_nil
     end

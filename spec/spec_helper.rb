@@ -1,3 +1,6 @@
+# Silence warnings on JRuby 9.3
+$VERBOSE = nil
+
 require 'rdoc'
 require 'rspec'
 require 'active_record'
@@ -7,6 +10,8 @@ require 'activerecord-jdbc-adapter'
 require 'coffee-script'
 require 'rhino'
 require 'pry'
+
+$VERBOSE = false
 
 # autoload corresponding JDBC driver during require 'jdbc/...'
 Java::JavaLang::System.setProperty("jdbc.driver.autoload", "true")
