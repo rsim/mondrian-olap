@@ -296,6 +296,7 @@ module Mondrian
       }
 
       def members_to_mdx(members)
+        members ||= []
         # if only one member which does not end with ] or .Item(...)
         # then assume it is expression which returns set
         # TODO: maybe always include also single expressions in {...} to avoid some edge cases?

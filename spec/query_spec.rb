@@ -703,6 +703,11 @@ describe "Query" do
           execute
         result.values.should == sql_select_numbers(@sql_select)
       end
+
+      it "should not fail without columns" do
+        result = @query.rows('[Product].DefaultMember').execute
+        result.values.should == [[]]
+      end
     end
 
     describe "result HTML formatting" do
