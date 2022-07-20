@@ -1,6 +1,7 @@
 mysql*.jar
 sqljdbc*.jar
 mssql-jdbc*.jar
+ojdbc*.jar
 vertica-jdbc*.jar
 snowflake-jdbc*.jar
 clickhouse*.jar
