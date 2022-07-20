@@ -718,14 +718,6 @@ describe "Query" do
           execute
         Nokogiri::HTML.fragment(result.to_html).css('tr').size.should == (sql_select_numbers(@sql_select).size + 1)
       end
-
-      # it "test" do
-      #   puts @olap.from('Sales').
-      #     columns('[Product].children').
-      #     rows('[Customers].[USA].[CA].children').
-      #     where('[Time].[2010].[Q1]', '[Measures].[Store Sales]').
-      #     execute.to_html
-      # end
     end
 
   end
