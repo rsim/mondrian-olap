@@ -703,6 +703,11 @@ describe "Query" do
           execute
         result.values.should == sql_select_numbers(@sql_select)
       end
+
+      it "should not fail without columns" do
+        result = @query.rows('[Product].DefaultMember').execute
+        result.values.should == [[]]
+      end
     end
 
     describe "result HTML formatting" do
@@ -713,14 +718,6 @@ describe "Query" do
           execute
         Nokogiri::HTML.fragment(result.to_html).css('tr').size.should == (sql_select_numbers(@sql_select).size + 1)
       end
-
-      # it "test" do
-      #   puts @olap.from('Sales').
-      #     columns('[Product].children').
-      #     rows('[Customers].[USA].[CA].children').
-      #     where('[Time].[2010].[Q1]', '[Measures].[Store Sales]').
-      #     execute.to_html
-      # end
     end
 
   end
@@ -932,12 +929,12 @@ describe "Query" do
           "Name([Customers].[Name])",
           "Property([Customers].[Name], 'Gender')",
           "Property([Customers].[Name], 'Description')",
-          "Property([Customers].[Name], 'Very long non-existing property name')"
+          "Property([Customers].[Name], 'Non-existing property name')"
         ]
       )
       @drill_through.column_labels.should == [
         "Name", "Gender", "Description",
-        "Very long non-existing property name"[0, MONDRIAN_DRIVER == 'oracle' ? 30 : 9999]
+        "Non-existing property name"
       ]
       @drill_through.rows.should == @sql.select_rows(<<-SQL)
         SELECT

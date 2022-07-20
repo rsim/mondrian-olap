@@ -72,6 +72,10 @@ when 'postgresql'
     end
   end
 when 'oracle'
+  $VERBOSE = nil # Silence BigDecimal.new warnings
+  Dir[File.expand_path("ojdbc*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+    require jdbc_driver_file
+  end
   require 'active_record/connection_adapters/oracle_enhanced_adapter'
   CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
 when 'mssql'
