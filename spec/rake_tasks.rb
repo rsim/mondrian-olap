@@ -47,6 +47,7 @@ namespace :db do
         t.string      :lname, :limit => 30
         t.string      :fullname, :limit => 60
         t.string      :gender, :limit => 30
+        t.date        :birthdate
         t.integer     :promotion_id
         t.string      :related_fullname, :limit => 60
         # Mondrian does not support properties with Oracle CLOB type
@@ -235,6 +236,7 @@ namespace :db do
         :lname => "Last#{i}",
         :fullname => "First#{i} Last#{i}",
         :gender => i % 2 == 0 ? "M" : "F",
+        :birthdate => Date.new(1970, 1, 1) + i,
         :promotion_id => promotions[i % 10].id,
         :related_fullname => "First#{i} Last#{i}",
         :description => 100.times.map{"1234567890"}.join("\n")
