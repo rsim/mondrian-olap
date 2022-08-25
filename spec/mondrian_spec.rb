@@ -39,6 +39,7 @@ describe "Mondrian features" do
             level 'City', :column => 'city', :unique_members => false
             level 'Name', :column => 'fullname', :unique_members => true do
               property 'Related name', :column => 'related_fullname', :type => "String"
+              property 'Birthdate', :column => 'birthdate', :type => "String"
             end
           end
           hierarchy 'ID', :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
@@ -145,6 +146,30 @@ describe "Mondrian features" do
       columns('[Measures].[date]').execute
     result.values.first.should be_a(java.sql.Timestamp)
     result.formatted_values.first.should == '01.01.2010'
+  end
+
+  it "should return date property as java.sql.Date" do
+    expected_date_class =
+      case MONDRIAN_DRIVER
+      when 'oracle'
+        java.sql.Timestamp
+      when 'mssql' # The old jTDS driver returns dates as string when using resultSet.getObject
+        String
+      else
+        java.sql.Date
+      end
+
+    member = @olap.cube('Sales').hierarchy('Customers').level('Name').members.first
+    date_value = member.property_value('Birthdate')
+    date_value.should be_a(expected_date_class)
+
+    result = @olap.from('Sales').
+      with_member('[Measures].[date]').as("#{member.full_name}.Properties('Birthdate')", format_string: 'dd.mm.yyyy').
+      columns('[Measures].[date]').execute
+    result.values.first.should be_a(expected_date_class)
+    unless MONDRIAN_DRIVER == 'mssql' # Date formatting is not working correctly using the old jTDS driver
+      result.formatted_values.first.should == Date.parse(date_value.to_s).strftime("%d.%m.%Y")
+    end
   end
 
   describe "optimized Aggregate" do
