@@ -230,4 +230,14 @@ describe "Mondrian features" do
       columns('[Measures].[is dirty]').execute
     result.values[0].should be_false
   end
+
+  it "should support multiple values IN expression" do
+    lambda do
+      @olap.from('Sales').
+      columns('[Measures].[Unit Sales]').
+      where('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
+      execute
+    end.should_not raise_error
+  end
+
 end
