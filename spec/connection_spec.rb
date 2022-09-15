@@ -53,7 +53,7 @@ describe "Connection" do
         when 'sqlserver' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
         when 'vertica' then 'mondrian.spi.impl.VerticaDialect'
         when 'snowflake' then 'mondrian.spi.impl.SnowflakeDialect'
-        when 'clickhouse' then 'mondrian.spi.impl.JdbcDialectImpl'
+        when 'clickhouse' then 'mondrian.spi.impl.ClickHouseDialect'
         when 'mariadb' then 'mondrian.spi.impl.MariaDBDialect'
         end
     end
