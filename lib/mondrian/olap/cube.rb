@@ -291,6 +291,10 @@ module Mondrian
         @cardinality = @raw_level.getCardinality
       end
 
+      def cardinality=(value)
+        mondrian_level.setApproxRowCount(value || Java::JavaLang::Integer::MIN_VALUE)
+      end
+
       def members_count
         @members_count ||= begin
           if cardinality >= 0
@@ -307,6 +311,10 @@ module Mondrian
         Error.wrap_native_exception do
           @raw_level.getMembers.map{|m| Member.new(m)}
         end
+      end
+
+      def mondrian_level
+        @raw_level.unwrap(Java::MondrianOlap::Level.java_class)
       end
 
       include Annotated

@@ -243,6 +243,15 @@ describe "Cube" do
       @cube.dimension('Gender').hierarchy.levels.map(&:members_count).should == [1, 2]
     end
 
+    it "should set and get hierarchy level cardinality" do
+      level = @cube.dimension('Gender').hierarchy.levels.last
+      level.cardinality.should == Java::JavaLang::Integer::MIN_VALUE
+      level.cardinality = 2
+      @olap.cube('Sales').dimension('Gender').hierarchy.levels.last.cardinality.should == 2
+      level.cardinality = nil
+      @olap.cube('Sales').dimension('Gender').hierarchy.levels.last.cardinality.should == Java::JavaLang::Integer::MIN_VALUE
+    end
+
     it "should get hierarchy annotations" do
       @cube.dimension('Customers').hierarchy.annotations.should == {'foo' => 'bar'}
     end
