@@ -8,6 +8,7 @@ module Mondrian
         @raw_cell_set = raw_cell_set
         @profiling_handler = options[:profiling_handler]
         @total_duration = options[:total_duration]
+        @role_name = @connection.role_name
       end
 
       attr_reader :raw_cell_set, :profiling_handler, :total_duration
@@ -149,7 +150,7 @@ module Mondrian
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell, params)
+          DrillThrough.from_raw_cell(raw_cell, params.merge(role_name: @role_name))
         end
       end
 
@@ -162,14 +163,18 @@ module Mondrian
           rolap_cell = cell_field.value(raw_cell)
 
           if params[:return] || rolap_cell.canDrillThrough
-            sql_statement = drill_through_internal(rolap_cell, params)
+            sql_statement, return_fields = drill_through_internal(rolap_cell, params)
             raw_result_set = sql_statement.getWrappedResultSet
-            new(raw_result_set)
+            raw_cube = raw_cell.getCellSet.getMetaData.getCube
+            new(raw_result_set, return_fields: return_fields, raw_cube: raw_cube, role_name: params[:role_name])
           end
         end
 
-        def initialize(raw_result_set)
+        def initialize(raw_result_set, options = {})
           @raw_result_set = raw_result_set
+          @return_fields = options[:return_fields]
+          @raw_cube = options[:raw_cube]
+          @role_name = options[:role_name]
         end
 
         def column_types
@@ -208,7 +213,7 @@ module Mondrian
             column_types.each_with_index do |column_type, i|
               row_values << Result.java_to_ruby_value(@raw_result_set.getObject(i + 1), column_type)
             end
-            row_values
+            can_access_row_values?(row_values) ? row_values : fetch
           else
             @raw_result_set.close
             nil
@@ -227,6 +232,32 @@ module Mondrian
 
         private
 
+        def can_access_row_values?(row_values)
+          return true unless @role_name
+
+          member_full_name_columns.each do |_, column_indexes|
+            segment_names = [@return_fields[column_indexes.first][:member].getHierarchy.getName]
+            column_indexes.each { |i| segment_names << row_values[i].to_s }
+            segment_list = Java::OrgOlap4jMdx::IdentifierNode.ofNames(*segment_names).getSegmentList
+            return false unless @raw_cube.lookupMember(segment_list)
+          end
+
+          true
+        end
+
+        def member_full_name_columns
+          @member_full_name_columns || begin
+            @member_full_name_columns = Hash.new { |h, k| h[k] = Array.new }
+            column_labels.each_with_index do |label, i|
+              if label =~ /\A(\d+):(\d+)\z/
+                @member_full_name_columns[$1] << [$2.to_i, i]
+              end
+            end
+            @member_full_name_columns.each { |k, v| @member_full_name_columns[k] = v.sort_by(&:first).map(&:last) }
+            @member_full_name_columns
+          end
+        end
+
         def metadata
           @metadata ||= @raw_result_set.getMetaData
         end
@@ -239,7 +270,7 @@ module Mondrian
           result_field.accessible = true
           result = result_field.value(rolap_cell)
 
-          sql = generate_drill_through_sql(rolap_cell, result, params)
+          sql, return_fields = generate_drill_through_sql(rolap_cell, result, params)
 
           # Choose the appropriate scrollability. If we need to start from an
           # offset row, it is useful that the cursor is scrollable, but not
@@ -250,7 +281,7 @@ module Mondrian
           result_set_type = Java::JavaSql::ResultSet::TYPE_FORWARD_ONLY
           result_set_concurrency = Java::JavaSql::ResultSet::CONCUR_READ_ONLY
 
-          Java::MondrianRolap::RolapUtil.executeQuery(
+          sql_statement = Java::MondrianRolap::RolapUtil.executeQuery(
             connection.getDataSource,
             sql,
             nil,
@@ -266,11 +297,12 @@ module Mondrian
             result_set_concurrency,
             nil
           )
+          [sql_statement, return_fields]
         end
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
           nonempty_columns, return_fields = parse_return_fields(result, params)
-          return_expressions = return_fields.map{|field| field[:member]}
+          return_expressions = return_fields.map { |field| field[:member] }
 
           sql_non_extended = rolap_cell.getDrillThroughSQL(return_expressions, false)
           sql_extended = rolap_cell.getDrillThroughSQL(return_expressions, true)
@@ -366,7 +398,7 @@ module Mondrian
           sql = "select #{new_select} from #{new_from} where #{new_where}"
           sql << " group by #{new_group_by}" unless new_group_by.empty?
           sql << " order by #{new_order_by}" unless new_order_by.empty?
-          sql
+          [sql, return_fields]
         end
 
         def self.parse_return_fields(result, params)
@@ -396,6 +428,12 @@ module Mondrian
               # Do not limit it for other databases (as e.g. in MySQL aliases can be longer than column names)
               max_alias_length = dialect.getMaxColumnNameLength # 0 means that there is no limit
               max_alias_length = nil if max_alias_length && (max_alias_length > 30 || max_alias_length == 0)
+              sql_options = {
+                dialect: dialect,
+                sql_query: sql_query,
+                max_alias_length: max_alias_length,
+                params: params
+              }
 
               return_fields.size.times do |i|
                 member_full_name = return_fields[i][:member_full_name]
@@ -416,48 +454,7 @@ module Mondrian
                   raise ArgumentError, "return field #{member_full_name} should be level or measure"
                 end
 
-                if table_name = (level_or_member.try(:getTableName) || level_or_member.try(:getMondrianDefExpression).try(:table))
-                  return_fields[i][:quoted_table_name] = dialect.quoteIdentifier(table_name)
-                end
-
-                return_fields[i][:column_expression] = case return_fields[i][:type]
-                when :name
-                  if level_or_member.respond_to? :getNameExp
-                    level_or_member.getNameExp.getExpression sql_query
-                  end
-                when :property
-                  if property = level_or_member.getProperties.to_a.detect{|p| p.getName == return_fields[i][:name]}
-                    # property.getExp is a protected method therefore
-                    # use a workaround to get the value from the field
-                    f = property.java_class.declared_field("exp")
-                    f.accessible = true
-                    if column = f.value(property)
-                      column.getExpression sql_query
-                    end
-                  end
-                else
-                  if level_or_member.respond_to? :getKeyExp
-                    return_fields[i][:type] = :key
-                    level_or_member.getKeyExp.getExpression sql_query
-                  else
-                    return_fields[i][:type] = :measure
-                    column_expression = level_or_member.getMondrianDefExpression.getExpression sql_query
-                    if params[:group_by]
-                      level_or_member.getAggregator.getExpression column_expression
-                    else
-                      column_expression
-                    end
-                  end
-                end
-
-                column_alias = if return_fields[i][:type] == :key
-                  "#{return_fields[i][:name]} (Key)"
-                else
-                  return_fields[i][:name]
-                end
-                return_fields[i][:column_alias] = dialect.quoteIdentifier(
-                  max_alias_length ? column_alias[0, max_alias_length] : column_alias
-                )
+                add_sql_attributes return_fields[i], sql_options
               end
             end
 
@@ -481,7 +478,69 @@ module Mondrian
             end
           end
 
+          if params[:role_name].present?
+            add_role_validation_fields return_fields, sql_options
+          end
+
           [nonempty_columns, return_fields]
+        end
+
+        def self.add_sql_attributes(field, dialect:, sql_query:, max_alias_length:, params:)
+          member = field[:member]
+
+          if table_name = (member.try(:getTableName) || member.try(:getMondrianDefExpression).try(:table))
+            field[:quoted_table_name] = dialect.quoteIdentifier(table_name)
+          end
+
+          field[:column_expression] =
+            case field[:type]
+            when :name
+              if member.respond_to? :getNameExp
+                member.getNameExp.getExpression sql_query
+              end
+            when :property
+              if property = member.getProperties.to_a.detect { |p| p.getName == field[:name] }
+                # property.getExp is a protected method therefore
+                # use a workaround to get the value from the field
+                f = property.java_class.declared_field("exp")
+                f.accessible = true
+                if column = f.value(property)
+                  column.getExpression sql_query
+                end
+              end
+            when :name_or_key
+              member.getNameExp&.getExpression(sql_query) || member.getKeyExp&.getExpression(sql_query)
+            else
+              if member.respond_to? :getKeyExp
+                field[:type] = :key
+                member.getKeyExp.getExpression sql_query
+              else
+                field[:type] = :measure
+                column_expression = member.getMondrianDefExpression.getExpression sql_query
+                if params[:group_by]
+                  member.getAggregator.getExpression column_expression
+                else
+                  column_expression
+                end
+              end
+            end
+
+          column_alias = field[:type] == :key ? "#{field[:name]} (Key)" : field[:name]
+          field[:column_alias] = dialect.quoteIdentifier(
+            max_alias_length ? column_alias[0, max_alias_length] : column_alias
+          )
+        end
+
+        def self.add_role_validation_fields(fields, options = {})
+          fields.map { |f| f[:member] }.uniq.each_with_index do |level_or_member, i|
+            next if level_or_member.is_a?(Java::MondrianOlap::Member)
+            current_level = level_or_member
+            loop do
+              fields << {member: current_level, type: :name_or_key, name: "#{i}:#{current_level.getDepth}"}
+              add_sql_attributes fields.last, options
+              break unless (current_level = current_level.getParentLevel) and !current_level.isAll
+            end
+          end
         end
       end
 
