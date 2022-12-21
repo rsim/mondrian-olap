@@ -997,6 +997,28 @@ describe "Query" do
     end
   end
 
+  describe "drill through cell with return and role restrictions" do
+    before(:all) do
+      @olap.role_name = "Canada manager"
+      @query = @olap.from('Sales')
+      @result = @query.columns('[Measures].[Unit Sales]').
+        rows('[Customers].[All Customers]').
+        execute
+    end
+
+    after(:all) do
+      @olap.role_name = nil
+    end
+
+    it "should return data according to role restriction" do
+      @drill_through = @result.drill_through(:row => 0, :column => 0, :return => [
+        '[Customers].[Country]',
+        '[Measures].[Unit Sales]'
+      ])
+      @drill_through.rows.all? { |r| r.first == "Canada" }.should be_true
+    end
+  end
+
   describe "drill through virtual cube cell with return" do
     before(:all) do
       @query = @olap.from('Sales and Warehouse')
