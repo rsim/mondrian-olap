@@ -478,7 +478,7 @@ module Mondrian
           end
 
           if params[:role_name].present?
-            add_role_validation_fields return_fields, sql_options
+            add_role_restricition_fields return_fields, sql_options
           end
 
           [nonempty_columns, return_fields]
@@ -530,7 +530,7 @@ module Mondrian
           )
         end
 
-        def self.add_role_validation_fields(fields, options = {})
+        def self.add_role_restricition_fields(fields, options = {})
           fields.map { |f| f[:member] }.uniq.each_with_index do |level_or_member, i|
             next if level_or_member.is_a?(Java::MondrianOlap::Member)
             current_level = level_or_member
