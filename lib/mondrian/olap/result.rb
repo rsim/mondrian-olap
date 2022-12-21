@@ -234,7 +234,7 @@ module Mondrian
         def can_access_row_values?(row_values)
           return true unless @role_name
 
-          member_full_name_columns.each do |_, column_indexes|
+          member_full_name_columns_indexes.each do |column_indexes|
             segment_names = [@return_fields[column_indexes.first][:member].getHierarchy.getName]
             column_indexes.each { |i| segment_names << row_values[i].to_s }
             segment_list = Java::OrgOlap4jMdx::IdentifierNode.ofNames(*segment_names).getSegmentList
@@ -244,16 +244,19 @@ module Mondrian
           true
         end
 
-        def member_full_name_columns
-          @member_full_name_columns ||= begin
-            columns = Hash.new { |h, k| h[k] = Array.new }
+        def member_full_name_columns_indexes
+          @member_full_name_columns_indexes ||= begin
+            fieldset_columns = Hash.new { |h, k| h[k] = Array.new }
             column_labels.each_with_index do |label, i|
-              if label =~ /\A(\d+):(\d+)\z/
-                columns[$1] << [$2.to_i, i]
+              # Find all role restriction columns with a label pattern "_level:<Fieldset ID>:<Level depth>"
+              if label =~ /\A_level:(\d+):(\d+)\z/
+                # Group by fieldset ID with a compound value of level depth and column index
+                fieldset_columns[$1] << [$2.to_i, i]
               end
             end
-            columns.each { |k, v| columns[k] = v.sort_by(&:first).map(&:last) }
-            columns
+            # For each fieldset create an array with columns indexes sorted by level depth
+            fieldset_columns.each { |k, v| fieldset_columns[k] = v.sort_by(&:first).map(&:last) }
+            fieldset_columns.values
           end
         end
 
@@ -531,11 +534,13 @@ module Mondrian
         end
 
         def self.add_role_restricition_fields(fields, options = {})
+          # For each unique level field add a set of fields to be able to build level member full name from database query results
           fields.map { |f| f[:member] }.uniq.each_with_index do |level_or_member, i|
             next if level_or_member.is_a?(Java::MondrianOlap::Member)
             current_level = level_or_member
             loop do
-              fields << {member: current_level, type: :name_or_key, name: "#{i}:#{current_level.getDepth}"}
+              # Create an additional field name using a pattern "_level:<Fieldset ID>:<Level depth>"
+              fields << {member: current_level, type: :name_or_key, name: "_level:#{i}:#{current_level.getDepth}"}
               add_sql_attributes fields.last, options
               break unless (current_level = current_level.getParentLevel) and !current_level.isAll
             end
