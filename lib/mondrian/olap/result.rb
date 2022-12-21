@@ -8,7 +8,6 @@ module Mondrian
         @raw_cell_set = raw_cell_set
         @profiling_handler = options[:profiling_handler]
         @total_duration = options[:total_duration]
-        @role_name = @connection.role_name
       end
 
       attr_reader :raw_cell_set, :profiling_handler, :total_duration
@@ -150,7 +149,7 @@ module Mondrian
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell, params.merge(role_name: @role_name))
+          DrillThrough.from_raw_cell(raw_cell, params.merge(role_name: @connection.role_name))
         end
       end
 
