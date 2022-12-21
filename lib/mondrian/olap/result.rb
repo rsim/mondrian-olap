@@ -245,15 +245,15 @@ module Mondrian
         end
 
         def member_full_name_columns
-          @member_full_name_columns || begin
-            @member_full_name_columns = Hash.new { |h, k| h[k] = Array.new }
+          @member_full_name_columns ||= begin
+            columns = Hash.new { |h, k| h[k] = Array.new }
             column_labels.each_with_index do |label, i|
               if label =~ /\A(\d+):(\d+)\z/
-                @member_full_name_columns[$1] << [$2.to_i, i]
+                columns[$1] << [$2.to_i, i]
               end
             end
-            @member_full_name_columns.each { |k, v| @member_full_name_columns[k] = v.sort_by(&:first).map(&:last) }
-            @member_full_name_columns
+            columns.each { |k, v| columns[k] = v.sort_by(&:first).map(&:last) }
+            columns
           end
         end
 
