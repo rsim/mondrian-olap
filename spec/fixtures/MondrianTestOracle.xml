@@ -156,4 +156,14 @@ CASE WHEN UNITS_SHIPPED IS NOT NULL THEN PRODUCT_ID END
   <VirtualCubeMeasure cubeName="Warehouse" name="[Measures].[Products with units shipped]"/>
 </VirtualCube>
 
+<Role name="Canada manager">
+  <SchemaGrant access="none">
+    <CubeGrant access="all" cube="Sales">
+      <HierarchyGrant access="custom" hierarchy="[Customers]">
+        <MemberGrant access="all" member="[Customers].[Canada]"/>
+      </HierarchyGrant>
+    </CubeGrant>
+  </SchemaGrant>
+</Role>
+
 </Schema>
