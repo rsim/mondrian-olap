@@ -374,10 +374,11 @@ namespace :db do
         puts "==> Copy into #{table_name}"
         file_path = "#{export_data_dir}/#{table_name}.csv"
         columns_string = File.open(file_path) { |f| f.gets }.chomp
+        clickhouse_format_class = Java::com.clickhouse.data.ClickHouseFormat rescue Java::com.clickhouse.client.ClickHouseFormat
         conn.jdbc_connection.createStatement.write.
           query("INSERT INTO #{table_name}(#{columns_string})").
-          format(Java::com.clickhouse.client.ClickHouseFormat::CSVWithNames).
-          data(file_path).send
+          format(clickhouse_format_class::CSVWithNames).
+          data(file_path).execute
         count = conn.select_value("SELECT COUNT(*) FROM #{table_name}").to_i
         puts "==> Loaded #{count} records"
       end
