@@ -240,4 +240,20 @@ describe "Mondrian features" do
     end.should_not raise_error
   end
 
+  describe "functions with double argument" do
+    it "should get Abs with decimal measure" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Abs Store Sales]').as('Abs([Measures].[Store Sales])').
+        columns('[Measures].[Store Sales]', '[Measures].[Abs Store Sales]').execute
+      result.values[0].should == result.values[1]
+    end
+
+    it "should get Round with decimal measure" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Round Store Sales]').as('Round([Measures].[Store Sales])').
+        columns('[Measures].[Store Sales]', '[Measures].[Round Store Sales]').
+        where('[Customers].[USA].[CA]').execute
+      result.values[0].round.should == result.values[1]
+    end
+  end
 end
