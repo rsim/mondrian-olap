@@ -7,8 +7,7 @@ cache:
 notifications:
   email: false
 rvm:
-  - jruby-9.2.20.1
-  - jruby-9.3.7.0
+  - jruby-9.3.10.0
 addons:
   postgresql: "9.4"
   hosts:

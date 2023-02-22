@@ -1,11 +1,7 @@
 environment:
   JRUBY_OPTS: '--dev -J-Xmx1024m'
   matrix:
-    - JRUBY_VERSION: "9.2.20.1"
-      JAVA_VERSION: jdk1.8.0
-    - JRUBY_VERSION: "9.2.20.1"
-      JAVA_VERSION: jdk11
-    - JRUBY_VERSION: "9.3.7.0"
+    - JRUBY_VERSION: "9.3.10.0"
       JAVA_VERSION: jdk11
 
 services:
