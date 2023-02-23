@@ -381,6 +381,11 @@ when 'clickhouse'
   # CREATE USER mondrian_test IDENTIFIED WITH plaintext_password BY 'mondrian_test';
   # CREATE DATABASE mondrian_test;
   # GRANT ALL ON mondrian_test.* TO mondrian_test;
+
+  # For testing different protocols
+  # CONNECTION_PARAMS[:protocol] = 'http'
+  # CONNECTION_PARAMS[:properties] ={'http_connection_provider' => 'APACHE_HTTP_CLIENT'}
+
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver:   JDBC_DRIVER,

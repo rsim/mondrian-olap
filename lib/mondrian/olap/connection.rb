@@ -408,7 +408,12 @@ module Mondrian
       end
 
       def jdbc_uri_clickhouse
-        jdbc_uri_generic(uri_prefix: 'jdbc:ch://', default_port: 8123)
+        protocol_prefix = if protocol = @params[:protocol]
+          raise ArgumentError, "invalid protocol #{protocol}" unless protocol =~ /\A\w+\z/
+          ":#{protocol}"
+        end
+        uri_prefix = "jdbc:ch#{protocol_prefix}://"
+        jdbc_uri_generic(uri_prefix: uri_prefix, default_port: 8123)
       end
 
       def jdbc_uri_jdbc
