@@ -377,8 +377,7 @@ namespace :db do
         clickhouse_format_class = Java::com.clickhouse.data.ClickHouseFormat rescue Java::com.clickhouse.client.ClickHouseFormat
         conn.jdbc_connection.createStatement.write.
           query("INSERT INTO #{table_name}(#{columns_string})").
-          format(clickhouse_format_class::CSVWithNames).
-          data(file_path).execute
+          data(file_path).format(clickhouse_format_class::CSVWithNames).execute
         count = conn.select_value("SELECT COUNT(*) FROM #{table_name}").to_i
         puts "==> Loaded #{count} records"
       end
