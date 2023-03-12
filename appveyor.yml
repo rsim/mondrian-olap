@@ -36,8 +36,7 @@ before_test:
   - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "CREATE LOGIN mondrian_test WITH PASSWORD = 'mondrian_test'"
   - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "ALTER SERVER ROLE [dbcreator] ADD MEMBER [mondrian_test]"
   - sqlcmd -S "(local)" -U "mondrian_test" -P "mondrian_test" -Q "CREATE DATABASE mondrian_test"
-  - bundle exec rake db:create_data MONDRIAN_DRIVER=mssql
+  - bundle exec rake db:create_data MONDRIAN_DRIVER=sqlserver
 
 test_script:
-  - bundle exec rake spec MONDRIAN_DRIVER=mssql
   - bundle exec rake spec MONDRIAN_DRIVER=sqlserver

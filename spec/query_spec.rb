@@ -839,15 +839,6 @@ describe "Query" do
             String,
             BigDecimal
           ]
-        when 'mssql'
-          [
-            Integer, String, Integer, Integer, Integer,
-            String, String, String, String, String, String,
-            # last one can be BigDecimal or Integer, probably depends on MS SQL version
-            String, String, String, Numeric,
-            String,
-            BigDecimal
-          ]
         else
           [
             Integer, String, Integer, Integer, Integer,

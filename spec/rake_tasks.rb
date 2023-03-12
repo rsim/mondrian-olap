@@ -85,7 +85,7 @@ namespace :db do
         execute "ALTER TABLE customers MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT"
       when /postgresql/
         execute "ALTER TABLE customers ALTER COLUMN id SET DATA TYPE bigint"
-      when /mssql|sqlserver/
+      when /sqlserver/
         sql = "SELECT name FROM sysobjects WHERE xtype = 'PK' AND parent_obj=OBJECT_ID('customers')"
         primary_key_constraint = select_value(sql)
         execute "ALTER TABLE customers DROP CONSTRAINT #{primary_key_constraint}"
@@ -405,7 +405,7 @@ namespace :db do
 end
 
 namespace :spec do
-  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake clickhouse mariadb).each do |driver|
+  %w(mysql jdbc_mysql postgresql oracle sqlserver vertica snowflake clickhouse mariadb).each do |driver|
     desc "Run specs with #{driver} driver"
     task driver do
       ENV['MONDRIAN_DRIVER'] = driver
@@ -416,7 +416,7 @@ namespace :spec do
 
   desc "Run specs with all primary database drivers"
   task :all do
-    %w(mysql jdbc_mysql postgresql oracle mssql).each do |driver|
+    %w(mysql jdbc_mysql postgresql oracle sqlserver).each do |driver|
       Rake::Task["spec:#{driver}"].invoke
     end
   end

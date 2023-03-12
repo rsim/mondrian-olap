@@ -362,13 +362,6 @@ module Mondrian
         end
       end
 
-      def jdbc_uri_mssql
-        jdbc_uri_generic(
-          uri_prefix: 'jdbc:jtds:sqlserver://', separator: ';', first_separator: ';',
-          default_properties: @params.slice(:instance, :domain, :appname)
-        )
-      end
-
       JDBC_SQLSERVER_PARAM_PROPERTIES = {
         database: 'databaseName',
         integrated_security: 'integratedSecurity',
@@ -423,7 +416,6 @@ module Mondrian
       JDBC_DRIVER_CLASS = {
         'postgresql' => 'org.postgresql.Driver',
         'oracle' => 'oracle.jdbc.OracleDriver',
-        'mssql' => 'net.sourceforge.jtds.jdbc.Driver',
         'sqlserver' => 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
         'vertica' => 'com.vertica.jdbc.Driver',
         'snowflake' => 'net.snowflake.client.jdbc.SnowflakeDriver',
