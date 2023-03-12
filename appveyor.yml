@@ -26,7 +26,7 @@ install:
   - copy sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar spec\support\jars\
   - SET JAVA_HOME=C:\Program Files\Java\%JAVA_VERSION%
   - SET PATH=C:\projects\mondrian-olap\jruby-%JRUBY_VERSION%\bin;%JAVA_HOME%\bin;%PATH%
-  - gem install bundler -v 1.17.3
+  - gem install bundler
   - bundle install --jobs=1 --retry=3
 
 before_test:
