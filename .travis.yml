@@ -41,6 +41,11 @@ branches:
   only:
     - master
 
+jobs:
+  exclude:
+    - rvm: jruby-9.4.2.0
+      jdk: openjdk8
+
 before_install:
   - gem install bundler
 
