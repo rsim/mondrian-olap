@@ -911,7 +911,7 @@ describe "Query" do
       @drill_through.column_labels.should == [
         "Unit Sales", "Store Sales"
       ]
-      @drill_through.rows.all?{|r| r.any?{|c| c}}.should be_true
+      @drill_through.rows.all?{|r| r.any?{|c| c}}.should == true
     end
 
     it "should return member name and property values" do
@@ -1006,7 +1006,7 @@ describe "Query" do
         '[Customers].[Country]',
         '[Measures].[Unit Sales]'
       ])
-      @drill_through.rows.all? { |r| r.first == "Canada" }.should be_true
+      @drill_through.rows.all? { |r| r.first == "Canada" }.should == true
     end
   end
 

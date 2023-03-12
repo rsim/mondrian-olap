@@ -224,7 +224,7 @@ describe "Mondrian features" do
     result = @olap.from('Sales').
       with_member('[Measures].[is dirty]').as('IsDirty()').
       columns('[Measures].[is dirty]').execute
-    result.values[0].should be_false
+    result.values[0].should == false
   end
 
   it "should support multiple values IN expression" do

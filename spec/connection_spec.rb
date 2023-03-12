@@ -12,7 +12,7 @@ describe "Connection" do
     end
 
     it "should be successful" do
-      @olap.connect.should be_true
+      @olap.connect.should == true
     end
 
   end
@@ -25,7 +25,7 @@ describe "Connection" do
       @olap = Mondrian::OLAP::Connection.new(CONNECTION_PARAMS.merge(
         :catalog_content => @schema_xml
       ))
-      @olap.connect.should be_true
+      @olap.connect.should == true
     end
 
   end

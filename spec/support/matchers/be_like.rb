@@ -16,6 +16,7 @@ module Matchers
     def negative_failure_message
       "expected\n#{@actual}\nto be unlike\n#{@expected}"
     end
+    alias_method :failure_message_when_negated, :negative_failure_message
   end
 
   def be_like(expected)
