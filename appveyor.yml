@@ -5,7 +5,7 @@ environment:
       JAVA_VERSION: jdk11
 
 services:
-  - mssql2012sp1
+  - mssql2016
 
 build: off
 
