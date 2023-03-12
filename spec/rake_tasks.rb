@@ -10,7 +10,7 @@ namespace :db do
   desc "Create test database tables"
   task :create_tables => :require_spec_helper do
     puts "==> Creating tables for test data"
-    ActiveRecord::Schema.define do
+    ActiveRecord::Schema.instance_eval do
 
       create_table :time, :force => true do |t|
         t.datetime    :the_date
@@ -96,11 +96,16 @@ namespace :db do
       create_table :sales, :force => true, :id => false do |t|
         t.integer     :product_id
         t.integer     :time_id
-        t.integer     :customer_id, limit: 8
+        t.integer     :customer_id, limit: MONDRIAN_DRIVER == 'sqlserver' ? nil : 8
         t.integer     :promotion_id
         t.decimal     :store_sales, precision: 10, scale: 4
         t.decimal     :store_cost, precision: 10, scale: 4
         t.decimal     :unit_sales, precision: 10, scale: 4
+      end
+
+      case MONDRIAN_DRIVER
+      when /sqlserver/
+        execute "ALTER TABLE sales ALTER COLUMN customer_id BIGINT"
       end
 
       create_table :warehouse, :force => true, :id => false do |t|
@@ -256,10 +261,10 @@ namespace :db do
       :related_fullname => "Big Number"
     }
     case MONDRIAN_DRIVER
-    when /mssql|sqlserver/
-      Customer.connection.with_identity_insert_enabled("customers") do
-        Customer.create!(attributes)
-      end
+    when 'sqlserver'
+      Customer.connection.execute "SET IDENTITY_INSERT customers ON"
+      Customer.create!(attributes)
+      Customer.connection.execute "SET IDENTITY_INSERT customers OFF"
     else
       Customer.create!(attributes)
     end
