@@ -487,8 +487,12 @@ module Mondrian
           [nonempty_columns, return_fields]
         end
 
-        def self.add_sql_attributes(field, dialect:, sql_query:, max_alias_length:, params:)
+        def self.add_sql_attributes(field, options = {})
           member = field[:member]
+          dialect = options[:dialect]
+          sql_query = options[:sql_query]
+          max_alias_length = options[:max_alias_length]
+          params = options[:params]
 
           if table_name = (member.try(:getTableName) || member.try(:getMondrianDefExpression).try(:table))
             field[:quoted_table_name] = dialect.quoteIdentifier(table_name)
