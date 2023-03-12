@@ -8,6 +8,7 @@ notifications:
   email: false
 rvm:
   - jruby-9.3.10.0
+  - jruby-9.4.2.0
 addons:
   postgresql: "9.4"
   hosts:
@@ -41,7 +42,7 @@ branches:
     - master
 
 before_install:
-  - gem install bundler -v 1.17.3
+  - gem install bundler
 
 install:
   - .travis/oracle/download.sh
