@@ -21,6 +21,7 @@ services:
 jdk:
   - openjdk8
   - openjdk11
+  - openjdk17
 env:
   global:
     - ORACLE_COOKIE=sqldev
@@ -43,6 +44,8 @@ branches:
 
 jobs:
   exclude:
+    - rvm: jruby-9.3.10.0
+      jdk: openjdk17
     - rvm: jruby-9.4.2.0
       jdk: openjdk8
 
