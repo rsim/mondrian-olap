@@ -1,13 +1,22 @@
 ### Master
 
 * New features
-  * Upgrade to the latest Mondrian version 9.3.0.0
-  * Support for ClickHouse database
-  * Support for MariaDB ColumnStore engine
-  * Improve Aggregate performance of large compound slicers when mondrian.rolap.EnableInMemoryRollup=false
+  * Upgrade to the latest Mondrian version 9.3.0.0 with additional patches
+  * Additional Mondrian patches and improvements
+    * Support for ClickHouse database
+    * Support for MariaDB ColumnStore engine
+    * Improve Aggregate performance of large compound slicers when mondrian.rolap.EnableInMemoryRollup=false
+    * Improve performance of Mondrian member property value lookup
+    * Set dynamic Mondrian connection pool size based on mondrian.rolap.maxSqlThreads property
+    * Skip registration of MondrianOlap4jDriver if mondrian.olap4j.registerDriver=false
+    * Enable Mondrian supportsMultiValueInExpr for PostgreSQL and Oracle
+  * Upgrade to log4j2
   * Support instance parameter for SQL Server connection
   * Allow to specify high_cardinality for dimension
-  * Upgrade to log4j2
+  * Remove deprecated jTDS driver support, use MS JDBC driver instead
+  * Remove user defined functions and formatters in JavaScript and CoffeeScript as they are not supported since JVM 8
+  * Upgrade tests to use the later ActiveRecord and RSpec versions
+  * Tested with JRuby 9.4 and JVM 17
 * Bug fixes
   * Patch for MONDRIAN-2714 (fixed support for MySQL JDBC driver version 8.0.23)
 

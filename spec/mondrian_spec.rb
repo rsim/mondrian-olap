@@ -153,8 +153,6 @@ describe "Mondrian features" do
       case MONDRIAN_DRIVER
       when 'oracle'
         java.sql.Timestamp
-      when 'mssql' # The old jTDS driver returns dates as string when using resultSet.getObject
-        String
       else
         java.sql.Date
       end
@@ -167,9 +165,7 @@ describe "Mondrian features" do
       with_member('[Measures].[date]').as("#{member.full_name}.Properties('Birthdate')", format_string: 'dd.mm.yyyy').
       columns('[Measures].[date]').execute
     result.values.first.should be_a(expected_date_class)
-    unless MONDRIAN_DRIVER == 'mssql' # Date formatting is not working correctly using the old jTDS driver
-      result.formatted_values.first.should == Date.parse(date_value.to_s).strftime("%d.%m.%Y")
-    end
+    result.formatted_values.first.should == Date.parse(date_value.to_s).strftime("%d.%m.%Y")
   end
 
   describe "optimized Aggregate" do
@@ -228,7 +224,7 @@ describe "Mondrian features" do
     result = @olap.from('Sales').
       with_member('[Measures].[is dirty]').as('IsDirty()').
       columns('[Measures].[is dirty]').execute
-    result.values[0].should be_false
+    result.values[0].should == false
   end
 
   it "should support multiple values IN expression" do

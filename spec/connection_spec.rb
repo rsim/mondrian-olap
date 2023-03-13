@@ -12,7 +12,7 @@ describe "Connection" do
     end
 
     it "should be successful" do
-      @olap.connect.should be_true
+      @olap.connect.should == true
     end
 
   end
@@ -25,7 +25,7 @@ describe "Connection" do
       @olap = Mondrian::OLAP::Connection.new(CONNECTION_PARAMS.merge(
         :catalog_content => @schema_xml
       ))
-      @olap.connect.should be_true
+      @olap.connect.should == true
     end
 
   end
@@ -49,7 +49,6 @@ describe "Connection" do
         when 'mysql' then 'mondrian.spi.impl.MySqlDialect'
         when 'postgresql' then 'mondrian.spi.impl.PostgreSqlDialect'
         when 'oracle' then 'mondrian.spi.impl.OracleDialect'
-        when 'mssql' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
         when 'sqlserver' then 'mondrian.spi.impl.MicrosoftSqlServerDialect'
         when 'vertica' then 'mondrian.spi.impl.VerticaDialect'
         when 'snowflake' then 'mondrian.spi.impl.SnowflakeDialect'
@@ -93,19 +92,6 @@ describe "Connection" do
 
   describe "jdbc_uri" do
     before(:all) { @olap_connection = Mondrian::OLAP::Connection }
-
-    describe "MS SQL jTDS driver" do
-      it "should return a valid JDBC URI" do
-        @olap_connection.new(
-          driver: 'mssql',
-          host: 'example.com',
-          port: 1234,
-          instance: 'MSSQLSERVER',
-          database: 'example_db',
-          domain: 'win_domain'
-        ).jdbc_uri.should == 'jdbc:jtds:sqlserver://example.com:1234/example_db;instance=MSSQLSERVER;domain=win_domain'
-      end
-    end
 
     describe "SQL Server" do
       it "should return a valid JDBC URI" do

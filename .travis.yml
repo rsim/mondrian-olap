@@ -8,6 +8,7 @@ notifications:
   email: false
 rvm:
   - jruby-9.3.10.0
+  - jruby-9.4.2.0
 addons:
   postgresql: "9.4"
   hosts:
@@ -20,6 +21,7 @@ services:
 jdk:
   - openjdk8
   - openjdk11
+  - openjdk17
 env:
   global:
     - ORACLE_COOKIE=sqldev
@@ -40,8 +42,15 @@ branches:
   only:
     - master
 
+jobs:
+  exclude:
+    - rvm: jruby-9.3.10.0
+      jdk: openjdk17
+    - rvm: jruby-9.4.2.0
+      jdk: openjdk8
+
 before_install:
-  - gem install bundler -v 1.17.3
+  - gem install bundler
 
 install:
   - .travis/oracle/download.sh

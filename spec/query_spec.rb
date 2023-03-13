@@ -839,15 +839,6 @@ describe "Query" do
             String,
             BigDecimal
           ]
-        when 'mssql'
-          [
-            Integer, String, Integer, Integer, Integer,
-            String, String, String, String, String, String,
-            # last one can be BigDecimal or Integer, probably depends on MS SQL version
-            String, String, String, Numeric,
-            String,
-            BigDecimal
-          ]
         else
           [
             Integer, String, Integer, Integer, Integer,
@@ -920,7 +911,7 @@ describe "Query" do
       @drill_through.column_labels.should == [
         "Unit Sales", "Store Sales"
       ]
-      @drill_through.rows.all?{|r| r.any?{|c| c}}.should be_true
+      @drill_through.rows.all?{|r| r.any?{|c| c}}.should == true
     end
 
     it "should return member name and property values" do
@@ -1015,7 +1006,7 @@ describe "Query" do
         '[Customers].[Country]',
         '[Measures].[Unit Sales]'
       ])
-      @drill_through.rows.all? { |r| r.first == "Canada" }.should be_true
+      @drill_through.rows.all? { |r| r.first == "Canada" }.should == true
     end
   end
 

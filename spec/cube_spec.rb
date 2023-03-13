@@ -272,12 +272,12 @@ describe "Cube" do
     end
 
     it "should get hierarchy all member" do
-      @cube.dimension('Gender').hierarchy.has_all?.should be_true
+      @cube.dimension('Gender').hierarchy.has_all?.should == true
       @cube.dimension('Gender').hierarchy.all_member_name.should == 'All Genders'
     end
 
     it "should not get all member for hierarchy without all member" do
-      @cube.dimension('Time').hierarchy.has_all?.should be_false
+      @cube.dimension('Time').hierarchy.has_all?.should == false
       @cube.dimension('Time').hierarchy.all_member_name.should be_nil
     end
 

@@ -215,8 +215,8 @@ See more examples of dimension and member queries in `spec/cube_spec.rb`.
 
 ### User defined MDX functions
 
-You can define new MDX functions using JavaScript, CoffeeScript or Ruby language that you can later use
-either in calculated member formulas or in MDX queries. Here are examples of user defined functions in Ruby:
+You can define new MDX functions using Ruby that you can later use either in calculated member formulas or in MDX queries.
+Here are examples of user defined functions in Ruby:
 
 ```ruby
 schema = Mondrian::OLAP::Schema.define do
@@ -273,9 +273,9 @@ See more examples of data access roles in `spec/connection_role_spec.rb`.
 REQUIREMENTS
 ------------
 
-mondrian-olap gem is compatible with JRuby version 9.3.x, and Java 8 and 11 VM. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
+mondrian-olap gem is compatible with JRuby versions 9.3.x and 9.4.x, JVM 8, 11, and 17. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
 
-mondrian-olap supports MySQL, PostgreSQL, Oracle, Microsoft SQL Server, Vertica and Snowflake databases as well as other databases that are supported by Mondrian OLAP engine (using jdbc_driver and jdbc_url connection parameters). When using MySQL or PostgreSQL databases then install jdbc-mysql or jdbc-postgres gem and require "jdbc/mysql" or "jdbc/postgres" to load the corresponding JDBC database driver. When using Oracle then require Oracle JDBC driver (`ojdbc8.jar` for Java 8). When using SQL Server you can choose between the jTDS or Microsoft JDBC drivers. If you use jTDS require "jdbc/jtds". If you use the Microsoft JDBC driver then require the latest `mssql-jdbc-*.jar`. When using Vertica or Snowflake then require corresponding JDBC drivers.
+mondrian-olap supports MySQL, PostgreSQL, Oracle, Microsoft SQL Server, Vertica, Snowflake, and ClickHouse databases as well as other databases that are supported by Mondrian OLAP engine (using jdbc_driver and jdbc_url connection parameters). When using MySQL or PostgreSQL databases then install jdbc-mysql or jdbc-postgres gem and require "jdbc/mysql" or "jdbc/postgres" to load the corresponding JDBC database driver. When using Oracle then require Oracle JDBC driver `ojdbc*.jar`. When using MS SQL Server you then use the Microsoft JDBC driver `mssql-jdbc-*.jar`. When using Vertica, Snowflake, or ClickHouse then require corresponding JDBC drivers.
 
 INSTALL
 -------

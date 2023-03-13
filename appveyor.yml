@@ -5,7 +5,7 @@ environment:
       JAVA_VERSION: jdk11
 
 services:
-  - mssql2012sp1
+  - mssql2016
 
 build: off
 
@@ -26,7 +26,7 @@ install:
   - copy sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar spec\support\jars\
   - SET JAVA_HOME=C:\Program Files\Java\%JAVA_VERSION%
   - SET PATH=C:\projects\mondrian-olap\jruby-%JRUBY_VERSION%\bin;%JAVA_HOME%\bin;%PATH%
-  - gem install bundler -v 1.17.3
+  - gem install bundler
   - bundle install --jobs=1 --retry=3
 
 before_test:
@@ -36,8 +36,7 @@ before_test:
   - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "CREATE LOGIN mondrian_test WITH PASSWORD = 'mondrian_test'"
   - sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "ALTER SERVER ROLE [dbcreator] ADD MEMBER [mondrian_test]"
   - sqlcmd -S "(local)" -U "mondrian_test" -P "mondrian_test" -Q "CREATE DATABASE mondrian_test"
-  - bundle exec rake db:create_data MONDRIAN_DRIVER=mssql
+  - bundle exec rake db:create_data MONDRIAN_DRIVER=sqlserver
 
 test_script:
-  - bundle exec rake spec MONDRIAN_DRIVER=mssql
   - bundle exec rake spec MONDRIAN_DRIVER=sqlserver

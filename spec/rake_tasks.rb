@@ -10,7 +10,7 @@ namespace :db do
   desc "Create test database tables"
   task :create_tables => :require_spec_helper do
     puts "==> Creating tables for test data"
-    ActiveRecord::Schema.define do
+    ActiveRecord::Schema.instance_eval do
 
       create_table :time, :force => true do |t|
         t.datetime    :the_date
@@ -38,7 +38,7 @@ namespace :db do
 
       customers_options = {force: true}
       customers_options[:id] = false if import_data_drivers.include?(MONDRIAN_DRIVER)
-      create_table :customers, customers_options do |t|
+      create_table :customers, **customers_options do |t|
         t.integer     :id, :limit => 8 if import_data_drivers.include?(MONDRIAN_DRIVER)
         t.string      :country, :limit => 30
         t.string      :state_province, :limit => 30
@@ -85,7 +85,7 @@ namespace :db do
         execute "ALTER TABLE customers MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT"
       when /postgresql/
         execute "ALTER TABLE customers ALTER COLUMN id SET DATA TYPE bigint"
-      when /mssql|sqlserver/
+      when /sqlserver/
         sql = "SELECT name FROM sysobjects WHERE xtype = 'PK' AND parent_obj=OBJECT_ID('customers')"
         primary_key_constraint = select_value(sql)
         execute "ALTER TABLE customers DROP CONSTRAINT #{primary_key_constraint}"
@@ -96,11 +96,16 @@ namespace :db do
       create_table :sales, :force => true, :id => false do |t|
         t.integer     :product_id
         t.integer     :time_id
-        t.integer     :customer_id, limit: 8
+        t.integer     :customer_id, limit: MONDRIAN_DRIVER == 'sqlserver' ? nil : 8
         t.integer     :promotion_id
         t.decimal     :store_sales, precision: 10, scale: 4
         t.decimal     :store_cost, precision: 10, scale: 4
         t.decimal     :unit_sales, precision: 10, scale: 4
+      end
+
+      case MONDRIAN_DRIVER
+      when /sqlserver/
+        execute "ALTER TABLE sales ALTER COLUMN customer_id BIGINT"
       end
 
       create_table :warehouse, :force => true, :id => false do |t|
@@ -256,10 +261,10 @@ namespace :db do
       :related_fullname => "Big Number"
     }
     case MONDRIAN_DRIVER
-    when /mssql|sqlserver/
-      Customer.connection.with_identity_insert_enabled("customers") do
-        Customer.create!(attributes)
-      end
+    when 'sqlserver'
+      Customer.connection.execute "SET IDENTITY_INSERT customers ON"
+      Customer.create!(attributes)
+      Customer.connection.execute "SET IDENTITY_INSERT customers OFF"
     else
       Customer.create!(attributes)
     end
@@ -400,7 +405,7 @@ namespace :db do
 end
 
 namespace :spec do
-  %w(mysql jdbc_mysql postgresql oracle mssql sqlserver vertica snowflake clickhouse mariadb).each do |driver|
+  %w(mysql jdbc_mysql postgresql oracle sqlserver vertica snowflake clickhouse mariadb).each do |driver|
     desc "Run specs with #{driver} driver"
     task driver do
       ENV['MONDRIAN_DRIVER'] = driver
@@ -411,7 +416,7 @@ namespace :spec do
 
   desc "Run specs with all primary database drivers"
   task :all do
-    %w(mysql jdbc_mysql postgresql oracle mssql).each do |driver|
+    %w(mysql jdbc_mysql postgresql oracle sqlserver).each do |driver|
       Rake::Task["spec:#{driver}"].invoke
     end
   end
