@@ -2,7 +2,7 @@
 
 By default unit tests use MySQL database but PostgreSQL, Oracle and SQL Server databases are supported as well. Set MONDRIAN_DRIVER environment variable to "mysql" (default), "postgresql", "oracle", "sqlserver" (Microsoft JDBC), "vertica", "snowflake", "clickhouse", "mariadb" to specify database driver that should be used.
 
-If using MySQL, PostgreSQL or SQL Server database then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
+If using a MySQL, PostgreSQL or MS SQL Server database then create database user mondrian_test with password mondrian_test, create database mondrian_test and grant full access to this database for mondrian_test user. By default it is assumed that database is located on localhost (can be overridden with DATABASE_HOST environment variable).
 
 If using Oracle database then create database user mondrian_test with password mondrian_test. By default it is assumed that database orcl is located on localhost (can be overridden with DATABASE_NAME and DATABASE_HOST environment variables).
 
@@ -75,4 +75,4 @@ You can also run all tests on all standard databases (mysql jdbc_mysql postgresq
 
 == JRuby versions
 
-It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 9.2 on Java 8 and 11.
+It is recommended to use RVM (http://rvm.beginrescueend.com) to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 9.3 and 9.4 on JVM 8, 11, and 17.
