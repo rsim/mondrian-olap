@@ -9,20 +9,7 @@ module Mondrian
       end
 
       module ScriptElements
-        def javascript(text)
-          script text, :language => 'JavaScript'
-        end
-
         private
-
-        def coffeescript_function(arguments_string, text)
-          # construct function to ensure that last expression is returned
-          coffee_text = "#{arguments_string} ->\n" << text.gsub(/^/, '  ')
-          javascript_text = CoffeeScript.compile(coffee_text, :bare => true)
-          # remove function definition first and last lines
-          javascript_text = javascript_text.strip.lines.to_a[1..-2].join
-          javascript javascript_text
-        end
 
         def ruby(*options, &block)
           udf_class_name = if options.include?(:shared)
@@ -74,63 +61,12 @@ module Mondrian
 
       class UserDefinedFunction < SchemaElement
         include ScriptElements
+
         attributes :name, # Name with which the user-defined function will be referenced in MDX expressions.
-          # Name of the class which implemenets this user-defined function.
-          # Must implement the mondrian.spi.UserDefinedFunction  interface.
+          # Name of the class which implements this user-defined function.
+          # Must implement the mondrian.spi.UserDefinedFunction interface.
           :class_name
         elements :script
-
-        def coffeescript(text)
-          coffee_text = "__udf__ = {\n" << text << "}\n"
-          javascript_text = CoffeeScript.compile(coffee_text, :bare => true)
-          javascript_text << <<-JS
-
-__udf__.parameters || (__udf__.parameters = []);
-__udf__.returns || (__udf__.returns = "Scalar");
-var __scalarTypes__ = {"Numeric":true,"String":true,"Boolean":true,"DateTime":true,"Decimal":true,"Scalar":true};
-function __getType__(type) {
-  if (__scalarTypes__[type]) {
-    return new mondrian.olap.type[type+"Type"];
-  } else if (type === "Member") {
-    return mondrian.olap.type.MemberType.Unknown;
-  } else {
-    return null;
-  }
-}
-function getParameterTypes() {
-  var parameters = __udf__.parameters || [],
-      types = [];
-  for (var i = 0, len = parameters.length; i < len; i++) {
-    types.push(__getType__(parameters[i]))
-  }
-  return types;
-}
-function getReturnType(parameterTypes) {
-  var returns = __udf__.returns || "Scalar";
-  return __getType__(returns);
-}
-if (__udf__.syntax) {
-  function getSyntax() {
-    return mondrian.olap.Syntax[__udf__.syntax];
-  }
-}
-function execute(evaluator, args) {
-  var parameters = __udf__.parameters || [],
-      values = [],
-      value;
-  for (var i = 0, len = parameters.length; i < len; i++) {
-    if (__scalarTypes__[parameters[i]]) {
-      value = args[i].evaluateScalar(evaluator);
-    } else {
-      value = args[i].evaluate(evaluator);
-    }
-    values.push(value);
-  }
-  return __udf__.execute.apply(__udf__, values);
-}
-JS
-          javascript javascript_text
-        end
 
         class RubyUdfBase
           include Java::mondrian.spi.UserDefinedFunction
@@ -225,7 +161,7 @@ JS
           arguments_array_class = java.lang.Class.forName "[Lmondrian.spi.UserDefinedFunction$Argument;", true, class_loader
           add_method_signature("execute", [java.lang.Object, Java::mondrian.olap.Evaluator, arguments_array_class])
 
-          # Override this metho if evaluator is needed
+          # Override this method if evaluator is needed
           def call_with_evaluator(evaluator, *values)
             call(*values)
           end
@@ -294,10 +230,6 @@ JS
           end
         end
 
-        def coffeescript(text)
-          coffeescript_function('(value)', text)
-        end
-
         def ruby(*options, &block)
           ruby_formatter(options, Java::mondrian.spi.CellFormatter, 'formatCell', [java.lang.String, java.lang.Object], &block)
         end
@@ -308,12 +240,9 @@ JS
         attributes :class_name
         elements :script
 
-        def coffeescript(text)
-          coffeescript_function('(member)', text)
-        end
-
         def ruby(*options, &block)
-          ruby_formatter(options, Java::mondrian.spi.MemberFormatter, 'formatMember', [java.lang.String, Java::mondrian.olap.Member], &block)
+          ruby_formatter(options, Java::mondrian.spi.MemberFormatter, 'formatMember',
+            [java.lang.String, Java::mondrian.olap.Member], &block)
         end
       end
 
@@ -322,12 +251,9 @@ JS
         attributes :class_name
         elements :script
 
-        def coffeescript(text)
-          coffeescript_function('(member,propertyName,propertyValue)', text)
-        end
-
         def ruby(*options, &block)
-          ruby_formatter(options, Java::mondrian.spi.PropertyFormatter, 'formatProperty', [java.lang.String, Java::mondrian.olap.Member, java.lang.String, java.lang.Object], &block)
+          ruby_formatter(options, Java::mondrian.spi.PropertyFormatter, 'formatProperty',
+            [java.lang.String, Java::mondrian.olap.Member, java.lang.String, java.lang.Object], &block)
         end
       end
 
