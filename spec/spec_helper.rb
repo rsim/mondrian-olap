@@ -12,6 +12,7 @@ env_prefix = MONDRIAN_DRIVER.upcase
 
 DATABASE_HOST     = ENV["#{env_prefix}_DATABASE_HOST"]     || ENV['DATABASE_HOST']     || 'localhost'
 DATABASE_PORT     = ENV["#{env_prefix}_DATABASE_PORT"]     || ENV['DATABASE_PORT']
+DATABASE_PROTOCOL = ENV["#{env_prefix}_DATABASE_PROTOCOL"] || ENV['DATABASE_PROTOCOL']
 DATABASE_USER     = ENV["#{env_prefix}_DATABASE_USER"]     || ENV['DATABASE_USER']     || 'mondrian_test'
 DATABASE_PASSWORD = ENV["#{env_prefix}_DATABASE_PASSWORD"] || ENV['DATABASE_PASSWORD'] || 'mondrian_test'
 DATABASE_NAME     = ENV["#{env_prefix}_DATABASE_NAME"]     || ENV['DATABASE_NAME']     || 'mondrian_test'
@@ -341,6 +342,7 @@ else
     driver: MONDRIAN_DRIVER,
     host: DATABASE_HOST,
     port: DATABASE_PORT,
+    protocol: DATABASE_PROTOCOL.presence,
     database: DATABASE_NAME,
     username: DATABASE_USER,
     password: DATABASE_PASSWORD
@@ -422,7 +424,7 @@ when 'clickhouse'
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver: JDBC_DRIVER,
-    url: "jdbc:ch://#{CONNECTION_PARAMS[:host]}:8123/#{CONNECTION_PARAMS[:database]}",
+    url: "jdbc:ch:#{CONNECTION_PARAMS[:protocol]&.+(':')}//#{CONNECTION_PARAMS[:host]}/#{CONNECTION_PARAMS[:database]}",
     username: CONNECTION_PARAMS[:username],
     password: CONNECTION_PARAMS[:password],
     dialect: 'jdbc'

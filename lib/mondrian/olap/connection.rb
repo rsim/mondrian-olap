@@ -406,7 +406,7 @@ module Mondrian
           ":#{protocol}"
         end
         uri_prefix = "jdbc:ch#{protocol_prefix}://"
-        jdbc_uri_generic(uri_prefix: uri_prefix, default_port: 8123)
+        jdbc_uri_generic(uri_prefix: uri_prefix)
       end
 
       def jdbc_uri_jdbc
