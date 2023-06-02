@@ -1,4 +1,4 @@
-### Master
+### 1.3.0 / 2023-06-02
 
 * New features
   * Upgrade to the latest Mondrian version 9.3.0.0 with additional patches
