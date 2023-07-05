@@ -162,10 +162,21 @@ module Mondrian
           rolap_cell = cell_field.value(raw_cell)
 
           if params[:return] || rolap_cell.canDrillThrough
-            sql_statement, return_fields = drill_through_internal(rolap_cell, params)
+            max_rows = params[:max_rows]
+            if role_name = params[:role_name]
+              # Remove max rows limitation for the drill through SQL statement when the data access roles are used.
+              # As the data restrictions validation later may reduce returned rows count.
+              max_rows = nil
+            end
+            sql_statement, return_fields = drill_through_internal(rolap_cell, params.merge(max_rows: max_rows))
             raw_result_set = sql_statement.getWrappedResultSet
             raw_cube = raw_cell.getCellSet.getMetaData.getCube
-            new(raw_result_set, return_fields: return_fields, raw_cube: raw_cube, role_name: params[:role_name])
+            new(raw_result_set,
+              return_fields: return_fields,
+              raw_cube: raw_cube,
+              role_name: role_name,
+              max_rows: params[:max_rows]
+            )
           end
         end
 
@@ -174,6 +185,7 @@ module Mondrian
           @return_fields = options[:return_fields]
           @raw_cube = options[:raw_cube]
           @role_name = options[:role_name]
+          @max_rows = options[:max_rows]
         end
 
         def column_types
@@ -224,6 +236,7 @@ module Mondrian
             rows_values = []
             while row_values = fetch
               rows_values << row_values
+              break if rows_values.size == @max_rows
             end
             rows_values
           end
