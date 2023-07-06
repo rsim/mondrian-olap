@@ -990,11 +990,17 @@ describe "Query" do
 
   describe "drill through cell with return and role restrictions" do
     before(:all) do
-      @olap.role_name = "Canada manager"
+      @olap.role_name = "Mexico manager"
       @query = @olap.from('Sales')
       @result = @query.columns('[Measures].[Unit Sales]').
         rows('[Customers].[All Customers]').
         execute
+      @drill_through = @result.drill_through(
+        row: 0,
+        column: 0,
+        return: ['[Customers].[Country]', '[Measures].[Unit Sales]'],
+        max_rows: 10
+      )
     end
 
     after(:all) do
@@ -1002,11 +1008,11 @@ describe "Query" do
     end
 
     it "should return data according to role restriction" do
-      @drill_through = @result.drill_through(:row => 0, :column => 0, :return => [
-        '[Customers].[Country]',
-        '[Measures].[Unit Sales]'
-      ])
-      @drill_through.rows.all? { |r| r.first == "Canada" }.should == true
+      @drill_through.rows.all? { |r| r.first == "Mexico" }.should == true
+    end
+
+    it "should return only specified max rows" do
+      @drill_through.rows.size.should == 10
     end
   end
 
