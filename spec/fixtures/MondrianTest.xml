@@ -41,11 +41,7 @@
     </Hierarchy>
   </Dimension>
 
-<Cube name="Sales" defaultMeasure="Unit Sales">
-  <Table name="sales"/>
-  <DimensionUsage name="Time" source="Time" foreignKey="time_id"/>
-  <DimensionUsage name="Product" source="Product" foreignKey="product_id"/>
-  <Dimension name="Customers" foreignKey="customer_id">
+  <Dimension name="Customers">
     <Hierarchy hasAll="true" allMemberName="All Customers" primaryKey="id">
       <Table name="customers"/>
       <Level name="Country" column="country" uniqueMembers="true"/>
@@ -85,6 +81,12 @@ fullname
       </Level>
     </Hierarchy>
   </Dimension>
+
+<Cube name="Sales" defaultMeasure="Unit Sales">
+  <Table name="sales"/>
+  <DimensionUsage name="Time" source="Time" foreignKey="time_id"/>
+  <DimensionUsage name="Product" source="Product" foreignKey="product_id"/>
+  <DimensionUsage name="Customers" source="Customers" foreignKey="customer_id"/>
   <Dimension name="Gender" foreignKey="customer_id">
     <Hierarchy hasAll="true" allMemberName="All Gender" primaryKey="id">
       <Table name="customers"/>
@@ -142,7 +144,7 @@ CASE WHEN units_shipped IS NOT NULL THEN product_id END
 </Cube>
 
 <VirtualCube name="Sales and Warehouse">
-  <VirtualCubeDimension name="Customers" cubeName="Sales"/>
+  <VirtualCubeDimension name="Customers"/>
   <VirtualCubeDimension name="Gender" cubeName="Sales"/>
   <VirtualCubeDimension name="Product"/>
   <VirtualCubeDimension name="Time"/>
