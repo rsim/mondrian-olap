@@ -47,7 +47,7 @@
       <Level name="Country" column="COUNTRY" uniqueMembers="true"/>
       <Level name="State Province" column="STATE_PROVINCE" uniqueMembers="true"/>
       <Level name="City" column="CITY" uniqueMembers="false"/>
-      <Level name="Name" column="ID" type="Numeric" uniqueMembers="true">
+      <Level name="Name" column="ID" type="Numeric" internalType="long" uniqueMembers="true">
         <NameExpression>
           <SQL dialect="oracle">
 fname || ' ' || lname
