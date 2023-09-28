@@ -81,6 +81,7 @@ describe "Mondrian features" do
 
     end
     @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+    @olap2 = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
   end
 
   # test for http://jira.pentaho.com/browse/MONDRIAN-1050
@@ -250,6 +251,46 @@ describe "Mondrian features" do
         columns('[Measures].[Store Sales]', '[Measures].[Round Store Sales]').
         where('[Customers].[USA].[CA]').execute
       result.values[0].round.should == result.values[1]
+    end
+  end
+
+  describe "NonEmptyCrossJoin" do
+    before(:all) do
+      @original_property_values = {}
+      @property_values = {
+        "mondrian.native.NativizeMinThreshold" => 1,
+        "mondrian.rolap.precache.threshold" => 0
+      }
+      @property_values.each do |key, value|
+        @original_property_values[key] = Java::MondrianOlap::MondrianProperties.instance().getProperty(key)
+        Java::MondrianOlap::MondrianProperties.instance().setProperty(key, value.to_s);
+      end
+    end
+
+    after(:all) do
+      @property_values.each do |key, _|
+        if value = @original_property_values[key]
+          Java::MondrianOlap::MondrianProperties.instance().setProperty(key, value);
+        else
+          Java::MondrianOlap::MondrianProperties.instance().remove(key);
+        end
+      end
+    end
+
+    def nonempty_crossjoin_from_cube(cube_name)
+      @olap2.from(cube_name).columns(
+          'Generate(NonEmptyCrossJoin([Measures].DefaultMember, [Product].[Product Name].Members), [Product].CurrentMember)'
+        ).where('[Customers].[Name].[First1 Last1]').
+      execute.column_names
+    end
+    it "should exclude dimension members without measure data in non-virtual cube" do
+      nonempty_crossjoin_from_cube("Sales").should == ["Product 1"]
+    end
+
+    # This is for debugging SqlTupleReader.generateSelectForLevels patches (not to generate SELECTs from non-relevant sub-cubes)
+    # which wasn't failing before but this test helps to debug generated SQL statements.
+    it "should ignore non-relevant sub-cubes in virtual cube" do
+      nonempty_crossjoin_from_cube("Sales and Warehouse").should == ["Product 1"]
     end
   end
 end

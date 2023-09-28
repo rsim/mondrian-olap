@@ -41,17 +41,13 @@
     </Hierarchy>
   </Dimension>
 
-<Cube name="Sales" defaultMeasure="Unit Sales">
-  <Table name="SALES"/>
-  <DimensionUsage name="Time" source="Time" foreignKey="TIME_ID"/>
-  <DimensionUsage name="Product" source="Product" foreignKey="PRODUCT_ID"/>
-  <Dimension name="Customers" foreignKey="CUSTOMER_ID">
+  <Dimension name="Customers">
     <Hierarchy hasAll="true" allMemberName="All Customers" primaryKey="ID">
       <Table name="CUSTOMERS"/>
       <Level name="Country" column="COUNTRY" uniqueMembers="true"/>
       <Level name="State Province" column="STATE_PROVINCE" uniqueMembers="true"/>
       <Level name="City" column="CITY" uniqueMembers="false"/>
-      <Level name="Name" column="ID" type="Numeric" uniqueMembers="true">
+      <Level name="Name" column="ID" type="Numeric" internalType="long" uniqueMembers="true">
         <NameExpression>
           <SQL dialect="oracle">
 fname || ' ' || lname
@@ -85,6 +81,12 @@ FULLNAME
       </Level>
     </Hierarchy>
   </Dimension>
+
+<Cube name="Sales" defaultMeasure="Unit Sales">
+  <Table name="SALES"/>
+  <DimensionUsage name="Time" source="Time" foreignKey="TIME_ID"/>
+  <DimensionUsage name="Product" source="Product" foreignKey="PRODUCT_ID"/>
+  <DimensionUsage name="Customers" source="Customers" foreignKey="CUSTOMER_ID"/>
   <Dimension name="Gender" foreignKey="CUSTOMER_ID">
     <Hierarchy hasAll="true" allMemberName="All Gender" primaryKey="ID">
       <Table name="CUSTOMERS"/>
