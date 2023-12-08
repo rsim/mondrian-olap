@@ -259,7 +259,9 @@ describe "Mondrian features" do
       @original_property_values = {}
       @property_values = {
         "mondrian.native.NativizeMinThreshold" => 1,
-        "mondrian.rolap.precache.threshold" => 0
+        "mondrian.rolap.precache.threshold" => 0,
+        "mondrian.rolap.ignoreInvalidMembers" => "true",
+        "mondrian.rolap.ignoreInvalidMembersDuringQuery" => "true"
       }
       @property_values.each do |key, value|
         @original_property_values[key] = Java::MondrianOlap::MondrianProperties.instance().getProperty(key)
@@ -291,6 +293,15 @@ describe "Mondrian features" do
     # which wasn't failing before but this test helps to debug generated SQL statements.
     it "should ignore non-relevant sub-cubes in virtual cube" do
       nonempty_crossjoin_from_cube("Sales and Warehouse").should == ["Product 1"]
+    end
+
+    it "should not raise an error when slicer calculated member evaluates to #null member" do
+      @olap2.from("Sales").
+      with_member('[Customers].[NNN]').as("[Customers].[YYY]").
+      columns('[Measures].[Unit Sales]').
+      rows('Generate(NonEmptyCrossJoin([Time].[Year].Members, [Product].[Food]), [Time].CurrentMember)').
+      where('[Customers].[NNN]').
+      execute.row_names.should == ["2010"]
     end
   end
 end
