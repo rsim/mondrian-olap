@@ -297,10 +297,9 @@ module Mondrian
 
       def members_to_mdx(members)
         members ||= []
-        # if only one member which does not end with ] or .Item(...)
-        # then assume it is expression which returns set
-        # TODO: maybe always include also single expressions in {...} to avoid some edge cases?
-        if members.length == 1 && members[0] !~ /(\]|\.Item\(\d+\))\z/i
+        # If only one member which does not end with ] or .Item(...) or Default...Member
+        # then assume it is expression which returns set.
+        if members.length == 1 && members[0] !~ /(\]|\.Item\(\d+\)|\.Default\w*Member)\z/i
           members[0]
         elsif members[0].is_a?(Symbol)
           case members[0]

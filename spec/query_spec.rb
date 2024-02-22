@@ -676,6 +676,7 @@ describe "Query" do
           with_set('MemberSet').as('[Product].[All Products]').
           with_set('FunctionSet').as('[Product].AllMembers').
           with_set('ItemSet').as('[Product].AllMembers.Item(0)').
+          with_set('DefaultMemberSet').as('[Product].DefaultMember').
           with_member('[Measures].[Profit]').
             as('[Measures].[Store Sales] - [Measures].[Store Cost]').
           columns('[Measures].[Profit]').
@@ -686,6 +687,7 @@ describe "Query" do
                SET MemberSet AS '{[Product].[All Products]}'
                SET FunctionSet AS '[Product].AllMembers'
                SET ItemSet AS '{[Product].AllMembers.Item(0)}'
+               SET DefaultMemberSet AS '{[Product].DefaultMember}'
                MEMBER [Measures].[Profit] AS
                '[Measures].[Store Sales] - [Measures].[Store Cost]'
             SELECT  {[Measures].[Profit]} ON COLUMNS,
