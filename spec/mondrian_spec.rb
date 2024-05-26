@@ -304,4 +304,115 @@ describe "Mondrian features" do
       execute.row_names.should == ["2010"]
     end
   end
+
+  describe "CASE match statement" do
+    it "should match measure to numeric value" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[Case]').
+          as('CASE [Measures].[one] WHEN 1 THEN 1 ELSE 0 END').
+        columns('[Measures].[Case]').execute.
+        values.should == [1]
+    end
+
+    it "should allow numeric and string result values" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[two]').as('2').
+        with_member('[Measures].[Case 1]').
+          as("CASE [Measures].[one] WHEN 1 THEN 1 WHEN [Measures].[two] THEN 2 WHEN '2' THEN '2' ELSE '(none)' END").
+        with_member('[Measures].[Case 2]').
+          as("CASE [Measures].[one] WHEN 2 THEN 2 ELSE '(none)' END").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]').execute.
+        values.should == [1, '(none)']
+    end
+
+    it "should allow members and tuples as scalar result values" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[two]').as('2').
+        with_member('[Measures].[Case 1]').
+          as("CASE 1 WHEN 1 THEN [Measures].[one] ELSE [Measures].[two] END").
+        with_member('[Measures].[Case 2]').
+          as("CASE 1 WHEN 1 THEN [Measures].[one] ELSE 2 END").
+        with_member('[Measures].[Case 3]').
+          as("CASE 1 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END").
+        with_member('[Measures].[Case 4]').
+          as("CASE 1 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE 2 END").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
+        values.should == [1, 1, 1, 1]
+    end
+
+    it "should return member or tuple as result" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[two]').as('2').
+        with_member('[Measures].[Case 1]').
+          as("CASE 1 WHEN 1 THEN [Measures].[one] ELSE [Measures].[two] END.Name").
+        with_member('[Measures].[Case 2]').
+          as("CASE 2 WHEN 1 THEN [Measures].[one] ELSE [Measures].[two] END.Name").
+        with_member('[Measures].[Case 3]').
+          as("CASE 1 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
+        with_member('[Measures].[Case 4]').
+          as("CASE 2 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
+        values.should == ['one', 'two', 'one', 'two']
+      end
+  end
+
+  describe "CASE test statement" do
+    it "should match measure to numeric value" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[Case]').
+          as('CASE WHEN [Measures].[one] = 1 THEN 1 ELSE 0 END').
+        columns('[Measures].[Case]').execute.
+        values.should == [1]
+    end
+
+    it "should allow numeric and string result values" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[two]').as('2').
+        with_member('[Measures].[Case 1]').
+          as("CASE WHEN [Measures].[one] = 1 THEN 1 WHEN [Measures].[one] = [Measures].[two] THEN 2 " \
+            "WHEN [Measures].[one] = '2' THEN '2' ELSE '(none)' END").
+        with_member('[Measures].[Case 2]').
+          as("CASE WHEN [Measures].[one] = 2 THEN 2 ELSE '(none)' END").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]').execute.
+        values.should == [1, '(none)']
+    end
+
+    it "should allow members and tuples as scalar result values" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[two]').as('2').
+        with_member('[Measures].[Case 1]').
+          as("CASE WHEN 1 = 1 THEN [Measures].[one] ELSE [Measures].[two] END").
+        with_member('[Measures].[Case 2]').
+          as("CASE WHEN 1 = 1 THEN [Measures].[one] ELSE 2 END").
+        with_member('[Measures].[Case 3]').
+          as("CASE WHEN 1 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END").
+        with_member('[Measures].[Case 4]').
+          as("CASE WHEN 1 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE 2 END").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
+        values.should == [1, 1, 1, 1]
+    end
+
+    it "should return member or tuple as result" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[two]').as('2').
+        with_member('[Measures].[Case 1]').
+          as("CASE WHEN 1 = 1 THEN [Measures].[one] ELSE [Measures].[two] END.Name").
+        with_member('[Measures].[Case 2]').
+          as("CASE WHEN 2 = 1 THEN [Measures].[one] ELSE [Measures].[two] END.Name").
+        with_member('[Measures].[Case 3]').
+          as("CASE WHEN 1 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
+        with_member('[Measures].[Case 4]').
+          as("CASE WHEN 2 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
+        values.should == ['one', 'two', 'one', 'two']
+    end
+  end
 end
