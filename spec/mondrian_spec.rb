@@ -415,4 +415,33 @@ describe "Mondrian features" do
         values.should == ['one', 'two', 'one', 'two']
     end
   end
+
+  describe "Generate" do
+    it "should use measure cast to string as a string argument" do
+      @olap.from('Sales').
+        with_member('[Measures].[Gender name]').as('[Gender].CurrentMember.Name').
+        with_member('[Measures].[Generate]').
+          as("Generate([Gender].[Gender].Members, Cast([Measures].[Gender name] AS String), ',')").
+        columns('[Measures].[Generate]').execute.
+        values.should == ['F,M']
+    end
+
+    it "should use measure with string expression as a string argument" do
+      @olap.from('Sales').
+        with_member('[Measures].[Gender name]').as('[Gender].CurrentMember.Name').
+        with_member('[Measures].[Generate]').
+          as("Generate([Gender].[Gender].Members, [Measures].[Gender name], ',')").
+        columns('[Measures].[Generate]').execute.
+        values.should == ['F,M']
+    end
+
+    it "should use other dimension member and return set" do
+      @olap.from('Sales').
+        with_member('[Measures].[Gender name]').as('[Gender].CurrentMember.Name').
+        with_member('[Measures].[Generate]').
+          as("SetToStr(Generate([Gender].[Gender].Members, [Gender].CurrentMember, ALL))").
+        columns('[Measures].[Generate]').execute.
+        values.should == ['{[Gender].[F], [Gender].[M]}']
+    end
+  end
 end
