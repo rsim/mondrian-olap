@@ -1100,6 +1100,23 @@ describe "Query" do
 
   end
 
+  describe "parse expression" do
+    it "should parse expression" do
+      @olap.parse_expression("1").should be_kind_of(Java::MondrianOlap::Literal)
+    end
+
+    it "should raise error when invalid expression" do
+      expression = "1, dummy"
+      expect {
+        @olap.parse_expression expression
+      }.to raise_error { |e|
+        e.should be_kind_of(Mondrian::OLAP::Error)
+        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Failed to parse query '#{expression}'"
+        e.root_cause_message.should == "Syntax error at line 1, column 2, token ','"
+      }
+    end
+  end
+
   describe "schema cache" do
     before(:all) do
       product_id = @sql.select_value("SELECT MIN(id) FROM products")
