@@ -32,7 +32,7 @@ module Mondrian
         @cache_control = CacheControl.new(@connection, self)
       end
 
-      attr_reader :raw_cube
+      attr_reader :connection, :raw_cube
 
       def name
         @name ||= @raw_cube.getName
