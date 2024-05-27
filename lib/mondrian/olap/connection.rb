@@ -103,6 +103,12 @@ module Mondrian
         end
       end
 
+      def parse_expression(expression)
+        Error.wrap_native_exception do
+          raw_mondrian_connection.parseExpression(expression)
+        end
+      end
+
       def from(cube_name)
         Query.from(self, cube_name)
       end
