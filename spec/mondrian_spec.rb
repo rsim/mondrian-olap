@@ -84,6 +84,25 @@ describe "Mondrian features" do
     @olap2 = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
   end
 
+  def set_property_values(property_values = {})
+    @original_property_values = {}
+    @property_values = property_values
+    @property_values.each do |key, value|
+      @original_property_values[key] = Java::MondrianOlap::MondrianProperties.instance().getProperty(key)
+      Java::MondrianOlap::MondrianProperties.instance().setProperty(key, value.to_s);
+    end
+  end
+
+  def restore_property_values
+    @property_values.each do |key, _|
+      if value = @original_property_values[key]
+        Java::MondrianOlap::MondrianProperties.instance().setProperty(key, value);
+      else
+        Java::MondrianOlap::MondrianProperties.instance().remove(key);
+      end
+    end
+  end
+
   # test for http://jira.pentaho.com/browse/MONDRIAN-1050
   it "should order rows by DateTime expression" do
     lambda do
@@ -256,27 +275,16 @@ describe "Mondrian features" do
 
   describe "NonEmptyCrossJoin" do
     before(:all) do
-      @original_property_values = {}
-      @property_values = {
+      set_property_values(
         "mondrian.native.NativizeMinThreshold" => 1,
         "mondrian.rolap.precache.threshold" => 0,
         "mondrian.rolap.ignoreInvalidMembers" => "true",
         "mondrian.rolap.ignoreInvalidMembersDuringQuery" => "true"
-      }
-      @property_values.each do |key, value|
-        @original_property_values[key] = Java::MondrianOlap::MondrianProperties.instance().getProperty(key)
-        Java::MondrianOlap::MondrianProperties.instance().setProperty(key, value.to_s);
-      end
+      )
     end
 
     after(:all) do
-      @property_values.each do |key, _|
-        if value = @original_property_values[key]
-          Java::MondrianOlap::MondrianProperties.instance().setProperty(key, value);
-        else
-          Java::MondrianOlap::MondrianProperties.instance().remove(key);
-        end
-      end
+      restore_property_values
     end
 
     def nonempty_crossjoin_from_cube(cube_name)
@@ -442,6 +450,65 @@ describe "Mondrian features" do
           as("SetToStr(Generate([Gender].[Gender].Members, [Gender].CurrentMember, ALL))").
         columns('[Measures].[Generate]').execute.
         values.should == ['{[Gender].[F], [Gender].[M]}']
+    end
+  end
+
+  describe "CoalesceEmpty" do
+    it "should support DateTime values" do
+      @olap.from('Sales').
+        with_member('[Measures].[Date]').
+          as("[Time].CurrentMember.Properties('Date')", format_string: 'yyyy-mm-dd').
+        with_member('[Measures].[Coalesce]').
+          as("CoalesceEmpty([Measures].[Date], DateSerial(1970, 1, 1))").
+        columns('[Measures].[Coalesce]').
+        rows('[Time].[2010].[Q1].[1].[1]').execute.
+        formatted_values.should == [['2010-01-01']]
+    end
+
+    it "should support mix of numeric and string values" do
+      @olap.from('Sales').
+        with_member('[Measures].[Coalesce 1]').
+          as("CoalesceEmpty(123, 'dummy')").
+        with_member('[Measures].[Coalesce 2]').
+          as("CoalesceEmpty(CASE WHEN 1=2 THEN 1 END, 'dummy')").
+        columns('[Measures].[Coalesce 1]', '[Measures].[Coalesce 2]').execute.
+        values.should == [123, 'dummy']
+    end
+  end
+
+  ["MATCHES", "NOT MATCHES"].each do |operator|
+    describe operator do
+      before(:all) do
+        set_property_values(
+          "mondrian.rolap.ignoreInvalidMembers" => "true",
+          "mondrian.rolap.ignoreInvalidMembersDuringQuery" => "true"
+        )
+      end
+
+      after(:all) do
+        restore_property_values
+      end
+
+      it "should support empty arguments" do
+        @olap.from('Sales').
+          with_member('[Measures].[Matches 1]').
+            as("(CASE WHEN 1=2 THEN 'dummy' END) #{operator} '.*dum.*'").
+          with_member('[Measures].[Matches 2]').
+            as("'dummy' #{operator} (CASE WHEN 1=2 THEN '.*dum.*' END)").
+          with_member('[Measures].[Matches 3]').
+            as("[Measures].[missing] #{operator} '.*dum.*'").
+          columns('[Measures].[Matches 1]', '[Measures].[Matches 2]', '[Measures].[Matches 3]').execute.
+          values.should == (operator == 'MATCHES' ? [false] : [true]) * 3
+      end
+
+      it "should support numeric argument" do
+        @olap.from('Sales').
+          with_member('[Measures].[number]').as('123').
+          with_member('[Measures].[Matches 1]').
+            as("[Measures].[number] #{operator} '\\d+'").
+          columns('[Measures].[Matches 1]').execute.
+          values.should == (operator == 'MATCHES' ? [true] : [false])
+      end
     end
   end
 end
