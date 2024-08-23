@@ -36,7 +36,17 @@ when 'oracle'
   Dir[File.expand_path("ojdbc*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
-  require 'active_record/connection_adapters/oracle_enhanced_adapter'
+
+  # PATCH: Fix NameError undefined field 'map' for class 'Java::OrgJruby::RubyObjectSpace::WeakMap'
+  # pending release of https://github.com/rsim/oracle-enhanced/pull/2360/files
+  begin
+    require 'active_record/connection_adapters/oracle_enhanced_adapter'
+  rescue NameError => e
+    raise e unless e.message =~ /undefined field 'map'/
+    $LOADED_FEATURES <<
+      File.expand_path("active_record/connection_adapters/oracle_enhanced_adapter.rb", $:.grep(/oracle_enhanced/).first)
+  end
+
   ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
     # Start primary key sequences from 1 (and not 10000) and take just one next value in each session
     self.default_sequence_start_value = "1 NOCACHE INCREMENT BY 1"
