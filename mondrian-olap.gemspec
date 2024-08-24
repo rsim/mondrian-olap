@@ -31,7 +31,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "jdbc-mysql", "~> 8.0.27"
   gem.add_development_dependency "jdbc-postgres", "~> 42.2.25"
   gem.add_development_dependency "activerecord", "~> 6.1.7.2"
-  gem.add_development_dependency "activerecord-jdbc-adapter", "~> 61.2"
+  gem.add_development_dependency "activerecord-jdbc-adapter", "~> 61.3"
   gem.add_development_dependency "activerecord-oracle_enhanced-adapter", "~> 6.1.6"
   gem.add_development_dependency "pry"
 end

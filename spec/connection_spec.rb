@@ -57,6 +57,9 @@ describe "Connection" do
         end
     end
 
+    it "should access Mondrian server" do
+      @olap.mondrian_server.should_not be_nil
+    end
   end
 
   describe "locale" do
