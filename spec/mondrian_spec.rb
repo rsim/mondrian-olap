@@ -188,6 +188,28 @@ describe "Mondrian features" do
     result.formatted_values.first.should == Date.parse(date_value.to_s).strftime("%d.%m.%Y")
   end
 
+  describe "#null member" do
+    before(:all) do
+      set_property_values(
+        "mondrian.rolap.ignoreInvalidMembers" => "true",
+        "mondrian.rolap.ignoreInvalidMembersDuringQuery" => "true"
+      )
+    end
+
+    after(:all) do
+      restore_property_values
+    end
+    it "should return no results if slice axis has #null member" do
+      result = @olap.from('Sales').
+      columns('[Measures].[Unit Sales]').
+      rows('[Customers].[Name].Members').
+      where('[Time].[3000]').execute
+
+      result.column_names.should be_nil
+      result.row_names.should be_nil
+    end
+  end
+
   describe "optimized Aggregate" do
     def expected_value(crossjoin_members = nil)
       query = @olap.from('Sales').columns('[Measures].[Unit Sales]')
