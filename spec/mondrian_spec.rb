@@ -199,6 +199,7 @@ describe "Mondrian features" do
     after(:all) do
       restore_property_values
     end
+
     it "should return no results if slice axis has #null member" do
       result = @olap.from('Sales').
       columns('[Measures].[Unit Sales]').
