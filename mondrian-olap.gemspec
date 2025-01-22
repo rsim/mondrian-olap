@@ -34,4 +34,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "activerecord-jdbc-adapter", "~> 61.3"
   gem.add_development_dependency "activerecord-oracle_enhanced-adapter", "~> 6.1.6"
   gem.add_development_dependency "pry"
+  gem.add_development_dependency "jar-dependencies", "~> 0.4.1"
 end
