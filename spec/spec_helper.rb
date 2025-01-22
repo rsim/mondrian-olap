@@ -1,5 +1,6 @@
 require 'rdoc'
 require 'rspec'
+require 'logger'
 require 'active_record'
 require 'activerecord-jdbc-adapter'
 require 'pry'
