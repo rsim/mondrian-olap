@@ -511,4 +511,17 @@ describe "Mondrian features" do
       end
     end
   end
+
+  describe "FormatFinder" do
+    it "should not fail when using reference to calculation with measures multiplication" do
+      values = @olap.from('Sales').
+        with_member('[Measures].[parent calculation]').
+          as("[Measures].[child calculation]").
+        with_member('[Measures].[child calculation]').
+          as("[Measures].[Unit Sales] * [Measures].[Store Sales]").
+        columns('[Measures].[parent calculation]', '[Measures].[child calculation]').
+        execute.values
+      values[0].should == values[1]
+    end
+  end
 end
