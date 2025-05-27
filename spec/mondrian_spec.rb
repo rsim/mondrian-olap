@@ -524,4 +524,20 @@ describe "Mondrian features" do
       values[0].should == values[1]
     end
   end
+
+  describe "calculated member profiling" do
+    it "should include calculated member when formula uses a function" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Unit Sales 2]').as('[Measures].[Unit Sales] * 2').
+        columns('[Measures].[Unit Sales 2]').execute(profiling: true)
+      result.profiling_timing_string.should =~ /^\[Measures\]\.\[Unit Sales 2\] invoked 1 times/
+    end
+
+    it "should not include calculated member when formula is another measure" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Unit Sales 2]').as('[Measures].[Unit Sales]').
+        columns('[Measures].[Unit Sales 2]').execute(profiling: true)
+      result.profiling_timing_string.should_not include("[Measures].[Unit Sales 2]")
+    end
+  end
 end
