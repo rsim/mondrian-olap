@@ -81,6 +81,12 @@ module Mondrian
         self
       end
 
+      def filter_last(condition, options = {})
+        validate_current_set
+        add_last_set_function :filter, condition, options[:as]
+        self
+      end
+
       def filter_nonempty
         validate_current_set
         filter('NOT ISEMPTY(S.CURRENT)', as: 'S')
