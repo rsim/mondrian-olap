@@ -284,8 +284,15 @@ describe "Query" do
       end
 
       it "should filter using set alias" do
-        @query.rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', :as => 'S')
+        @query.rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', as: 'S')
         @query.rows.should == [:filter, ['[Customers].[Country].Members'], 'NOT ISEMPTY(S.CURRENT)', 'S']
+      end
+
+      it "should filter last set of nonempty_crossjoin" do
+        @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members').
+          filter_last("[Customers].CurrentMember.Name = 'USA'")
+        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'],
+          [:filter, ['[Customers].[Country].Members'], "[Customers].CurrentMember.Name = 'USA'"]]
       end
     end
 

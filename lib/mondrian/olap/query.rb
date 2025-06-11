@@ -36,7 +36,7 @@ module Mondrian
 
       AXIS_ALIASES = %w(columns rows pages chapters sections)
       AXIS_ALIASES.each_with_index do |axis, i|
-        class_eval <<-RUBY, __FILE__, __LINE__ + 1
+        class_eval <<~RUBY, __FILE__, __LINE__ + 1
           def #{axis}(*axis_members)
             axis(#{i}, *axis_members)
           end
@@ -44,94 +44,91 @@ module Mondrian
       end
 
       %w(crossjoin nonempty_crossjoin).each do |method|
-        class_eval <<-RUBY, __FILE__, __LINE__ + 1
+        class_eval <<~RUBY, __FILE__, __LINE__ + 1
           def #{method}(*axis_members)
-            raise ArgumentError, "cannot use #{method} method before axis or with_set method" unless @current_set
+            validate_current_set
             raise ArgumentError, "specify set of members for #{method} method" if axis_members.empty?
             members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-            @current_set.replace [:#{method}, @current_set.clone, members]
+            add_current_set_function :#{method}, members
             self
           end
         RUBY
       end
 
       def except(*axis_members)
-        raise ArgumentError, "cannot use except method before axis or with_set method" unless @current_set
+        validate_current_set
         raise ArgumentError, "specify set of members for except method" if axis_members.empty?
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-        if [:crossjoin, :nonempty_crossjoin].include? @current_set[0]
-          @current_set[2] = [:except, @current_set[2], members]
-        else
-          @current_set.replace [:except, @current_set.clone, members]
-        end
+        add_last_set_function :except, members
         self
       end
 
       def nonempty
-        raise ArgumentError, "cannot use nonempty method before axis method" unless @current_set
-        @current_set.replace [:nonempty, @current_set.clone]
+        validate_current_set
+        add_current_set_function :nonempty
         self
       end
 
       def distinct
-        raise ArgumentError, "cannot use distinct method before axis method" unless @current_set
-        @current_set.replace [:distinct, @current_set.clone]
+        validate_current_set
+        add_current_set_function :distinct
         self
       end
 
       def filter(condition, options = {})
-        raise ArgumentError, "cannot use filter method before axis or with_set method" unless @current_set
-        @current_set.replace [:filter, @current_set.clone, condition]
-        @current_set << options[:as] if options[:as]
+        validate_current_set
+        add_current_set_function :filter, condition, options[:as]
+        self
+      end
+
+      def filter_last(condition, options = {})
+        validate_current_set
+        add_last_set_function :filter, condition, options[:as]
         self
       end
 
       def filter_nonempty
-        raise ArgumentError, "cannot use filter_nonempty method before axis or with_set method" unless @current_set
-        condition = "NOT ISEMPTY(S.CURRENT)"
-        @current_set.replace [:filter, @current_set.clone, condition, 'S']
-        self
+        validate_current_set
+        filter('NOT ISEMPTY(S.CURRENT)', as: 'S')
       end
 
       def generate(*axis_members)
-        raise ArgumentError, "cannot use generate method before axis or with_set method" unless @current_set
+        validate_current_set
         all = if axis_members.last == :all
           axis_members.pop
           'ALL'
         end
         raise ArgumentError, "specify set of members for generate method" if axis_members.empty?
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
-        @current_set.replace [:generate, @current_set.clone, members]
-        @current_set << all if all
+        add_current_set_function :generate, members, all
         self
       end
 
       VALID_ORDERS = ['ASC', 'BASC', 'DESC', 'BDESC']
 
       def order(expression, direction)
-        raise ArgumentError, "cannot use order method before axis or with_set method" unless @current_set
+        validate_current_set
         direction = direction.to_s.upcase
-        raise ArgumentError, "invalid order direction #{direction.inspect}," <<
+        raise ArgumentError, "invalid order direction #{direction.inspect}," \
           " should be one of #{VALID_ORDERS.inspect[1..-2]}" unless VALID_ORDERS.include?(direction)
-        @current_set.replace [:order, @current_set.clone, expression, direction]
+        add_current_set_function :order, expression, direction
         self
       end
 
       %w(top bottom).each do |extreme|
-        class_eval <<-RUBY, __FILE__, __LINE__ + 1
-          def #{extreme}_count(count, expression=nil)
-            raise ArgumentError, "cannot use #{extreme}_count method before axis or with_set method" unless @current_set
-            @current_set.replace [:#{extreme}_count, @current_set.clone, count]
-            @current_set << expression if expression
+        class_eval <<~RUBY, __FILE__, __LINE__ + 1
+          def #{extreme}_count(count, expression = nil)
+            validate_current_set
+            add_current_set_function :#{extreme}_count, count, expression
             self
           end
         RUBY
 
         %w(percent sum).each do |extreme_name|
-          class_eval <<-RUBY, __FILE__, __LINE__ + 1
+          class_eval <<~RUBY, __FILE__, __LINE__ + 1
             def #{extreme}_#{extreme_name}(value, expression)
-              raise ArgumentError, "cannot use #{extreme}_#{extreme_name} method before axis or with_set method" unless @current_set
-              @current_set.replace [:#{extreme}_#{extreme_name}, @current_set.clone, value, expression]
+              validate_current_set
+              add_current_set_function :#{extreme}_#{extreme_name}, value, expression
               self
             end
           RUBY
@@ -139,20 +136,19 @@ module Mondrian
       end
 
       def hierarchize(order = nil, all = nil)
-        raise ArgumentError, "cannot use hierarchize method before axis or with_set method" unless @current_set
+        validate_current_set
         order = order && order.to_s.upcase
         raise ArgumentError, "invalid hierarchize order #{order.inspect}" unless order.nil? || order == 'POST'
-        if all.nil? && [:crossjoin, :nonempty_crossjoin].include?(@current_set[0])
-          @current_set[2] = [:hierarchize, @current_set[2]]
-          @current_set[2] << order if order
+        if all.nil?
+          add_last_set_function :hierarchize, order
         else
-          @current_set.replace [:hierarchize, @current_set.clone]
-          @current_set << order if order
+          add_current_set_function :hierarchize, order
         end
         self
       end
 
       def hierarchize_all(order = nil)
+        validate_current_set
         hierarchize(order, :all)
       end
 
@@ -249,7 +245,37 @@ module Mondrian
 
       private
 
-      # FIXME: keep original order of WITH MEMBER and WITH SET defitions
+      def validate_current_set
+        unless @current_set
+          method_name = caller_locations(1,1).first&.label
+          raise ArgumentError, "cannot use #{method_name} method before axis or with_set method"
+        end
+      end
+
+      def add_current_set_function(function_name, *args)
+        remove_last_nil_arg(args)
+        @current_set.replace [function_name, @current_set.clone, *args]
+      end
+
+      def add_last_set_function(function_name, *args)
+        remove_last_nil_arg(args)
+        if current_set_crossjoin?
+          @current_set[2] = [function_name, @current_set[2], *args]
+        else
+          add_current_set_function function_name, *args
+        end
+      end
+
+      def remove_last_nil_arg(args)
+        args.pop if args.length > 0 && args.last.nil?
+      end
+
+      CROSSJOIN_FUNCTIONS = [:crossjoin, :nonempty_crossjoin].freeze
+
+      def current_set_crossjoin?
+        CROSSJOIN_FUNCTIONS.include?(@current_set&.first)
+      end
+
       def with_to_mdx
         @with.map do |definition|
           case definition[0]
@@ -287,13 +313,13 @@ module Mondrian
       end
 
       MDX_FUNCTIONS = {
-        :top_count => 'TOPCOUNT',
-        :top_percent => 'TOPPERCENT',
-        :top_sum => 'TOPSUM',
-        :bottom_count => 'BOTTOMCOUNT',
-        :bottom_percent => 'BOTTOMPERCENT',
-        :bottom_sum => 'BOTTOMSUM'
-      }
+        top_count: 'TOPCOUNT',
+        top_percent: 'TOPPERCENT',
+        top_sum: 'TOPSUM',
+        bottom_count: 'BOTTOMCOUNT',
+        bottom_percent: 'BOTTOMPERCENT',
+        bottom_sum: 'BOTTOMSUM'
+      }.freeze
 
       def members_to_mdx(members)
         members ||= []
