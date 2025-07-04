@@ -55,6 +55,16 @@ module Mondrian
         @raw_cube.isVisible
       end
 
+      def mondrian_cube
+        @raw_cube.unwrap(Java::MondrianOlap::Cube.java_class)
+      end
+
+      def virtual?
+        if mondrian_cube.respond_to?(:isVirtual)
+          mondrian_cube.isVirtual
+        end
+      end
+
       def dimensions
         @dimenstions ||= @raw_cube.getDimensions.map { |d| dimension_from_raw(d) }
       end
@@ -142,16 +152,16 @@ module Mondrian
       end
 
       def hierarchies
-        @hierarchies ||= @raw_dimension.getHierarchies.map{|h| Hierarchy.new(self, h)}
+        @hierarchies ||= @raw_dimension.getHierarchies.map { |h| Hierarchy.new(self, h) }
       end
 
       def hierarchy_names
-        hierarchies.map{|h| h.name}
+        hierarchies.map(&:name)
       end
 
       def hierarchy(name = nil)
         name ||= self.name
-        hierarchies.detect{|h| h.name == name}
+        hierarchies.detect { |h| h.name == name }
       end
 
       def measures?
@@ -200,20 +210,24 @@ module Mondrian
         @caption ||= @raw_hierarchy.getCaption
       end
 
+      def full_name
+        @full_name ||= @raw_hierarchy.getUniqueName
+      end
+
       def dimension_name
         @dimension.name
       end
 
       def levels
-        @levels = @raw_hierarchy.getLevels.map{|l| Level.new(self, l)}
+        @levels = @raw_hierarchy.getLevels.map { |l| Level.new(self, l) }
       end
 
       def level(name)
-        levels.detect{|l| l.name == name}
+        levels.detect { |l| l.name == name }
       end
 
       def level_names
-        levels.map{|l| l.name}
+        levels.map(&:name)
       end
 
       def has_all?
@@ -229,15 +243,15 @@ module Mondrian
       end
 
       def root_members
-        @raw_hierarchy.getRootMembers.map{|m| Member.new(m)}
+        @raw_hierarchy.getRootMembers.map { |m| Member.new(m) }
       end
 
       def root_member_names
-        @raw_hierarchy.getRootMembers.map{|m| m.getName}
+        @raw_hierarchy.getRootMembers.map(&:getName)
       end
 
       def root_member_full_names
-        @raw_hierarchy.getRootMembers.map{|m| m.getUniqueName}
+        @raw_hierarchy.getRootMembers.map(&:getUniqueName)
       end
 
       def child_names(*parent_member_segment_names)
@@ -248,7 +262,7 @@ module Mondrian
           else
             @dimension.cube.member_by_segments(*parent_member_segment_names)
           end
-          parent_member && parent_member.children.map{|m| m.name}
+          parent_member && parent_member.children.map(&:name)
         end
       end
 
@@ -273,6 +287,10 @@ module Mondrian
 
       def name
         @name ||= @raw_level.getName
+      end
+
+      def full_name
+        @full_name ||= @raw_level.getUniqueName
       end
 
       def description
@@ -309,12 +327,41 @@ module Mondrian
 
       def members
         Error.wrap_native_exception do
-          @raw_level.getMembers.map{|m| Member.new(m)}
+          @raw_level.getMembers.map { |m| Member.new(m) }
         end
       end
 
       def mondrian_level
         @raw_level.unwrap(Java::MondrianOlap::Level.java_class)
+      end
+
+      def child_level
+        @child_level ||= begin
+          raw_levels = raw_level.getHierarchy.getLevels
+          next_index = raw_levels.indexOf(raw_level) + 1
+          if next_index < raw_levels.size
+            self.class.new(@hierarchy, raw_levels.get(next_index))
+          end
+        end
+      end
+
+      def parent_level
+        @parent_level ||= begin
+          raw_levels = raw_level.getHierarchy.getLevels
+          prev_index = raw_levels.indexOf(raw_level) - 1
+          if prev_index >= 0
+            self.class.new(@hierarchy, raw_levels.get(prev_index))
+          end
+        end
+      end
+
+      def descendant_level(name)
+        raw_levels = raw_level.getHierarchy.getLevels
+        level_index = raw_levels.indexOf(raw_level)
+        descendant_index = raw_levels.indexOfName(name)
+        if descendant_index > level_index
+          self.class.new(@hierarchy, raw_levels.get(descendant_index))
+        end
       end
 
       include Annotated
@@ -389,8 +436,18 @@ module Mondrian
 
       def children
         Error.wrap_native_exception do
-          @raw_member.getChildMembers.map{|m| Member.new(m)}
+          @raw_member.getChildMembers.map { |m| Member.new(m) }
         end
+      end
+
+      def children_count
+        Error.wrap_native_exception do
+          @raw_member.getChildMembers.size
+        end
+      end
+
+      def level
+        @level ||= Level.new(nil, @raw_member.getLevel)
       end
 
       def descendants_at_level(level)

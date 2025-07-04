@@ -104,6 +104,10 @@ describe "Cube" do
     @olap.cube('Sales').should be_visible
   end
 
+  it "should not be virtual" do
+    @olap.cube('Sales').should_not be_virtual
+  end
+
   describe "dimensions" do
     before(:all) do
       @cube = @olap.cube('Sales')
@@ -115,7 +119,7 @@ describe "Cube" do
     end
 
     it "should get dimensions" do
-      @cube.dimensions.map{|d| d.name}.should == @dimension_names
+      @cube.dimensions.map(&:name).should == @dimension_names
     end
 
     it "should get dimension by name" do
@@ -226,6 +230,11 @@ describe "Cube" do
       @cube.dimension('Time').hierarchy.name.should == 'Time'
     end
 
+    it "should get hierarchy full name" do
+      @cube.dimension('Time').hierarchy.full_name.should == '[Time]'
+      @cube.dimension('Time').hierarchy('Time.Weekly').full_name.should == '[Time.Weekly]'
+    end
+
     it "should get hierarchy levels" do
       @cube.dimension('Customers').hierarchy.levels.map(&:name).should ==  ['(All)', 'Country', 'State Province', 'City', 'Name']
     end
@@ -322,6 +331,10 @@ describe "Cube" do
       @cube.dimension('Gender').hierarchy.level('Gender').caption.should == 'Gender level caption'
     end
 
+    it "should get level full name" do
+      @cube.dimension('Gender').hierarchy.level('Gender').full_name.should == '[Gender].[Gender]'
+    end
+
     it "should return nil when getting level with invalid name" do
       @cube.dimension('Gender').hierarchy.level('invalid').should be_nil
     end
@@ -334,6 +347,18 @@ describe "Cube" do
     it "should get secondary hierarchy level members" do
       @cube.dimension('Time').hierarchy('Time.Weekly').level('Year').members.
         map(&:name).should == ['2010', '2011']
+    end
+
+    it "should get child level" do
+      @cube.dimension('Customers').hierarchy.level('Country').child_level.name.should == 'State Province'
+    end
+
+    it "should get parent level" do
+      @cube.dimension('Customers').hierarchy.level('State Province').parent_level.name.should == 'Country'
+    end
+
+    it "should get descendant level" do
+      @cube.dimension('Customers').hierarchy.level('Country').descendant_level('City').name.should == 'City'
     end
 
     it "should get level annotations" do
@@ -381,7 +406,17 @@ describe "Cube" do
     end
 
     it "should return empty children array if member does not have children" do
-      @cube.member('[Gender].[All Genders].[F]').children.should be_empty
+      @cube.member('[Gender].[F]').children.should be_empty
+    end
+
+    it "should return children count for member" do
+      @cube.member('[Gender].[All Genders]').children_count.should == 2
+      @cube.member('[Customers].[USA].[OR]').children_count.should == 11
+      @cube.member('[Gender].[F]').children_count.should == 0
+    end
+
+    it "should return member level" do
+      @cube.member('[Customers].[USA]').level.name.should == 'Country'
     end
 
     it "should return member depth" do
