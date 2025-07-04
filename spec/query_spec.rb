@@ -1037,6 +1037,10 @@ describe "Query" do
         execute
     end
 
+    it "should be virtual cube" do
+      @olap.cube('Sales and Warehouse').should be_virtual
+    end
+
     it "should return specified fields from other cubes as empty strings" do
       @drill_through = @result.drill_through(:row => 0, :column => 3, :return => [
         '[Time].[Month]',

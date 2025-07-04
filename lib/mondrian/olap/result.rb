@@ -507,7 +507,9 @@ module Mondrian
           max_alias_length = options[:max_alias_length]
           params = options[:params]
 
-          if table_name = (member.try(:getTableName) || member.try(:getMondrianDefExpression).try(:table))
+          if table_name = (member.respond_to?(:getTableName) && member.getTableName ||
+              member.respond_to?(:getMondrianDefExpression) && (expr = member.getMondrianDefExpression) &&
+              expr.respond_to?(:table) && expr.table)
             field[:quoted_table_name] = dialect.quoteIdentifier(table_name)
           end
 
