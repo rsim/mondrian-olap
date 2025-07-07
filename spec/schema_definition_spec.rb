@@ -975,7 +975,7 @@ describe "Schema definition" do
               returns :member_set
               syntax :function
               def call_with_evaluator(evaluator, member)
-                evaluator.getSchemaReader.getMemberChildren(member)
+                evaluator.getSchemaReader.getMemberChildren(member).sort_by(&:getOrderKey)
               end
             end
           end
