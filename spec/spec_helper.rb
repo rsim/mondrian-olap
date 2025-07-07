@@ -325,8 +325,14 @@ end
 
 puts "==> Using #{MONDRIAN_DRIVER} driver"
 
-# Necessary for Aggregate optimizations test
-Java::JavaLang::System.setProperty("mondrian.rolap.EnableInMemoryRollup", "false")
+{
+  # Necessary for Aggregate optimizations test
+  "mondrian.rolap.EnableInMemoryRollup" => false,
+  # Test Mondrian setOrderKey patches
+  "mondrian.rolap.compareSiblingsByOrderKey" => true
+}.each do |property, value|
+  Java::JavaLang::System.setProperty(property, value.to_s)
+end
 
 require 'mondrian/olap'
 require_relative 'support/matchers/be_like'
