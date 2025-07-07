@@ -442,7 +442,7 @@ module Mondrian
 
       def children_count
         Error.wrap_native_exception do
-          @raw_member.getChildMembers.size
+          @raw_member.getChildMemberCount
         end
       end
 
