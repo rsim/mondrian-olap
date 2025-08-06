@@ -273,7 +273,7 @@ module Mondrian
 
         event_queue.put pair
 
-        # shut down connection pool thread
+        # Shut down connection pool thread
         f = Java::mondrian.rolap.RolapConnectionPool.java_class.declared_field("instance")
         f.accessible = true
         rolap_connection_pool = f.static_value.to_java
@@ -284,12 +284,24 @@ module Mondrian
           pool.close if pool && !pool.isClosed
         end
 
-        # unregister MBean
+        # Unregister platform MBean
         mbs = Java::JavaLangManagement::ManagementFactory.getPlatformMBeanServer
         mbean_name = Java::JavaxManagement::ObjectName.new("mondrian.server:type=Server-#{static_mondrian_server.getId}")
         begin
           mbs.unregisterMBean(mbean_name)
         rescue Java::JavaxManagement::InstanceNotFoundException
+        end
+
+        # Unregister memory monitor MBean
+        mxb = Java::JavaLangManagement::ManagementFactory.getMemoryMXBean
+        f = mxb.java_class.superclass.declared_field("listenerList")
+        f.accessible = true
+        listener_list = f.value(mxb)
+        listener = listener_list.detect do |listener_info|
+          listener_info.listener.is_a?(Java::MondrianUtil::NotificationMemoryMonitor::NotificationHandler)
+        end&.listener
+        if listener
+          mxb.removeNotificationListener(listener, nil, nil)
         end
 
         true
