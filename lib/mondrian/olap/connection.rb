@@ -238,7 +238,7 @@ module Mondrian
       def self.shutdown_static_mondrian_server!
         static_mondrian_server = Java::MondrianOlap::MondrianServer.forId(nil)
 
-        # force Mondrian to think that static_mondrian_server is not static MondrianServer
+        # Force Mondrian to think that static_mondrian_server is not static MondrianServer
         mondrian_server_registry = Java::MondrianServer::MondrianServerRegistry::INSTANCE
         f = mondrian_server_registry.java_class.declared_field("staticServer")
         f.accessible = true
@@ -246,13 +246,13 @@ module Mondrian
 
         static_mondrian_server.shutdown
 
-        # shut down expiring reference timer thread
+        # Shut down expiring reference timer thread
         f = Java::MondrianUtil::ExpiringReference.java_class.declared_field("timer")
         f.accessible = true
         expiring_reference_timer = f.static_value.to_java
         expiring_reference_timer.cancel
 
-        # shut down Mondrian Monitor
+        # Shut down Mondrian Monitor
         cons = Java::MondrianServer.__send__(:"MonitorImpl$ShutdownCommand").java_class.declared_constructor
         cons.accessible = true
         shutdown_command = cons.new_instance.to_java
@@ -293,15 +293,21 @@ module Mondrian
         end
 
         # Unregister memory monitor MBean
-        mxb = Java::JavaLangManagement::ManagementFactory.getMemoryMXBean
-        f = mxb.java_class.superclass.declared_field("listenerList")
-        f.accessible = true
-        listener_list = f.value(mxb)
-        listener = listener_list.detect do |listener_info|
-          listener_info.listener.is_a?(Java::MondrianUtil::NotificationMemoryMonitor::NotificationHandler)
-        end&.listener
-        if listener
-          mxb.removeNotificationListener(listener, nil, nil)
+        begin
+          mxb = Java::JavaLangManagement::ManagementFactory.getMemoryMXBean
+          f = mxb.java_class.superclass.declared_field("listenerList")
+          f.accessible = true
+          listener_list = f.value(mxb)
+          listener = listener_list.detect do |listener_info|
+            listener_info.listener.is_a?(Java::MondrianUtil::NotificationMemoryMonitor::NotificationHandler)
+          end&.listener
+          if listener
+            mxb.removeNotificationListener(listener, nil, nil)
+          end
+        rescue Java::JavaLang::RuntimeException
+          # Java 17+ does not allow to access private fields and will raise java.lang.reflect.InaccessibleObjectException.
+          # As this exception is not available in Java 8, it will be rescued as RuntimeException.
+          # As there is no way to access listener list on Java 17+, just ignore it.
         end
 
         true
