@@ -18,9 +18,9 @@ install:
   - ps: (gc C:\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0").replace("MinimumPasswordLength = 8", "MinimumPasswordLength = 0") | Out-File C:\secpol.cfg
   - ps: secedit /configure /db c:\windows\security\local.sdb /cfg c:\secpol.cfg /areas SECURITYPOLICY
   - ps: rm -force c:\secpol.cfg -confirm:$false
-  - appveyor DownloadFile https://s3.amazonaws.com/jruby.org/downloads/%JRUBY_VERSION%/jruby-bin-%JRUBY_VERSION%.zip
-  - 7z x jruby-bin-%JRUBY_VERSION%.zip -y > nul
-  - del jruby-bin-%JRUBY_VERSION%.zip
+  - appveyor DownloadFile https://repo1.maven.org/maven2/org/jruby/jruby-dist/%JRUBY_VERSION%/jruby-dist-%JRUBY_VERSION%-bin.zip
+  - 7z x jruby-dist-%JRUBY_VERSION%-bin.zip -y > nul
+  - del jruby-dist-%JRUBY_VERSION%-bin.zip
   - appveyor DownloadFile https://download.microsoft.com/download/4/D/C/4DCD85FA-0041-4D2E-8DD9-833C1873978C/sqljdbc_7.2.1.0_enu.exe
   - 7z x sqljdbc_7.2.1.0_enu.exe -y > nul
   - copy sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar spec\support\jars\
