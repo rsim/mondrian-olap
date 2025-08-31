@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - improvement/github_actions
   pull_request:
     branches:
       - master
