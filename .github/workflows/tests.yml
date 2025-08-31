@@ -89,15 +89,8 @@ jobs:
       - name: Run Tests
         run: |
           for driver in mysql postgresql oracle sqlserver; do
-            MONDRIAN_DRIVER=$driver bundle exec rake spec SPEC_OPTS="--format RspecJunitFormatter --out tmp/spec_results_java${JAVA_VERSION}_$driver.xml --format progress"
+            MONDRIAN_DRIVER=$driver bundle exec rake spec
           done
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Test Results (Java ${{ env.JAVA_VERSION }})
-          path: tmp/spec_results_java${{ env.JAVA_VERSION }}_*.xml
-          retention-days: 5
 
   windows-rspec:
     runs-on: windows-2025
@@ -153,28 +146,4 @@ jobs:
       - name: Create Database Data
         run: bundle exec rake db:create_data
       - name: Run Tests
-        run: |
-          bundle exec rake spec:sqlserver SPEC_OPTS="--format RspecJunitFormatter --out tmp/spec_results_windows_java${env:JAVA_VERSION}_${env:MONDRIAN_DRIVER}.xml --format progress"
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Test Results Windows (Java ${{ env.JAVA_VERSION }})
-          path: tmp/spec_results_windows_java${{ env.JAVA_VERSION }}_${{ env.MONDRIAN_DRIVER }}.xml
-          retention-days: 5
-
-  test-results:
-    runs-on: ubuntu-24.04
-    needs: [rspec, windows-rspec]
-    if: always()
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@ca89ad036b5fcd524c1017287fb01b5139908408 #v2.11.0
-        with:
-          junit_files: "artifacts/**/*.xml"
-          comment_mode: "off"
-          fail_on: "nothing"
+        run: bundle exec rake spec:sqlserver
