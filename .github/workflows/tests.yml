@@ -51,7 +51,7 @@ jobs:
           lscpu
           free
       - name: Set JAVA home
-        run: echo "JAVA_HOME=${JAVA_HOME}_${JAVA_VERSION}_X64" >> $GITHUB_ENV
+        run: echo "JAVA_HOME=$JAVA_HOME_${{ matrix.JAVA_VERSION }}_X64" >> $GITHUB_ENV
       - name: Output JAVA version
         run: $JAVA_HOME/bin/java -version
       - name: Setup MySQL8
