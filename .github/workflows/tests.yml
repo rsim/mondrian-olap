@@ -24,6 +24,7 @@ jobs:
           - 11
           - 17
     env:
+      JRUBY_VERSION: ${{ matrix.JRUBY_VERSION }}
       JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
       ORACLE_FILE: oracle11g/xe/oracle-xe-11.2.0-1.0.x86_64.rpm.zip
       ORACLE_HOME: /u01/app/oracle/product/11.2.0/xe
@@ -104,8 +105,9 @@ jobs:
           - 11
           - 17
     env:
-      MONDRIAN_DRIVER: sqlserver
+      JRUBY_VERSION: ${{ matrix.JRUBY_VERSION }}
       JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
+      MONDRIAN_DRIVER: sqlserver
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
