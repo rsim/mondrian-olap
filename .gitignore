@@ -3,6 +3,7 @@
 .DS_Store
 .autotest
 .ruby-*
+/mise.local.toml
 coverage
 doc
 pkg
