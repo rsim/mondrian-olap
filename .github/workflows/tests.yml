@@ -23,8 +23,9 @@ jobs:
             JAVA_VERSION: 11
           - JRUBY_VERSION: 9.4.14.0
             JAVA_VERSION: 17
-          - JRUBY_VERSION: 10.0.2.0
-            JAVA_VERSION: 21
+          # Tests on JRuby 10 are failing due to https://github.com/jruby/jruby/issues/8987
+          # - JRUBY_VERSION: 10.0.2.0
+          #   JAVA_VERSION: 21
     env:
       JRUBY_VERSION: ${{ matrix.JRUBY_VERSION }}
       JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
@@ -106,8 +107,8 @@ jobs:
             JAVA_VERSION: 11
           - JRUBY_VERSION: 9.4.14.0
             JAVA_VERSION: 17
-          - JRUBY_VERSION: 10.0.2.0
-            JAVA_VERSION: 21
+          # - JRUBY_VERSION: 10.0.2.0
+          #   JAVA_VERSION: 21
     env:
       JRUBY_VERSION: ${{ matrix.JRUBY_VERSION }}
       JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
