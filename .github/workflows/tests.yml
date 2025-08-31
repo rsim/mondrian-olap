@@ -30,8 +30,7 @@ jobs:
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       ORACLE_SID: XE
       ORACLE_DATABASE_NAME: XE
-      MYSQL_DATABASE_PASSWORD: root
-      POSTGRES_DATABASE_PASSWORD: postgres
+      MYSQL_ROOT_PASSWORD: root
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,7 +59,7 @@ jobs:
           character set server: 'utf8'
           collation server: 'utf8_general_ci'
           mysql version: '8.0.28'
-          mysql root password: ${{ env.MYSQL_DATABASE_PASSWORD }}
+          mysql root password: ${{ env.MYSQL_ROOT_PASSWORD }}
       - name: Start PostgreSQL
         run: |
           sudo cp -f .github/workflows/pg_hba.conf /etc/postgresql/16/main/pg_hba.conf
