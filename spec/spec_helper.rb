@@ -367,9 +367,10 @@ else
 end
 case MONDRIAN_DRIVER
 when 'mysql'
-  CONNECTION_PARAMS[:properties] = {useSSL: false, serverTimezone: 'UTC'}
+  CONNECTION_PARAMS[:properties] = {useSSL: false, serverTimezone: 'UTC', allowPublicKeyRetrieval: true}
 when 'jdbc_mysql'
-  CONNECTION_PARAMS[:jdbc_url] << '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC'
+  CONNECTION_PARAMS[:jdbc_url] +=
+    '?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true'
 end
 
 case MONDRIAN_DRIVER
@@ -390,7 +391,7 @@ when 'oracle'
   }
 when 'sqlserver'
   url = "jdbc:sqlserver://#{CONNECTION_PARAMS[:host]};databaseName=#{CONNECTION_PARAMS[:database]};"
-  url << ";instanceName=#{DATABASE_INSTANCE}" if DATABASE_INSTANCE
+  url += ";instanceName=#{DATABASE_INSTANCE}" if DATABASE_INSTANCE
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver: JDBC_DRIVER,
