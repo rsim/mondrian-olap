@@ -1,0 +1,179 @@
+name: Tests
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+env:
+  JAVA_OPTS: -Xmx2048m
+  JRUBY_OPTS: -W0
+
+jobs:
+  rspec:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        JRUBY_VERSION:
+          - 9.4.13.0
+        JAVA_VERSION:
+          - 8
+          - 11
+          - 17
+    env:
+      JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
+      ORACLE_FILE: oracle11g/xe/oracle-xe-11.2.0-1.0.x86_64.rpm.zip
+      ORACLE_HOME: /u01/app/oracle/product/11.2.0/xe
+      NLS_LANG: AMERICAN_AMERICA.AL32UTF8
+      ORACLE_SID: XE
+      ORACLE_DATABASE_NAME: XE
+      MYSQL_DATABASE_PASSWORD: root
+      POSTGRES_DATABASE_PASSWORD: postgres
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Edit hosts
+        run: |
+          echo "127.0.0.1 mssql.vm" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 oracle.vm" | sudo tee -a /etc/hosts
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        # following sudo rm... line is workaround for https://github.com/actions/runner-images/issues/9733
+        run: |
+          sudo rm /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update
+          sudo apt-get install -y haveged
+      - name: Output CPU information
+        run: |
+          lscpu
+          free
+      - name: Set JAVA home
+        run: echo "JAVA_HOME=${JAVA_HOME}_${JAVA_VERSION}_X64" >> $GITHUB_ENV
+      - name: Output JAVA version
+        run: $JAVA_HOME/bin/java -version
+      - name: Setup MySQL8
+        uses: mirromutth/mysql-action@de1fba8b3f90ce8db80f663a7043be3cf3231248 #v1.1
+        with:
+          character set server: 'utf8'
+          collation server: 'utf8_general_ci'
+          mysql version: '8.0.28'
+          mysql root password: ${{ env.MYSQL_DATABASE_PASSWORD }}
+      - name: Start PostgreSQL
+        run: |
+          sudo cp -f .github/workflows/pg_hba.conf /etc/postgresql/16/main/pg_hba.conf
+          sudo systemctl start postgresql.service
+          pg_isready
+      - name: Install Oracle
+        run: |
+          echo "$ORACLE_HOME/jdbc/lib" >> $GITHUB_PATH
+          .github/workflows/oracle/download.sh
+          .github/workflows/oracle/install.sh
+      - name: Install a SQL Server
+        uses: potatoqualitee/mssqlsuite@410e5bb088db9593643dc560d30d54ffe0e78ead #v1.8
+        with:
+          install: sqlengine, sqlclient
+          sa-password: Password12!
+      - name: Download SQL Server JDBC driver
+        run: |
+          .github/workflows/sqlserver/download.sh
+      - name: Setup Ruby and install gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 'jruby-${{env.JRUBY_VERSION}}'
+          bundler-cache: true
+      - name: Setup DB
+        run: .github/workflows/create_db_schemas.sh
+      - name: Run Tests
+        run: |
+          for driver in mysql postgresql oracle sqlserver; do
+            MONDRIAN_DRIVER=$driver bundle exec rake spec SPEC_OPTS="--format RspecJunitFormatter --out tmp/spec_results_java${JAVA_VERSION}_$driver.xml --format progress"
+          done
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test Results (Java ${{ env.JAVA_VERSION }})
+          path: tmp/spec_results_java${{ env.JAVA_VERSION }}_*.xml
+          retention-days: 5
+
+  windows-rspec:
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        JRUBY_VERSION:
+          - 9.4.13.0
+        JAVA_VERSION:
+          - 8
+          - 11
+          - 17
+    env:
+      MONDRIAN_DRIVER: sqlserver
+      JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Edit hosts
+        run: |
+          echo "127.0.0.1 mssql.vm" | Out-File -Append -FilePath C:\Windows\System32\drivers\etc\hosts
+      - name: Output System information
+        run: systeminfo
+      - name: Set JAVA home
+        run: |
+          $javaEnvVarName = "JAVA_HOME_${env:JAVA_VERSION}_X64"
+          $env:JAVA_HOME = (Get-Item -Path Env:$javaEnvVarName).Value
+          $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+          echo "JAVA_HOME=$env:JAVA_HOME" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Output JAVA version
+        run: java -version
+      - name: Setup SQL Server
+        uses: potatoqualitee/mssqlsuite@410e5bb088db9593643dc560d30d54ffe0e78ead #v1.8
+        with:
+          install: sqlengine
+          sa-password: Password12!
+      - name: Download SQL Server JDBC driver
+        run: |
+          Invoke-WebRequest -Uri "https://download.microsoft.com/download/4/D/C/4DCD85FA-0041-4D2E-8DD9-833C1873978C/sqljdbc_7.2.1.0_enu.exe" -OutFile "sqljdbc_7.2.1.0_enu.exe"
+          7z x sqljdbc_7.2.1.0_enu.exe -y > nul
+          Copy-Item -Path "sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar" -Destination "spec\support\jars\"
+      - name: Setup Ruby and install gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 'jruby-${{ env.JRUBY_VERSION }}'
+          bundler-cache: true
+      - name: Setup DB
+        run: |
+          sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "CREATE LOGIN mondrian_test WITH PASSWORD = 'mondrian_test', CHECK_POLICY = OFF"
+          sqlcmd -S "(local)" -U "sa" -P "Password12!" -Q "ALTER SERVER ROLE [dbcreator] ADD MEMBER [mondrian_test]"
+          sqlcmd -S "(local)" -U "mondrian_test" -P "mondrian_test" -Q "CREATE DATABASE mondrian_test"
+      - name: Create Database Data
+        run: bundle exec rake db:create_data
+      - name: Run Tests
+        run: |
+          bundle exec rake spec:sqlserver SPEC_OPTS="--format RspecJunitFormatter --out tmp/spec_results_windows_java${env:JAVA_VERSION}_${env:MONDRIAN_DRIVER}.xml --format progress"
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test Results Windows (Java ${{ env.JAVA_VERSION }})
+          path: tmp/spec_results_windows_java${{ env.JAVA_VERSION }}_${{ env.MONDRIAN_DRIVER }}.xml
+          retention-days: 5
+
+  test-results:
+    runs-on: ubuntu-24.04
+    needs: [rspec, windows-rspec]
+    if: always()
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@ca89ad036b5fcd524c1017287fb01b5139908408 #v2.11.0
+        with:
+          junit_files: "artifacts/**/*.xml"
+          comment_mode: "off"
+          fail_on: "nothing"
