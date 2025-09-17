@@ -13,6 +13,7 @@ PGPASSWORD=postgres psql -c 'ALTER DATABASE mondrian_test OWNER TO mondrian_test
 $ORACLE_HOME/bin/sqlplus -L -S / AS SYSDBA <<SQL
 CREATE USER mondrian_test IDENTIFIED BY mondrian_test DEFAULT TABLESPACE users;
 GRANT CONNECT, RESOURCE TO mondrian_test;
+ALTER USER mondrian_test QUOTA UNLIMITED ON users;
 exit
 SQL
 
