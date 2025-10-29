@@ -540,4 +540,62 @@ describe "Mondrian features" do
       result.profiling_timing_string.should_not include("[Measures].[Unit Sales 2]")
     end
   end
+
+  describe "LinRegR2" do
+    it "should be 0" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegR2]').as(
+          <<~MDX
+            LinRegR2(
+              [Customers].[Country].Members,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members),
+              CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
+                WHEN 1 THEN 10
+                WHEN 2 THEN 30
+                WHEN 3 THEN 10
+              END
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegR2]').execute
+      result.values.should == [0.0]
+    end
+
+    it "should be 0.52" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegR2]').as(
+          <<~MDX
+            Round(
+              LinRegR2(
+                [Customers].[Country].Members,
+                Rank([Customers].CurrentMember, [Customers].[Country].Members),
+                CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
+                  WHEN 1 THEN 10
+                  WHEN 2 THEN 30
+                  WHEN 3 THEN 25
+                END
+              ),
+              2
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegR2]').execute
+      result.values.should == [0.52]
+    end
+
+    it "should be 1.0" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegR2]').as(
+          <<~MDX
+            LinRegR2(
+              [Customers].[Country].Members,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members),
+              Rank([Customers].CurrentMember, [Customers].[Country].Members) * 10
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegR2]').execute
+      result.values.should == [1.0]
+    end
+  end
 end
