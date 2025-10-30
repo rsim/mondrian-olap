@@ -542,18 +542,16 @@ describe "Mondrian features" do
   end
 
   describe "LinRegR2" do
-    it "should be 0" do
+    it "should return 0 for no linear correlation (flat line)" do
+      # When Y values are constant regardless of X, there's no linear relationship
+      # Example: Sales are always 20 regardless of the country
       result = @olap.from('Sales').
         with_member('[Measures].[LinRegR2]').as(
           <<~MDX
             LinRegR2(
               [Customers].[Country].Members,
               Rank([Customers].CurrentMember, [Customers].[Country].Members),
-              CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
-                WHEN 1 THEN 10
-                WHEN 2 THEN 30
-                WHEN 3 THEN 10
-              END
+              20
             )
           MDX
         ).
@@ -561,7 +559,10 @@ describe "Mondrian features" do
       result.values.should == [0.0]
     end
 
-    it "should be 0.52" do
+    it "should return approximately 0.52 for moderate positive correlation" do
+      # Example: Sales increase somewhat with country rank, but with variation
+      # Country 1: 10 sales, Country 2: 30 sales, Country 3: 25 sales
+      # Shows positive trend but not perfectly linear
       result = @olap.from('Sales').
         with_member('[Measures].[LinRegR2]').as(
           <<~MDX
@@ -583,7 +584,10 @@ describe "Mondrian features" do
       result.values.should == [0.52]
     end
 
-    it "should be 1.0" do
+    it "should return 1.0 for perfect linear correlation" do
+      # When Y = 10 * X, we have a perfect linear relationship
+      # Example: Sales perfectly increase by 10 for each country rank
+      # Country 1: 10 sales, Country 2: 20 sales, Country 3: 30 sales
       result = @olap.from('Sales').
         with_member('[Measures].[LinRegR2]').as(
           <<~MDX
