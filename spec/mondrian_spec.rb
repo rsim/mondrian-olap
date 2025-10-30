@@ -544,14 +544,18 @@ describe "Mondrian features" do
   describe "LinRegR2" do
     it "should return 0 for no linear correlation (flat line)" do
       # When Y values are constant regardless of X, there's no linear relationship
-      # Example: Sales are always 20 regardless of the country
+      # Example: Sales are 10, then 30, then back to 10
       result = @olap.from('Sales').
         with_member('[Measures].[LinRegR2]').as(
           <<~MDX
             LinRegR2(
               [Customers].[Country].Members,
               Rank([Customers].CurrentMember, [Customers].[Country].Members),
-              20
+              CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
+                WHEN 1 THEN 10
+                WHEN 2 THEN 30
+                WHEN 3 THEN 10
+              END
             )
           MDX
         ).
