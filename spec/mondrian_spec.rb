@@ -347,8 +347,14 @@ describe "Mondrian features" do
           as("CASE 1 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END").
         with_member('[Measures].[Case 4]').
           as("CASE 1 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE 2 END").
-        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
-        values.should == [1, 1, 1, 1]
+        with_member('[Measures].[Case 5]').
+          as("CASE 1 WHEN 1 THEN [Measures].[one] ELSE ([Measures].[two], [Gender].[F]) END").
+        with_member('[Measures].[Case 6]').
+          as("CASE 2 WHEN 2 THEN ([Measures].[two], [Gender].[F]) ELSE [Measures].[one] END").
+        columns(
+          '[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]', '[Measures].[Case 5]',
+          '[Measures].[Case 6]'
+        ).execute.values.should == [1, 1, 1, 1, 1, 2]
     end
 
     it "should return member or tuple as result" do
@@ -365,7 +371,22 @@ describe "Mondrian features" do
           as("CASE 2 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
         values.should == ['one', 'two', 'one', 'two']
-      end
+    end
+
+    it "should allow members and NULLs as scalar result values" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[Case 1]').
+          as("CASE 1 WHEN 1 THEN NULL ELSE [Measures].[one] END").
+        with_member('[Measures].[Case 2]').
+          as("CASE 2 WHEN 1 THEN NULL ELSE [Measures].[one] END").
+        with_member('[Measures].[Case 3]').
+          as("CASE 1 WHEN 1 THEN [Measures].[one] ELSE NULL END").
+        with_member('[Measures].[Case 4]').
+          as("CASE 2 WHEN 1 THEN [Measures].[one] ELSE NULL END").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
+        values.should == [nil, 1, 1, nil]
+    end
   end
 
   describe "CASE test statement" do
@@ -403,8 +424,14 @@ describe "Mondrian features" do
           as("CASE WHEN 1 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END").
         with_member('[Measures].[Case 4]').
           as("CASE WHEN 1 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE 2 END").
-        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
-        values.should == [1, 1, 1, 1]
+        with_member('[Measures].[Case 5]').
+          as("CASE WHEN 1 = 1 THEN [Measures].[one] ELSE ([Measures].[two], [Gender].[F]) END").
+        with_member('[Measures].[Case 6]').
+          as("CASE WHEN 2 = 2 THEN ([Measures].[two], [Gender].[F]) ELSE [Measures].[one] END").
+        columns(
+          '[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]', '[Measures].[Case 5]',
+          '[Measures].[Case 6]'
+        ).execute.values.should == [1, 1, 1, 1, 1, 2]
     end
 
     it "should return member or tuple as result" do
@@ -421,6 +448,21 @@ describe "Mondrian features" do
           as("CASE WHEN 2 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
         values.should == ['one', 'two', 'one', 'two']
+    end
+
+    it "should allow members and NULLs as scalar result values" do
+      @olap.from('Sales').
+        with_member('[Measures].[one]').as('1').
+        with_member('[Measures].[Case 1]').
+          as("CASE WHEN 1 = 1 THEN NULL ELSE [Measures].[one] END").
+        with_member('[Measures].[Case 2]').
+          as("CASE WHEN 1 = 2 THEN NULL ELSE [Measures].[one] END").
+        with_member('[Measures].[Case 3]').
+          as("CASE WHEN 1 = 1 THEN [Measures].[one] ELSE NULL END").
+        with_member('[Measures].[Case 4]').
+          as("CASE WHEN 1 = 2 THEN [Measures].[one] ELSE NULL END").
+        columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
+        values.should == [nil, 1, 1, nil]
     end
   end
 
