@@ -582,4 +582,147 @@ describe "Mondrian features" do
       result.profiling_timing_string.should_not include("[Measures].[Unit Sales 2]")
     end
   end
+
+  describe "LinRegR2" do
+    it "should return 0 for no linear correlation (flat line)" do
+      # When Y values are constant regardless of X, there's no linear relationship
+      # Example: Sales are 10, then 30, then back to 10
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegR2]').as(
+          <<~MDX
+            LinRegR2(
+              [Customers].[Country].Members,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members),
+              CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
+                WHEN 1 THEN 10
+                WHEN 2 THEN 30
+                WHEN 3 THEN 10
+              END
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegR2]').execute
+      result.values.should == [0.0]
+    end
+
+    it "should return approximately 0.52 for moderate positive correlation" do
+      # Example: Sales increase somewhat with country rank, but with variation
+      # Country 1: 10 sales, Country 2: 30 sales, Country 3: 25 sales
+      # Shows positive trend but not perfectly linear
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegR2]').as(
+          <<~MDX
+            Round(
+              LinRegR2(
+                [Customers].[Country].Members,
+                Rank([Customers].CurrentMember, [Customers].[Country].Members),
+                CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
+                  WHEN 1 THEN 10
+                  WHEN 2 THEN 30
+                  WHEN 3 THEN 25
+                END
+              ),
+              2
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegR2]').execute
+      result.values.should == [0.52]
+    end
+
+    it "should return 1.0 for perfect linear correlation" do
+      # When Y = 10 * X, we have a perfect linear relationship
+      # Example: Sales perfectly increase by 10 for each country rank
+      # Country 1: 10 sales, Country 2: 20 sales, Country 3: 30 sales
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegR2]').as(
+          <<~MDX
+            LinRegR2(
+              [Customers].[Country].Members,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members),
+              Rank([Customers].CurrentMember, [Customers].[Country].Members) * 10
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegR2]').execute
+      result.values.should == [1.0]
+    end
+  end
+
+  describe "LinRegVariance" do
+    it "should return high variance for no linear correlation (flat line)" do
+      # X values: 1, 2, 3 (from Rank)
+      # Y values: 10, 30, 10 (from CASE statement)
+      # Regression line: Y = 0X + 16.67 (flat line at mean Y)
+      # Predicted Y: 16.67, 16.67, 16.67
+      # Residuals: (10-16.67)², (30-16.67)², (10-16.67)²
+      # Expected variance: 266.67
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegVariance]').as(
+          <<~MDX
+            Round(
+              LinRegVariance(
+                [Customers].[Country].Members,
+                CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
+                  WHEN 1 THEN 10
+                  WHEN 2 THEN 30
+                  WHEN 3 THEN 10
+                END,
+                Rank([Customers].CurrentMember, [Customers].[Country].Members)
+              ),
+              2
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegVariance]').execute
+      result.values.should == [266.67]
+    end
+
+    it "should return moderate variance for moderate positive correlation" do
+      # X values: 1, 2, 3 (from Rank)
+      # Y values: 10, 30, 25 (from CASE statement)
+      # Regression line: Y = 7.5X + 5
+      # Predicted Y: 12.5, 20, 27.5
+      # Residuals: (10-12.5)², (30-20)², (25-27.5)²
+      # Expected variance: 104.17
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegVariance]').as(
+          <<~MDX
+            Round(
+              LinRegVariance(
+                [Customers].[Country].Members,
+                CASE Rank([Customers].CurrentMember, [Customers].[Country].Members)
+                  WHEN 1 THEN 10
+                  WHEN 2 THEN 30
+                  WHEN 3 THEN 25
+                END,
+                Rank([Customers].CurrentMember, [Customers].[Country].Members)
+              ),
+              2
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegVariance]').execute
+      result.values.should == [104.17]
+    end
+
+    it "should return 0.0 for perfect linear correlation" do
+      # X values: 1, 2, 3 (from Rank)
+      # Y values: 10, 20, 30 (from multiplication)
+      # Perfect linear relationship: Y = 10X
+      # No variance from the regression line
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegVariance]').as(
+          <<~MDX
+            LinRegVariance(
+              [Customers].[Country].Members,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members) * 10,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members)
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegVariance]').execute
+      result.values.should == [0.0]
+    end
+  end
 end
