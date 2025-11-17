@@ -213,6 +213,136 @@ cube.member('[Customers].[USA]').descendants_at_level('City')
 
 See more examples of dimension and member queries in `spec/cube_spec.rb`.
 
+### Cache control
+
+mondrian-olap provides methods to control and clear the Mondrian cache when underlying data changes:
+
+```ruby
+# Flush entire schema cache for all connections
+Mondrian::OLAP::Connection.flush_schema_cache
+
+# Flush schema cache for specific connection
+olap.flush_schema
+
+# Flush schema by schema key
+Mondrian::OLAP::Connection.flush_schema(schema_key)
+
+# Flush specific region of cube cache with segments
+# Useful when data is updated/deleted in specific dimension members
+cube = olap.cube('Sales')
+cube.flush_region_cache_with_segments(
+  ['Time', '2010', 'Q1'],           # Time dimension path
+  ['Customers', 'USA', 'CA']        # Customer dimension path
+)
+```
+
+The `flush_region_cache_with_segments` method is particularly useful for partial cache clearing when you know which specific dimension members have changed data, avoiding the need to flush the entire cache.
+
+See more examples of cache control in `spec/cube_cache_control_spec.rb`.
+
+### Query timeout
+
+You can set a query-specific timeout to prevent long-running queries from blocking:
+
+```ruby
+# Timeout in seconds
+result = olap.from('Sales').
+  columns('[Measures].[Unit Sales]').
+  rows('[Product].children').
+  execute(timeout: 30)
+```
+
+If the query exceeds the timeout, a `Mondrian::OLAP::Error` will be raised.
+
+### Query profiling
+
+Enable query profiling to analyze performance and view query execution plans:
+
+```ruby
+result = olap.from('Sales').
+  columns('[Measures].[Unit Sales]').
+  rows('[Product].children').
+  execute(profiling: true)
+
+# Get query plan
+puts result.profiling_plan
+
+# Get timing information
+puts result.profiling_timing_string
+
+# Get total duration
+puts result.total_duration
+```
+
+Profiling provides detailed information about SQL statement execution, MDX function calls, and custom timing markers.
+
+### Schema parameters and query parameters
+
+You can define parameters in your schema and use them in calculated members or pass parameters at query execution time:
+
+```ruby
+schema = Mondrian::OLAP::Schema.define do
+  # Define schema-level parameter
+  parameter 'CurrentYear' do
+    type 'Numeric'
+    default_value 2010
+  end
+
+  cube 'Sales' do
+    # ... cube definition ...
+    calculated_member 'Current Year Sales' do
+      dimension 'Measures'
+      # Use ParamRef to reference the parameter in the formula
+      formula '([Measures].[Store Sales], [Time].[Year].Members.Item(Cast(ParamRef("CurrentYear") AS String)))'
+    end
+  end
+
+  # User defined function to access parameter value
+  user_defined_function 'ParameterValue' do
+    ruby :shared do
+      parameters :string
+      returns :scalar
+      syntax :function
+      def call_with_evaluator(evaluator, parameter_name)
+        evaluator.getQuery.getSchemaReader(false).getParameter(parameter_name)&.getValue
+      end
+    end
+  end
+end
+
+# Execute query with parameters
+result = olap.from('Sales').
+  columns('[Measures].[Current Year Sales]').
+  execute(define_parameters: {
+    'CurrentYear' => 2011,
+    'CustomParam' => 'value'
+  })
+```
+
+Parameters can be of type String, Numeric, or nil values.
+
+### Connection locale
+
+Set the locale for the connection to control language-specific formatting and member captions:
+
+```ruby
+# Set locale during connection creation
+olap = Mondrian::OLAP::Connection.create(
+  driver: 'mysql',
+  host: 'localhost',
+  database: 'mondrian_test',
+  username: 'mondrian_user',
+  password: 'secret',
+  schema: schema,
+  locale: 'de_DE'
+)
+
+# Or set locale after connection
+olap.locale = 'en_US'
+```
+
+Supported locale formats include 'en', 'en_US', 'de', 'de_DE', etc.
+
 ### User defined MDX functions
 
 You can define new MDX functions using Ruby that you can later use either in calculated member formulas or in MDX queries.
@@ -269,6 +399,87 @@ end
 ```
 
 See more examples of data access roles in `spec/connection_role_spec.rb`.
+
+### Drill through
+
+Drill through to underlying fact table data from aggregated cell results:
+
+```ruby
+# Execute query
+result = olap.from('Sales').
+  columns('[Measures].[Unit Sales]').
+  rows('[Product].children').
+  execute
+
+# Drill through from specific cell
+drill_through = result.drill_through(row: 0, column: 0)
+
+# Access drill through results
+drill_through.column_names   # Column names from fact table
+drill_through.column_labels  # User-friendly labels
+drill_through.rows          # Array of data rows
+
+# Drill through with options
+drill_through = result.drill_through(
+  row: 0,
+  column: 0,
+  max_rows: 100,                              # Limit number of rows
+  return: [                                   # Specify columns to return
+    '[Time].[Month]',
+    '[Product].[Product Family]',
+    '[Measures].[Unit Sales]'
+  ],
+  nonempty: '[Measures].[Unit Sales]',        # Filter to non-empty measures
+  group_by: true                              # Group by dimension columns
+)
+
+# Drill through with member properties
+drill_through = result.drill_through(
+  row: 0,
+  column: 0,
+  return: [
+    "Name([Customers].[Name])",               # Member name
+    "Property([Customers].[Name], 'Gender')", # Member property
+    '[Measures].[Unit Sales]'
+  ]
+)
+
+# Execute drill through statement directly
+drill_through = olap.from('Sales').
+  columns('[Measures].[Unit Sales]').
+  rows('[Product].children').
+  execute_drill_through(
+    max_rows: 100,
+    return: ['[Time].[Month]', '[Measures].[Unit Sales]']
+  )
+```
+
+See more examples of drill through in `spec/query_spec.rb`.
+
+### Additional schema options
+
+Additional schema definition options available:
+
+```ruby
+schema = Mondrian::OLAP::Schema.define do
+  cube 'Sales' do
+    table 'sales'
+
+    dimension 'Products', foreign_key: 'product_id' do
+      # Set high cardinality hint for better performance
+      high_cardinality true
+
+      hierarchy has_all: true, primary_key: 'id' do
+        table 'products'
+        level 'Product Name', column: 'product_name', unique_members: true do
+          # Approximate row count for query optimization
+          approx_row_count 10000
+        end
+      end
+    end
+  end
+end
+```
 
 REQUIREMENTS
 ------------
