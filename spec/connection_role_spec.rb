@@ -8,6 +8,7 @@ describe "Connection role" do
         @role_name = role_name = 'California manager',
         @role_name2 = role_name2 = 'Dummy, with comma',
         @simple_role_name = simple_role_name = 'USA manager',
+        'Mexico Santa Anita',
         @union_role_name = union_role_name = 'Union California manager',
         @intermediate_union_role_name = intermediate_union_role_name = "Intermediate #{union_role_name}"
       ]
@@ -40,6 +41,24 @@ describe "Connection role" do
           end
           measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
           measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
+          calculated_member 'Mexico DF', dimension: 'Customers', formula: <<~MDX
+            Aggregate([Customers].[Mexico].[DF].Children)
+          MDX
+          calculated_member 'Mexico Santa Anita and Santa Fe', dimension: 'Customers', formula: <<~MDX
+            Aggregate({[Customers].[Mexico].[DF].[Santa Anita], [Customers].[Mexico].[DF].[Santa Fe]})
+          MDX
+        end
+        role 'Mexico Santa Anita' do
+          schema_grant :access => 'none' do
+            cube_grant :cube => 'Sales', :access => 'all' do
+              dimension_grant :dimension => '[Measures]', :access => 'all'
+              hierarchy_grant :hierarchy => '[Customers]', :bottom_level => '[Customers].[City]', :access => 'custom' do
+                member_grant :member => '[Customers].[Mexico].[DF].[Santa Anita]', :access => 'all'
+                member_grant :member => '[Customers].[Mexico DF]', :access => 'all'
+                member_grant :member => '[Customers].[Mexico Santa Anita and Santa Fe]', :access => 'all'
+              end
+            end
+          end
         end
         role role_name do
           schema_grant :access => 'none' do
@@ -182,5 +201,36 @@ describe "Connection role" do
       cube.member('[Customers].[All Customers].[USA].[CA]').should_not be_drillable
     end
 
+    describe "calculated member with role restrictions" do
+      before(:each) do
+        @olap.role_name = 'Mexico Santa Anita'
+        @query = @olap.from('Sales')
+        @sql = ActiveRecord::Base.connection
+      end
+
+      it "should aggregate only accessible children" do
+        result = @query.rows('[Customers].[Mexico DF]').columns('[Measures].[Unit Sales]').execute
+        result.values.should == [[@sql.select_value(<<~SQL).to_i]]
+          SELECT SUM(unit_sales)
+          FROM sales
+          JOIN customers ON sales.customer_id = customers.id
+          WHERE customers.country = 'Mexico'
+            AND customers.state_province = 'DF'
+            AND customers.city = 'Santa Anita'
+        SQL
+      end
+
+      it "should aggregate only accessible members from set" do
+        result = @query.rows('[Customers].[Mexico Santa Anita and Santa Fe]').columns('[Measures].[Unit Sales]').execute
+        result.values.should == [[@sql.select_value(<<~SQL).to_i]]
+          SELECT SUM(unit_sales)
+          FROM sales
+          JOIN customers ON sales.customer_id = customers.id
+          WHERE customers.country = 'Mexico'
+            AND customers.state_province = 'DF'
+            AND customers.city = 'Santa Anita'
+        SQL
+      end
+    end
   end
 end
