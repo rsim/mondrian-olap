@@ -8,7 +8,7 @@ describe "Connection role" do
         @role_name = role_name = 'California manager',
         @role_name2 = role_name2 = 'Dummy, with comma',
         @simple_role_name = simple_role_name = 'USA manager',
-        'Mexico Santa Anita',
+        @mexico_santa_anita_role_name = mexico_santa_anita_role_name = 'Mexico Santa Anita',
         @union_role_name = union_role_name = 'Union California manager',
         @intermediate_union_role_name = intermediate_union_role_name = "Intermediate #{union_role_name}"
       ]
@@ -48,7 +48,7 @@ describe "Connection role" do
             Aggregate({[Customers].[Mexico].[DF].[Santa Anita], [Customers].[Mexico].[DF].[Santa Fe]})
           MDX
         end
-        role 'Mexico Santa Anita' do
+        role mexico_santa_anita_role_name do
           schema_grant :access => 'none' do
             cube_grant :cube => 'Sales', :access => 'all' do
               dimension_grant :dimension => '[Measures]', :access => 'all'
@@ -203,7 +203,7 @@ describe "Connection role" do
 
     describe "calculated member with role restrictions" do
       before(:each) do
-        @olap.role_name = 'Mexico Santa Anita'
+        @olap.role_name = @mexico_santa_anita_role_name
         @query = @olap.from('Sales')
         @sql = ActiveRecord::Base.connection
       end
