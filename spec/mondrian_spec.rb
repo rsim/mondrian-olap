@@ -273,6 +273,19 @@ describe "Mondrian features" do
     end
   end
 
+  describe "TopCount" do
+    it "should return top N members by measure" do
+      result = @olap2.from('Sales').
+        columns('[Measures].[Unit Sales]').
+        rows('TopCount([Product].[Product Name].Members, 3, [Measures].[Unit Sales])').
+        where('[Time].[2010]').
+        execute
+
+      result.row_names.should == ['Product 100', 'Product 99', 'Product 98']
+      result.values.map(&:first).map(&:to_i).should == [100, 99, 98]
+    end
+  end
+
   describe "NonEmptyCrossJoin" do
     before(:all) do
       set_property_values(
