@@ -1,9 +1,10 @@
+# frozen_string_literal: true
+
 require 'mondrian/olap/schema_element'
 
 module Mondrian
   module OLAP
-    # See http://mondrian.pentaho.com/documentation/schema.php for more detailed description
-    # of Mondrian Schema elements.
+    # See http://mondrian.pentaho.com/documentation/schema.php for more detailed description of Mondrian Schema elements.
     class Schema < SchemaElement
       def initialize(name = nil, attributes = {}, parent = nil, &block)
         name, attributes = self.class.pre_process_arguments(name, attributes)
@@ -19,7 +20,7 @@ module Mondrian
       def define(name = nil, attributes = {}, &block)
         name, attributes = self.class.pre_process_arguments(name, attributes)
         pre_process_attributes(attributes)
-        @attributes[:name] = name || @attributes[:name] || 'default' # otherwise connection with empty name fails
+        @attributes[:name] = name || @attributes[:name] || 'default' # Otherwise connection with empty name fails
         instance_eval(&block) if block
         self
       end
@@ -33,7 +34,7 @@ module Mondrian
       private
 
       def self.pre_process_arguments(name, attributes)
-        # if is called just with attributes hash and without name
+        # If is called just with attributes hash and without name
         if name.is_a?(Hash) && attributes.empty?
           attributes = name
           name = nil
@@ -123,7 +124,7 @@ module Mondrian
 
         def initialize(name = nil, attributes = {}, parent = nil)
           super
-          # by default specify :source as name
+          # By default specify :source as name
           @attributes[:source] ||= name
         end
       end
@@ -158,7 +159,7 @@ module Mondrian
 
         def initialize(name = nil, attributes = {}, parent = nil)
           super
-          # set :has_all => true if :all_member_name is set
+          # Set has_all: true if :all_member_name is set
           if @attributes[:has_all].nil? && @attributes[:all_member_name]
             @attributes[:has_all] = true
           end
@@ -234,7 +235,7 @@ module Mondrian
 
         def initialize(name = nil, attributes = {}, parent = nil)
           super
-          # set :unique_members by default to true for first level and false for next levels
+          # Set :unique_members by default to true for first level and false for next levels
           if @attributes[:unique_members].nil?
             @attributes[:unique_members] = parent.levels.empty?
           end
@@ -298,7 +299,7 @@ module Mondrian
 
         def initialize(name = nil, attributes = {}, parent = nil)
           super
-          # by default set aggregator to sum
+          # By default set aggregator to sum
           @attributes[:aggregator] ||= 'sum'
         end
       end

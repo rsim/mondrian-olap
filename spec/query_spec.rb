@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "spec_helper"
 
 describe "Query" do
@@ -33,7 +35,7 @@ describe "Query" do
 
   def sql_select_numbers(select_string)
     @sql.select_rows(select_string).map do |rows|
-      rows.map{|col| BigDecimal(col.to_s)}
+      rows.map { |col| BigDecimal(col.to_s) }
     end
   end
 
@@ -52,7 +54,7 @@ describe "Query" do
       @expected_result_values = sql_select_numbers(@sql_select)
 
       @expected_result_values_by_columns =
-        [@expected_result_values.map{|row| row[0]}, @expected_result_values.map{|row| row[1]}]
+        [@expected_result_values.map { |row| row[0] }, @expected_result_values.map { |row| row[1] }]
 
       @result = @olap.execute @query_string
     end
@@ -101,7 +103,7 @@ describe "Query" do
     end
 
     it "should return formatted cells" do
-      @result.formatted_values.map{|r| r.map{|s| BigDecimal(s.gsub(',',''))}}.should == @expected_result_values
+      @result.formatted_values.map { |r| r.map { |s| BigDecimal(s.gsub(',', '')) } }.should == @expected_result_values
     end
 
   end
@@ -350,12 +352,12 @@ describe "Query" do
       it "should accept definition with additional parameters" do
         @query.with_member('[Measures].[ProfitPct]').
           as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-            :solve_order => 1,
-            :format_string => 'Percent')
+            solve_order: 1,
+            format_string: 'Percent')
         @query.with.should == [
           [ :member, '[Measures].[ProfitPct]',
             'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-            {:solve_order => 1, :format_string => 'Percent'}
+            {solve_order: 1, format_string: 'Percent'}
           ]
         ]
       end
@@ -613,7 +615,7 @@ describe "Query" do
 
       it "should return query with filter and set alias" do
         @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', :as => 'S').
+          rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', as: 'S').
           to_mdx.should be_like <<-SQL
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
@@ -655,10 +657,10 @@ describe "Query" do
         @query.
           with_member('[Measures].[ProfitPct]').
             as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-              :solve_order => 1, :format_string => 'Percent', :caption => 'Profit %').
+              solve_order: 1, format_string: 'Percent', caption: 'Profit %').
           with_member('[Measures].[ProfitValue]').
             as('[Measures].[Store Sales] * [Measures].[ProfitPct]',
-              :solve_order => 2, :cell_formatter => 'CurrencyFormatter').
+              solve_order: 2, cell_formatter: 'CurrencyFormatter').
           columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
@@ -920,7 +922,7 @@ describe "Query" do
       @drill_through.column_labels.should == [
         "Unit Sales", "Store Sales"
       ]
-      @drill_through.rows.all?{|r| r.any?{|c| c}}.should == true
+      @drill_through.rows.all? { |r| r.any? { |c| c } }.should == true
     end
 
     it "should return member name and property values" do

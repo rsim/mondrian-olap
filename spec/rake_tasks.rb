@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # encoding: utf-8
 
 namespace :db do
@@ -12,48 +13,48 @@ namespace :db do
     puts "==> Creating tables for test data"
     ActiveRecord::Schema.instance_eval do
 
-      create_table :time, :force => true do |t|
+      create_table :time, force: true do |t|
         t.datetime    :the_date
-        t.string      :the_day, :limit => 30
-        t.string      :the_month, :limit => 30
+        t.string      :the_day, limit: 30
+        t.string      :the_month, limit: 30
         t.integer     :the_year
         t.integer     :day_of_month
         t.integer     :week_of_year
         t.integer     :month_of_year
-        t.string      :quarter, :limit => 30
+        t.string      :quarter, limit: 30
       end
 
-      create_table :products, :force => true do |t|
+      create_table :products, force: true do |t|
         t.integer     :product_class_id
-        t.string      :brand_name, :limit => 60
-        t.string      :product_name, :limit => 60
+        t.string      :brand_name, limit: 60
+        t.string      :product_name, limit: 60
       end
 
-      create_table :product_classes, :force => true do |t|
-        t.string      :product_subcategory, :limit => 30
-        t.string      :product_category, :limit => 30
-        t.string      :product_department, :limit => 30
-        t.string      :product_family, :limit => 30
+      create_table :product_classes, force: true do |t|
+        t.string      :product_subcategory, limit: 30
+        t.string      :product_category, limit: 30
+        t.string      :product_department, limit: 30
+        t.string      :product_family, limit: 30
       end
 
       customers_options = {force: true}
       customers_options[:id] = false if import_data_drivers.include?(MONDRIAN_DRIVER)
       create_table :customers, **customers_options do |t|
-        t.integer     :id, :limit => 8 if import_data_drivers.include?(MONDRIAN_DRIVER)
-        t.string      :country, :limit => 30
-        t.string      :state_province, :limit => 30
-        t.string      :city, :limit => 30
-        t.string      :fname, :limit => 30
-        t.string      :lname, :limit => 30
-        t.string      :fullname, :limit => 60
-        t.string      :gender, :limit => 30
+        t.integer     :id, limit: 8 if import_data_drivers.include?(MONDRIAN_DRIVER)
+        t.string      :country, limit: 30
+        t.string      :state_province, limit: 30
+        t.string      :city, limit: 30
+        t.string      :fname, limit: 30
+        t.string      :lname, limit: 30
+        t.string      :fullname, limit: 60
+        t.string      :gender, limit: 30
         t.date        :birthdate
         t.integer     :promotion_id
-        t.string      :related_fullname, :limit => 60
+        t.string      :related_fullname, limit: 60
         # Mondrian does not support properties with Oracle CLOB type
         # as it tries to GROUP BY all columns when loading a dimension table
         if MONDRIAN_DRIVER == 'oracle'
-          t.string      :description, :limit => 4000
+          t.string      :description, limit: 4000
         else
           t.text        :description
         end
@@ -74,8 +75,8 @@ namespace :db do
         SQL
         execute "CREATE SEQUENCE PROMOTIONS_SEQ"
       else
-        create_table :promotions, :force => true do |t|
-          t.string      :promotion, :limit => 30
+        create_table :promotions, force: true do |t|
+          t.string      :promotion, limit: 30
           t.integer     :sequence
         end
       end
@@ -93,7 +94,7 @@ namespace :db do
         execute "ALTER TABLE customers ADD CONSTRAINT #{primary_key_constraint} PRIMARY KEY (id)"
       end
 
-      create_table :sales, :force => true, :id => false do |t|
+      create_table :sales, force: true, id: false do |t|
         t.integer     :product_id
         t.integer     :time_id
         t.integer     :customer_id, limit: MONDRIAN_DRIVER == 'sqlserver' ? nil : 8
@@ -108,7 +109,7 @@ namespace :db do
         execute "ALTER TABLE sales ALTER COLUMN customer_id BIGINT"
       end
 
-      create_table :warehouse, :force => true, :id => false do |t|
+      create_table :warehouse, force: true, id: false do |t|
         t.integer     :product_id
         t.integer     :time_id
         t.integer     :units_shipped
@@ -128,7 +129,7 @@ namespace :db do
         self.day_of_month = the_date.strftime("%d").to_i
         self.week_of_year = the_date.strftime("%W").to_i
         self.month_of_year = the_date.strftime("%m").to_i
-        self.quarter = "Q#{(month_of_year-1)/3+1}"
+        self.quarter = "Q#{(month_of_year - 1) / 3 + 1}"
       end
     end
     class Product < ActiveRecord::Base
@@ -155,15 +156,15 @@ namespace :db do
 
   desc "Create test data"
   task :create_data => [:create_tables] + (import_data_drivers.include?(ENV['MONDRIAN_DRIVER']) ? [:import_data] :
-    [ :create_time_data, :create_product_data, :create_promotion_data, :create_customer_data, :create_sales_data,
-      :create_warehouse_data ] )
+    [:create_time_data, :create_product_data, :create_promotion_data, :create_customer_data, :create_sales_data,
+      :create_warehouse_data])
 
-  task :create_time_data  => :define_models do
+  task :create_time_data => :define_models do
     puts "==> Creating time dimension"
     TimeDimension.delete_all
-    start_time = Time.utc(2010,1,1)
-    (2*365).times do |i|
-      TimeDimension.create!(:the_date => start_time + i.day)
+    start_time = Time.utc(2010, 1, 1)
+    (2 * 365).times do |i|
+      TimeDimension.create!(the_date: start_time + i.day)
     end
   end
 
@@ -174,15 +175,15 @@ namespace :db do
     families = ["Drink", "Food", "Non-Consumable"]
     (1..100).each do |i|
       product_class = ProductClass.create!(
-        :product_family => families[i % 3],
-        :product_department => "Department #{i}",
-        :product_category => "Category #{i}",
-        :product_subcategory => "Subcategory #{i}"
+        product_family: families[i % 3],
+        product_department: "Department #{i}",
+        product_category: "Category #{i}",
+        product_subcategory: "Subcategory #{i}"
       )
       Product.create!(
-        :product_class_id => ProductClass.where(:product_category => "Category #{i}").to_a.first.id,
-        :brand_name => "Brand #{i}",
-        :product_name => "Product #{i}"
+        product_class_id: ProductClass.where(product_category: "Category #{i}").to_a.first.id,
+        brand_name: "Brand #{i}",
+        product_name: "Product #{i}"
       )
     end
   end
@@ -234,31 +235,31 @@ namespace :db do
     ].each do |country, state, city|
       i += 1
       Customer.create!(
-        :country => country,
-        :state_province => state,
-        :city => city,
-        :fname => "First#{i}",
-        :lname => "Last#{i}",
-        :fullname => "First#{i} Last#{i}",
-        :gender => i % 2 == 0 ? "M" : "F",
-        :birthdate => Date.new(1970, 1, 1) + i,
-        :promotion_id => promotions[i % 10].id,
-        :related_fullname => "First#{i} Last#{i}",
-        :description => 100.times.map{"1234567890"}.join("\n")
+        country: country,
+        state_province: state,
+        city: city,
+        fname: "First#{i}",
+        lname: "Last#{i}",
+        fullname: "First#{i} Last#{i}",
+        gender: i % 2 == 0 ? "M" : "F",
+        birthdate: Date.new(1970, 1, 1) + i,
+        promotion_id: promotions[i % 10].id,
+        related_fullname: "First#{i} Last#{i}",
+        description: 100.times.map { "1234567890" }.join("\n")
       )
     end
     # Create additional customer with large ID
     attributes = {
-      :id => 10_000_000_000,
-      :country => "USA",
-      :state_province => "CA",
-      :city => "Rīga", # For testing UTF-8 characters
-      :fname => "Big",
-      :lname => "Number",
-      :fullname => "Big Number",
-      :gender => "M",
-      :promotion_id => promotions.first.id,
-      :related_fullname => "Big Number"
+      id: 10_000_000_000,
+      country: "USA",
+      state_province: "CA",
+      city: "Rīga", # For testing UTF-8 characters
+      fname: "Big",
+      lname: "Number",
+      fullname: "Big Number",
+      gender: "M",
+      promotion_id: promotions.first.id,
+      related_fullname: "Big Number"
     }
     case MONDRIAN_DRIVER
     when 'sqlserver'
@@ -280,13 +281,13 @@ namespace :db do
     promotions = Promotion.order("id").to_a[0...count]
     count.times do |i|
       Sales.create!(
-        :product_id => products[i].id,
-        :time_id => times[i].id,
-        :customer_id => customers[i].id,
-        :promotion_id => promotions[i % 10].id,
-        :store_sales => BigDecimal("2#{i}.12"),
-        :store_cost => BigDecimal("1#{i}.1234"),
-        :unit_sales => i+1
+        product_id: products[i].id,
+        time_id: times[i].id,
+        customer_id: customers[i].id,
+        promotion_id: promotions[i % 10].id,
+        store_sales: BigDecimal("2#{i}.12"),
+        store_cost: BigDecimal("1#{i}.1234"),
+        unit_sales: i + 1
       )
     end
   end
@@ -299,10 +300,10 @@ namespace :db do
     times = TimeDimension.order("id").to_a[0...count]
     count.times do |i|
       Warehouse.create!(
-        :product_id => products[i].id,
-        :time_id => times[i].id,
-        :units_shipped => i+1,
-        :store_invoice => BigDecimal("1#{i}.1234")
+        product_id: products[i].id,
+        time_id: times[i].id,
+        units_shipped: i + 1,
+        store_invoice: BigDecimal("1#{i}.1234")
       )
     end
   end

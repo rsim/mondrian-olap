@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "spec_helper"
 
 describe "Connection" do
@@ -23,7 +25,7 @@ describe "Connection" do
     end
     it "should be successful" do
       @olap = Mondrian::OLAP::Connection.new(CONNECTION_PARAMS.merge(
-        :catalog_content => @schema_xml
+        catalog_content: @schema_xml
       ))
       @olap.connect.should == true
     end
@@ -65,9 +67,9 @@ describe "Connection" do
   describe "locale" do
     %w(en en_US de de_DE).each do |locale|
       it "should set #{locale} locale from connection parameters" do
-        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(:locale => locale))
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(locale: locale))
         @olap.locale.should == locale
-        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(:locale => locale.to_sym))
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(locale: locale.to_sym))
         @olap.locale.should == locale.to_s
       end
 

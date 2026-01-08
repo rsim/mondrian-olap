@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module Mondrian
   module OLAP
     class SchemaElement
       def initialize(name = nil, attributes = {}, parent = nil, &block)
-        # if just attributes hash provided
+        # If just attributes hash provided
         if name.is_a?(Hash) && attributes == {}
           attributes = name
           name = nil
@@ -13,7 +15,7 @@ module Mondrian
             if attributes.is_a?(Hash)
               @content = name
             else
-              # used for Annotation element where both name and content is given as arguments
+              # Used for Annotation element where both name and content is given as arguments
               @attributes[:name] = name
               @content = attributes
               attributes = {}
@@ -26,7 +28,7 @@ module Mondrian
         self.class.elements.each do |element|
           instance_variable_set("@#{pluralize(element)}", [])
         end
-        # extract annotations from options
+        # Extract annotations from options
         if @attributes[:annotations] && self.class.elements.include?(:annotations)
           annotations @attributes.delete(:annotations)
         end
@@ -104,7 +106,7 @@ module Mondrian
 
       def to_xml(options = {})
         options[:upcase_data_dictionary] = @upcase_data_dictionary unless @upcase_data_dictionary.nil?
-        Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
+        Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
           add_to_xml(xml, options)
         end.to_xml
       end
@@ -122,7 +124,9 @@ module Mondrian
                 add_xml_fragments(xml)
                 xml_fragments_added = true
               else
-                instance_variable_get("@#{pluralize(element)}").each {|item| item.add_to_xml(xml, options)}
+                instance_variable_get("@#{pluralize(element)}").each do |item|
+                  item.add_to_xml(xml, options)
+                end
               end
             end
             add_xml_fragments(xml) unless xml_fragments_added
@@ -139,8 +143,8 @@ module Mondrian
       private
 
       def xmlized_attributes(options)
-        # data dictionary values should be in uppercase if schema defined with :upcase_data_dictionary => true
-        # or by default when using Oracle or Snowflake driver (can be overridden by :upcase_data_dictionary => false)
+        # Data dictionary values should be in uppercase if schema defined with upcase_data_dictionary: true
+        # or by default when using Oracle or Snowflake driver (can be overridden by upcase_data_dictionary: false)
         upcase_attributes = if options[:upcase_data_dictionary].nil? && %w(oracle snowflake).include?(options[:driver]) ||
                             options[:upcase_data_dictionary]
           self.class.data_dictionary_names
@@ -150,12 +154,12 @@ module Mondrian
         hash = {}
         @attributes.each do |attr, value|
           # Support value calculation in parallel threads.
-          # value could be either Thread or a future object from concurrent-ruby
+          # Value could be either Thread or a future object from concurrent-ruby
           value = value.value if value.respond_to?(:value)
           value = value.upcase if upcase_attributes.include?(attr) && value.is_a?(String)
           hash[
             # camelcase attribute name
-            attr.to_s.gsub(/_([^_]+)/){|m| $1.capitalize}
+            attr.to_s.gsub(/_([^_]+)/) { |m| $1.capitalize }
           ] = value
         end
         hash
@@ -176,7 +180,7 @@ module Mondrian
       end
 
       def self.camel_case(string)
-        string.to_s.split('_').map{|s| s.capitalize}.join('')
+        string.to_s.split('_').map { |s| s.capitalize }.join('')
       end
 
       def camel_case(string)

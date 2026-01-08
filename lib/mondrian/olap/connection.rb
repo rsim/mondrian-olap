@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Mondrian
   module OLAP
     class Connection
@@ -19,7 +21,7 @@ module Mondrian
 
       def connect
         Error.wrap_native_exception do
-          # hack to call private constructor of MondrianOlap4jDriver
+          # Hack to call private constructor of MondrianOlap4jDriver
           # to avoid using DriverManager which fails to load JDBC drivers
           # because of not seeing JRuby required jar files
           cons = Java::MondrianOlap4j::MondrianOlap4jDriver.java_class.declared_constructor
@@ -30,7 +32,7 @@ module Mondrian
           props.setProperty('JdbcUser', @params[:username]) if @params[:username]
           props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
 
-          # on Oracle increase default row prefetch size
+          # On Oracle increase default row prefetch size
           # as default 10 is very low and slows down loading of all dimension members
           if @driver == 'oracle'
             prefetch_rows = @params[:prefetch_rows] || 100
@@ -39,7 +41,7 @@ module Mondrian
 
           conn_string = connection_string
 
-          # latest Mondrian version added ClassResolver which uses current thread class loader to load some classes
+          # Latest Mondrian version added ClassResolver which uses current thread class loader to load some classes
           # therefore need to set it to JRuby class loader to ensure that Mondrian classes are found
           # (e.g. when running mondrian-olap inside OSGi container)
           current_thread = Java::JavaLang::Thread.currentThread
@@ -53,7 +55,7 @@ module Mondrian
 
           @raw_connection = @raw_jdbc_connection.unwrap(Java::OrgOlap4j::OlapConnection.java_class)
           @raw_catalog = @raw_connection.getOlapCatalog
-          # currently it is assumed that there is just one schema per connection catalog
+          # Currently it is assumed that there is just one schema per connection catalog
           @raw_schema = @raw_catalog.getSchemas.first
           @raw_mondrian_connection = @raw_connection.getMondrianConnection
           @raw_schema_reader = @raw_mondrian_connection.getSchemaReader
@@ -89,7 +91,7 @@ module Mondrian
         end
       end
 
-      # access mondrian.olap.Parameter object
+      # Access mondrian.olap.Parameter object
       def mondrian_parameter(parameter_name)
         Error.wrap_native_exception do
           @raw_schema_reader.getParameter(parameter_name)
@@ -144,7 +146,7 @@ module Mondrian
       end
 
       def cube_names
-        @raw_schema.getCubes.map{|c| c.getName}
+        @raw_schema.getCubes.map(&:getName)
       end
 
       def cube(name)
@@ -193,7 +195,7 @@ module Mondrian
       end
 
       def role_names
-        # workaround to access non-public method (was not public when using inside Torquebox)
+        # Workaround to access non-public method
         # @raw_connection.getRoleNames.to_a
         @raw_connection.java_method(:getRoleNames).call.to_a
       end
@@ -206,7 +208,7 @@ module Mondrian
 
       def role_names=(names)
         Error.wrap_native_exception do
-          # workaround to access non-public method (was not public when using inside Torquebox)
+          # Workaround to access non-public method
           # @raw_connection.setRoleNames(Array(names))
           names = Array(names)
           @raw_connection.java_method(:setRoleNames, [Java::JavaUtil::List.java_class]).call(names)
@@ -225,7 +227,7 @@ module Mondrian
         @raw_connection.setLocale(java_locale)
       end
 
-      # access MondrianServer instance
+      # Access MondrianServer instance
       def mondrian_server
         Error.wrap_native_exception do
           @raw_connection.getMondrianConnection.getServer
@@ -325,11 +327,11 @@ module Mondrian
 
       def connection_string
         string = "jdbc:mondrian:Jdbc=#{quote_string(jdbc_uri)};JdbcDrivers=#{jdbc_driver};"
-        # by default use content checksum to reload schema when catalog has changed
+        # By default use content checksum to reload schema when catalog has changed
         string += "UseContentChecksum=true;" unless @params[:use_content_checksum] == false
         string += "PinSchemaTimeout=#{@params[:pin_schema_timeout]};" if @params[:pin_schema_timeout]
         if role = @params[:role] || @params[:roles]
-          roles = Array(role).map{|r| r && r.to_s.gsub(',', ',,')}.compact
+          roles = Array(role).map { |r| r && r.to_s.gsub(',', ',,') }.compact
           string += "Role=#{quote_string(roles.join(','))};" unless roles.empty?
         end
         if locale = @params[:locale]
@@ -371,14 +373,14 @@ module Mondrian
       alias_method :jdbc_uri_mariadb, :jdbc_uri_generic
 
       def jdbc_uri_oracle
-        # connection using TNS alias
+        # Connection using TNS alias
         if @params[:database] && !@params[:host] && !@params[:url] && ENV['TNS_ADMIN']
           "jdbc:oracle:thin:@#{@params[:database]}"
         else
           @params[:url] || begin
             database = @params[:database]
             unless database =~ %r{^(:|/)}
-              # assume database is a SID if no colon or slash are supplied (backward-compatibility)
+              # Assume database is a SID if no colon or slash are supplied (backward-compatibility)
               database = ":#{database}"
             end
             "jdbc:oracle:thin:@#{@params[:host] || 'localhost'}:#{@params[:port] || 1521}#{database}"
@@ -470,7 +472,7 @@ module Mondrian
         if @params[:catalog_content]
           @params[:catalog_content]
         elsif @params[:schema]
-          @params[:schema].to_xml(:driver => @driver)
+          @params[:schema].to_xml(driver: @driver)
         else
           raise ArgumentError, "Specify catalog with :catalog, :catalog_content or :schema option"
         end
@@ -483,7 +485,7 @@ module Mondrian
       def set_statement_parameters(statement, parameters)
         if parameters && !parameters.empty?
           parameters = parameters.dup
-          # define addtional parameters which can be accessed from user defined functions
+          # Define additional parameters which can be accessed from user defined functions
           if define_parameters = parameters.delete(:define_parameters)
             query_validator = statement.getQuery.createValidator
             define_parameters.each do |dp_name, dp_value|

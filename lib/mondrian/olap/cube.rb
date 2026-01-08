@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'forwardable'
 
 module Mondrian
@@ -66,7 +68,7 @@ module Mondrian
       end
 
       def dimensions
-        @dimenstions ||= @raw_cube.getDimensions.map { |d| dimension_from_raw(d) }
+        @dimensions ||= @raw_cube.getDimensions.map { |d| dimension_from_raw(d) }
       end
 
       def dimension_names
@@ -113,8 +115,7 @@ module Mondrian
         raw_member && Member.new(raw_member)
       end
 
-      def_delegators :@cache_control, :flush_region_cache_with_segments, :flush_region_cache_with_segments
-      def_delegators :@cache_control, :flush_region_cache_with_full_names, :flush_region_cache_with_full_names
+      def_delegators :@cache_control, :flush_region_cache_with_segments, :flush_region_cache_with_full_names
 
       private
 
@@ -187,7 +188,6 @@ module Mondrian
       def visible?
         @raw_dimension.isVisible
       end
-
     end
 
     class Hierarchy
@@ -274,7 +274,6 @@ module Mondrian
       def visible?
         @raw_hierarchy.isVisible
       end
-
     end
 
     class Level
@@ -372,7 +371,6 @@ module Mondrian
       def visible?
         @raw_level.isVisible
       end
-
     end
 
     class Member
@@ -461,9 +459,7 @@ module Mondrian
 
           members = [self]
           (descendants_level_index - current_level_index).times do
-            members = members.map do |member|
-              member.children
-            end.flatten
+            members = members.flat_map(&:children)
           end
           members
         end
@@ -532,7 +528,7 @@ module Mondrian
       end
 
       def flush_region_cache_with_full_names(*full_names)
-        members = full_names.map { |name| @cube.member(*name).mondrian_member }
+        members = full_names.map { |name| @cube.member(name).mondrian_member }
         flush(members)
       end
 

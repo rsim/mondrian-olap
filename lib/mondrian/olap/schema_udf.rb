@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'jruby/core_ext'
 
 module Mondrian
@@ -49,8 +51,8 @@ module Mondrian
         end
 
         def ruby_formatter_name_to_class_name(name)
-          # upcase just first character
-          "#{name.sub(/\A./){|m| m.upcase}}Udf"
+          # Upcase just first character
+          "#{name.sub(/\A./) { |m| m.upcase }}Udf"
         end
 
         def ruby_formatter_java_class_name(name)
@@ -87,7 +89,7 @@ module Mondrian
             if types.empty?
               @parameters || []
             else
-              @parameters = types.map{|type| stringified_type(type)}
+              @parameters = types.map { |type| stringified_type(type) }
             end
           end
 
@@ -133,7 +135,7 @@ module Mondrian
           UDF_OTHER_TYPES['TupleSet'] = Java::mondrian.olap.type.SetType.new(UDF_OTHER_TYPES['Tuple'])
 
           def getParameterTypes
-            @parameterTypes ||= self.class.parameters.map{|p| get_java_type(p)}
+            @parameterTypes ||= self.class.parameters.map { |p| get_java_type(p) }
           end
           class_loader = JRuby.runtime.jruby_class_loader
           type_array_class = java.lang.Class.forName "[Lmondrian.olap.type.Type;", true, class_loader
@@ -186,7 +188,7 @@ module Mondrian
           end
 
           def self.stringify(arg)
-            arg = arg.to_s.split('_').map{|s| s.capitalize}.join if arg.is_a? Symbol
+            arg = arg.to_s.split('_').map { |s| s.capitalize }.join if arg.is_a? Symbol
             arg
           end
         end
@@ -224,7 +226,7 @@ module Mondrian
         def initialize(name = nil, attributes = {}, parent = nil, &block)
           super
           if name && !attributes[:class_name] && !block_given?
-            # use shared ruby implementation
+            # Use shared ruby implementation
             @attributes[:class_name] = ruby_formatter_java_class_name(name)
             @attributes.delete(:name)
           end

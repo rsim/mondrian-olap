@@ -1,5 +1,4 @@
 [![GitHub Actions status](https://github.com/rsim/mondrian-olap/actions/workflows/tests.yml/badge.svg)](https://github.com/rsim/mondrian-olap/actions/workflows/tests.yml)
-[![AppVeyor status](https://ci.appveyor.com/api/projects/status/08xd4tyty2k3wxba/branch/master?svg=true)](https://ci.appveyor.com/project/rsim/mondrian-olap)
 
 mondrian-olap
 =============

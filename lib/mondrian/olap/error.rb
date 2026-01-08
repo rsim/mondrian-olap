@@ -1,11 +1,13 @@
+# frozen_string_literal: true
+
 module Mondrian
   module OLAP
 
     NATIVE_ERROR_REGEXP = /^(org\.olap4j\.|mondrian\.|java\.lang\.reflect\.UndeclaredThrowableException\: Mondrian Error\:)/
 
     class Error < StandardError
-      # root_cause will be nil if there is no cause for wrapped native error
-      # root_cause_message will have either root_cause message or wrapped native error message
+      # root_cause will be nil if there is no cause for wrapped native error.
+      # root_cause_message will have either root_cause message or wrapped native error message.
       attr_reader :native_error, :root_cause_message, :root_cause, :profiling_handler
 
       def initialize(native_error, options = {})
@@ -34,7 +36,7 @@ module Mondrian
       end
 
       def profiling_timing
-        profiling_handler.timing if profiling_handler
+        profiling_handler&.timing
       end
 
       def profiling_timing_string
@@ -63,11 +65,11 @@ module Mondrian
         if @root_cause
           root_cause_bt = Array(@root_cause.backtrace)
           root_cause_bt[0, 10].reverse.each do |bt_line|
-            bt.unshift "root cause:   #{bt_line}"
+            bt.unshift("root cause:   #{bt_line}")
           end
-          bt.unshift "root cause: #{@root_cause.java_class.name}: #{@root_cause.message.chomp}"
+          bt.unshift("root cause: #{@root_cause.java_class.name}: #{@root_cause.message.chomp}")
         end
-        set_backtrace bt
+        set_backtrace(bt)
       end
 
       def get_profiling(options)
