@@ -94,6 +94,7 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 - Use safe navigation operator `&.` when calling methods on objects that might be nil.
 - When continuing the method call on the next line, then end the first line with a dot.
 - Use the new hash syntax `key: 'value'` instead of the old syntax `:key => 'value'`.
+- Use the old hash syntax only for rake task dependencies, for example, `task :build => :compile`.
 - Use simple parentheses declaring an array of strings `%w()` instead of other symbols like `%w[]`.
 - Use frozen string literal comments for all Ruby files and ensure that frozen strings are not modified.
 
