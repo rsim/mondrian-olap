@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Mondrian
   module OLAP
     class Query
@@ -17,8 +19,7 @@ module Mondrian
         @with = []
       end
 
-      # Add new axis(i) to query
-      # or return array of axis(i) members if no arguments specified
+      # Add new axis(i) to query or return array of axis(i) members if no arguments specified
       def axis(i, *axis_members)
         if axis_members.empty?
           @axes[i]
@@ -34,7 +35,7 @@ module Mondrian
         end
       end
 
-      AXIS_ALIASES = %w(columns rows pages chapters sections)
+      AXIS_ALIASES = %w(columns rows pages chapters sections).freeze
       AXIS_ALIASES.each_with_index do |axis, i|
         class_eval <<~RUBY, __FILE__, __LINE__ + 1
           def #{axis}(*axis_members)
@@ -104,7 +105,7 @@ module Mondrian
         self
       end
 
-      VALID_ORDERS = ['ASC', 'BASC', 'DESC', 'BDESC']
+      VALID_ORDERS = %w(ASC BASC DESC BDESC).freeze
 
       def order(expression, direction)
         validate_current_set
@@ -152,8 +153,7 @@ module Mondrian
         hierarchize(order, :all)
       end
 
-      # Add new WHERE condition to query
-      # or return array of existing conditions if no arguments specified
+      # Add new WHERE condition to query or return array of existing conditions if no arguments specified
       def where(*members)
         if members.empty?
           @where
@@ -182,14 +182,14 @@ module Mondrian
         self
       end
 
-      # return array of member and set definitions
+      # Return array of member and set definitions
       def with
         @with
       end
 
       # Add definition to calculated member or to named set
       def as(*params)
-        # definition of named set
+        # Definition of named set
         if @current_set
           if params.empty?
             raise ArgumentError, "named set cannot be empty"
@@ -201,12 +201,12 @@ module Mondrian
               @current_set.concat(params)
             end
           end
-        # definition of calculated member
+        # Definition of calculated member
         else
           member_definition = @with.last
           if params.last.is_a?(Hash)
             options = params.pop
-            # if formatter does not include . then it should be ruby formatter name
+            # If formatter does not include . then it should be ruby formatter name
             if (formatter = options[:cell_formatter]) && !formatter.include?('.')
               options = options.merge(:cell_formatter => Mondrian::OLAP::Schema::CellFormatter.new(formatter).class_name)
             end
@@ -223,7 +223,7 @@ module Mondrian
       end
 
       def to_mdx
-        mdx = ""
+        mdx = +''
         mdx << "WITH #{with_to_mdx}\n" unless @with.empty?
         mdx << "SELECT #{axis_to_mdx}\n"
         mdx << "FROM #{from_to_mdx}"
@@ -236,7 +236,7 @@ module Mondrian
       end
 
       def execute_drill_through(options = {})
-        drill_through_mdx = "DRILLTHROUGH "
+        drill_through_mdx = +"DRILLTHROUGH "
         drill_through_mdx << "MAXROWS #{options[:max_rows]} " if options[:max_rows]
         drill_through_mdx << to_mdx
         drill_through_mdx << " RETURN #{Array(options[:return]).join(',')}" if options[:return]
@@ -283,7 +283,7 @@ module Mondrian
             member_name = definition[1]
             expression = definition[2]
             options = definition[3]
-            options_string = ''
+            options_string = +''
             options && options.each do |option, value|
               option_name = case option
               when :caption
@@ -303,7 +303,7 @@ module Mondrian
       end
 
       def axis_to_mdx
-        mdx = ""
+        mdx = +''
         @axes.each_with_index do |axis_members, i|
           axis_name = AXIS_ALIASES[i] ? AXIS_ALIASES[i].upcase : "AXIS(#{i})"
           mdx << ",\n" if i > 0
@@ -324,7 +324,7 @@ module Mondrian
       def members_to_mdx(members)
         members ||= []
         # If only one member which does not end with ] or .Item(...) or Default...Member
-        # then assume it is expression which returns set.
+        # Then assume it is expression which returns set.
         if members.length == 1 && members[0] !~ /(\]|\.Item\(\d+\)|\.Default\w*Member)\z/i
           members[0]
         elsif members[0].is_a?(Symbol)
@@ -347,7 +347,7 @@ module Mondrian
           when :order
             "ORDER(#{members_to_mdx(members[1])}, #{expression_to_mdx(members[2])}, #{members[3]})"
           when :top_count, :bottom_count
-            mdx = "#{MDX_FUNCTIONS[members[0]]}(#{members_to_mdx(members[1])}, #{members[2]}"
+            mdx = +"#{MDX_FUNCTIONS[members[0]]}(#{members_to_mdx(members[1])}, #{members[2]}"
             mdx << (members[3] ? ", #{expression_to_mdx(members[3])})" : ")")
           when :top_percent, :top_sum, :bottom_percent, :bottom_sum
             "#{MDX_FUNCTIONS[members[0]]}(#{members_to_mdx(members[1])}, #{members[2]}, #{expression_to_mdx(members[3])})"
@@ -370,18 +370,18 @@ module Mondrian
       end
 
       def where_to_mdx
-        # generate set MDX expression
+        # Generate set MDX expression
         if @where[0].is_a?(Symbol) ||
             @where.length > 1 && @where.map{|full_name| extract_dimension_name(full_name)}.uniq.length == 1
           members_to_mdx(@where)
-        # generate tuple MDX expression
+        # Generate tuple MDX expression
         else
           where_to_mdx_tuple
         end
       end
 
       def where_to_mdx_tuple
-        mdx = '('
+        mdx = +'('
         mdx << @where.map do |condition|
           condition
         end.join(', ')

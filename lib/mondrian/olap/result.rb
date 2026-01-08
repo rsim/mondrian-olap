@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'bigdecimal'
 
 module Mondrian
@@ -60,42 +62,42 @@ module Mondrian
         recursive_values(values_method, axes_sequence, 0)
       end
 
-      # format results in simple HTML table
+      # Format results in simple HTML table
       def to_html(options = {})
         case axes_count
         when 1
-          builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |doc|
+          builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |doc|
             doc.table do
               doc.tr do
                 column_full_names.each do |column_full_name|
                   column_full_name = column_full_name.join(',') if column_full_name.is_a?(Array)
-                  doc.th column_full_name, :align => 'right'
+                  doc.th column_full_name, align: 'right'
                 end
               end
               doc.tr do
                 (options[:formatted] ? formatted_values : values).each do |value|
-                  doc.td value, :align => 'right'
+                  doc.td value, align: 'right'
                 end
               end
             end
           end
           builder.doc.to_html
         when 2
-          builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |doc|
+          builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |doc|
             doc.table do
               doc.tr do
                 doc.th
                 column_full_names.each do |column_full_name|
                   column_full_name = column_full_name.join(',') if column_full_name.is_a?(Array)
-                  doc.th column_full_name, :align => 'right'
+                  doc.th column_full_name, align: 'right'
                 end
               end
               (options[:formatted] ? formatted_values : values).each_with_index do |row, i|
                 doc.tr do
                   row_full_name = row_full_names[i].is_a?(Array) ? row_full_names[i].join(',') : row_full_names[i]
-                  doc.th row_full_name, :align => 'left'
+                  doc.th row_full_name, align: 'left'
                   row.each do |cell|
-                    doc.td cell, :align => 'right'
+                    doc.td cell, align: 'right'
                   end
                 end
               end
@@ -136,7 +138,7 @@ module Mondrian
       end
 
       # Specify drill through cell position, for example, as
-      #   :row => 0, :cell => 1
+      #   row: 0, cell: 1
       # Specify max returned rows with :max_rows parameter
       # Specify returned fields (as list of MDX levels and measures) with :return parameter
       # Specify measures which at least one should not be empty (NULL) with :nonempty parameter
@@ -155,8 +157,7 @@ module Mondrian
 
       class DrillThrough
         def self.from_raw_cell(raw_cell, params = {})
-          # workaround to avoid calling raw_cell.drillThroughInternal private method
-          # which fails when running inside TorqueBox
+          # Workaround to avoid calling raw_cell.drillThroughInternal private method
           cell_field = raw_cell.java_class.declared_field('cell')
           cell_field.accessible = true
           rolap_cell = cell_field.value(raw_cell)
@@ -189,33 +190,33 @@ module Mondrian
         end
 
         def column_types
-          @column_types ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnTypeName(i).to_sym}
+          @column_types ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnTypeName(i).to_sym }
         end
 
         def column_names
           @column_names ||= begin
-            # if PostgreSQL then use getBaseColumnName as getColumnName returns empty string
+            # If PostgreSQL then use getBaseColumnName as getColumnName returns empty string
             if metadata.respond_to?(:getBaseColumnName)
-              (1..metadata.getColumnCount).map{|i| metadata.getBaseColumnName(i)}
+              (1..metadata.getColumnCount).map { |i| metadata.getBaseColumnName(i) }
             else
-              (1..metadata.getColumnCount).map{|i| metadata.getColumnName(i)}
+              (1..metadata.getColumnCount).map { |i| metadata.getColumnName(i) }
             end
           end
         end
 
         def table_names
           @table_names ||= begin
-            # if PostgreSQL then use getBaseTableName as getTableName returns empty string
+            # If PostgreSQL then use getBaseTableName as getTableName returns empty string
             if metadata.respond_to?(:getBaseTableName)
-              (1..metadata.getColumnCount).map{|i| metadata.getBaseTableName(i)}
+              (1..metadata.getColumnCount).map { |i| metadata.getBaseTableName(i) }
             else
-              (1..metadata.getColumnCount).map{|i| metadata.getTableName(i)}
+              (1..metadata.getColumnCount).map { |i| metadata.getTableName(i) }
             end
           end
         end
 
         def column_labels
-          @column_labels ||= (1..metadata.getColumnCount).map{|i| metadata.getColumnLabel(i)}
+          @column_labels ||= (1..metadata.getColumnCount).map { |i| metadata.getColumnLabel(i) }
         end
 
         def fetch
@@ -277,7 +278,7 @@ module Mondrian
           @metadata ||= @raw_result_set.getMetaData
         end
 
-        # modified RolapCell drillThroughInternal method
+        # Modified RolapCell drillThroughInternal method
         def self.drill_through_internal(rolap_cell, params)
           max_rows = params[:max_rows] || -1
 
@@ -288,8 +289,7 @@ module Mondrian
           sql, return_fields = generate_drill_through_sql(rolap_cell, result, params)
 
           # Choose the appropriate scrollability. If we need to start from an
-          # offset row, it is useful that the cursor is scrollable, but not
-          # essential.
+          # Offset row, it is useful that the cursor is scrollable, but not essential.
           statement = result.getExecution.getMondrianStatement
           execution = Java::MondrianServer::Execution.new(statement, 0)
           connection = statement.getMondrianConnection
@@ -325,11 +325,11 @@ module Mondrian
           if sql_non_extended =~ /\Aselect (.*) from (.*) where (.*) order by (.*)\Z/m
             non_extended_from = $2
             non_extended_where = $3
-          # the latest Mondrian version sometimes returns sql_non_extended without order by
+          # The latest Mondrian version sometimes returns sql_non_extended without order by
           elsif sql_non_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/m
             non_extended_from = $2
             non_extended_where = $3
-          # if drill through total measure with just all members selection
+          # If drill through total measure with just all members selection
           elsif sql_non_extended =~ /\Aselect (.*) from (.*)\Z/m
             non_extended_from = $2
             non_extended_where = "1 = 1" # dummy true condition
@@ -342,12 +342,12 @@ module Mondrian
             extended_from = $2
             extended_where = $3
             extended_order_by = $4
-          # if only measures are selected then there will be no order by
+          # If only measures are selected then there will be no order by
           elsif sql_extended =~ /\Aselect (.*) from (.*) where (.*)\Z/m
             extended_select = $1
             extended_from = $2
             extended_where = $3
-            extended_order_by = ''
+            extended_order_by = +''
           else
             raise ArgumentError, "cannot parse drill through SQL: #{sql_extended}"
           end
@@ -378,7 +378,7 @@ module Mondrian
           else
             new_select = extended_select
             new_order_by = extended_order_by
-            new_group_by = ''
+            new_group_by = +''
           end
 
           new_from_parts = non_extended_from.split(/,\s*/)
@@ -387,7 +387,7 @@ module Mondrian
 
           outer_join_from_parts.each do |part|
             part_elements = part.split(/\s+/)
-            # first is original table, then optional 'as' and the last is alias
+            # First is original table, then optional 'as' and the last is alias
             table_alias = part_elements.last
             join_conditions = where_parts.select do |where_part|
               where_part.include?(" = #{table_alias}.")
@@ -395,7 +395,7 @@ module Mondrian
             outer_join = " left outer join #{part} on (#{join_conditions.join(' and ')})"
             left_table_alias = join_conditions.first.split('.').first
 
-            if left_table_from_part = new_from_parts.detect{|from_part| from_part.include?(left_table_alias)}
+            if left_table_from_part = new_from_parts.detect { |from_part| from_part.include?(left_table_alias) }
               left_table_from_part << outer_join
             else
               raise ArgumentError, "cannot extract outer join left table #{left_table_alias} in drill through SQL: #{sql_extended}"
@@ -406,7 +406,7 @@ module Mondrian
 
           new_where = non_extended_where
           if nonempty_columns && !nonempty_columns.empty?
-            not_null_condition = nonempty_columns.map{|c| "(#{c}) IS NOT NULL"}.join(' OR ')
+            not_null_condition = nonempty_columns.map { |c| "(#{c}) IS NOT NULL" }.join(' OR ')
             new_where += " AND (#{not_null_condition})"
           end
 
@@ -458,7 +458,7 @@ module Mondrian
                   raise ArgumentError, "invalid return field #{member_full_name}"
                 end
 
-                # if this is property field then the name is initialized already
+                # If this is property field then the name is initialized already
                 return_fields[i][:name] ||= segment_list.to_a.last.name
                 level_or_member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
                 return_fields[i][:member] = level_or_member
@@ -494,7 +494,7 @@ module Mondrian
           end
 
           if params[:role_name].present?
-            add_role_restricition_fields return_fields, sql_options
+            add_role_restriction_fields return_fields, sql_options
           end
 
           [nonempty_columns, return_fields]
@@ -521,7 +521,7 @@ module Mondrian
               end
             when :property
               if property = member.getProperties.to_a.detect { |p| p.getName == field[:name] }
-                # property.getExp is a protected method therefore
+                # Property.getExp is a protected method therefore
                 # use a workaround to get the value from the field
                 f = property.java_class.declared_field("exp")
                 f.accessible = true
@@ -547,21 +547,19 @@ module Mondrian
             end
 
           column_alias = field[:type] == :key ? "#{field[:name]} (Key)" : field[:name]
-          field[:column_alias] = dialect.quoteIdentifier(
-            max_alias_length ? column_alias[0, max_alias_length] : column_alias
-          )
+          field[:column_alias] = dialect.quoteIdentifier(max_alias_length ? column_alias[0, max_alias_length] : column_alias)
         end
 
-        def self.add_role_restricition_fields(fields, options = {})
+        def self.add_role_restriction_fields(fields, options = {})
           # For each unique level field add a set of fields to be able to build level member full name from database query results
           fields.map { |f| f[:member] }.uniq.each_with_index do |level_or_member, i|
             next if level_or_member.is_a?(Java::MondrianOlap::Member)
             current_level = level_or_member
             loop do
               # Create an additional field name using a pattern "_level:<Fieldset ID>:<Level depth>"
-              fields << {member: current_level, type: :name_or_key, name: "_level:#{i}:#{current_level.getDepth}"}
+              fields << { member: current_level, type: :name_or_key, name: "_level:#{i}:#{current_level.getDepth}" }
               add_sql_attributes fields.last, options
-              break unless (current_level = current_level.getParentLevel) and !current_level.isAll
+              break unless (current_level = current_level.getParentLevel) && !current_level.isAll
             end
           end
         end
