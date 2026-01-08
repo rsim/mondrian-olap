@@ -3,7 +3,9 @@
 .DS_Store
 .autotest
 .ruby-*
-/mise.local.toml
+mise.local.toml
+CLAUDE.local.md
+.claude
 coverage
 doc
 pkg
