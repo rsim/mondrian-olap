@@ -36,18 +36,19 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 
 ### Making Changes
 
-1. **Adding new schema features** - Modify `lib/mondrian/olap/schema.rb` and add corresponding specs in `spec/schema_definition_spec.rb`
+1. **Adding new schema features** - Modify `lib/mondrian/olap/schema.rb` and add corresponding specs in
+   `spec/schema_definition_spec.rb`
 2. **Extending query capabilities** - Update `lib/mondrian/olap/query.rb` and test in `spec/query_spec.rb`
 3. **Connection enhancements** - Change `lib/mondrian/olap/connection.rb` with tests in `spec/connection_spec.rb`
 4. **Cube operations** - Modify `lib/mondrian/olap/cube.rb` and add specs in `spec/cube_spec.rb`
 
 ### Testing Changes
 
-1. Write or update RSpec tests for the changed functionality
-2. Run specific test file: `rspec spec/cube_spec.rb`
-3. Run all tests with default database: `rake spec`
+1. Write or update RSpec tests for the changed functionality.
+2. Run specific test file: `rspec spec/cube_spec.rb`.
+3. Run all tests with default database: `rake spec`.
 4. Test with specific databases: `rake spec:postgresql`, `rake spec:mysql`, etc.
-5. Ensure tests pass with multiple database backends before finalizing changes
+5. Ensure tests pass with multiple database backends before finalizing changes.
 
 ## Technology Stack
 
@@ -59,10 +60,10 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 
 ### JRuby-Specific Considerations
 
-- This gem requires JRuby and will not work with standard MRI Ruby
-- Use JRuby's Java integration features to interact with Mondrian Java library
-- Java objects can be accessed directly in JRuby code
-- JDBC drivers are used for database connections instead of native Ruby database adapters
+- This gem requires JRuby and will not work with standard MRI Ruby.
+- Use JRuby's Java integration features to interact with Mondrian Java library.
+- Java objects can be accessed directly in JRuby code.
+- JDBC drivers are used for database connections instead of native Ruby database adapters.
 
 ## Code Style and Guidelines
 
@@ -76,6 +77,7 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 - Do not use similar variable or method names for different data or objects.
 - Write comments to explain why something is done, not what is done.
 - Write comments only when it is not obvious from the code.
+- Start full sentence comments with a capital letter.
 - Prefer self-explanatory code with semantic names over detailed comments.
 - Keep methods small and focused on a single task.
 - Write simple readable code. Do not obfuscate simple logic.
@@ -91,18 +93,18 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
   `collection.map(&:method)` instead of `collection.map { |item| item.method }`.
 - Use safe navigation operator `&.` when calling methods on objects that might be nil.
 - When continuing the method call on the next line, then end the first line with a dot.
-- Use the new hash syntax `key: 'value'` instead of the old syntax `:key => 'value'`
-- Use simple parentheses declaring an array of strings `%w()` instead of other symbols like `%w[]`
-- Use frozen string literal comments for all Ruby files and ensure that frozen strings are not modified
+- Use the new hash syntax `key: 'value'` instead of the old syntax `:key => 'value'`.
+- Use simple parentheses declaring an array of strings `%w()` instead of other symbols like `%w[]`.
+- Use frozen string literal comments for all Ruby files and ensure that frozen strings are not modified.
 
 ### Testing
 
-- Use RSpec for Ruby testing
-- Run individual RSpec test file with e.g. `rspec spec/cube_spec.rb`
-- Run all RSpec tests with `rake spec` (with the default `mysql` database)
+- Use RSpec for Ruby testing.
+- Run individual RSpec test file with e.g. `rspec spec/cube_spec.rb`.
+- Run all RSpec tests with `rake spec` (with the default `mysql` database).
 - Run all tests with a specified database:
   `rake spec:mysql`, `rake spec:postgresql`, `rake spec:sqlserver`, `rake spec:oracle`
-- In most cases use RSpec should syntax and not expect syntax, for example, `result.should == expected`
-- Use RSpec expect syntax only for block expectations, for example, `expect { action }.to raise_error(SomeError)`
-- Test data is located in `spec/support/data/` directory
-- Database-specific schema fixtures are in `spec/fixtures/` directory
+- In most cases use RSpec should syntax and not expect syntax, for example, `result.should == expected`.
+- Use RSpec expect syntax only for block expectations, for example, `expect { action }.to raise_error(SomeError)`.
+- Test data is located in `spec/support/data/` directory.
+- Database-specific schema fixtures are in `spec/fixtures/` directory.
