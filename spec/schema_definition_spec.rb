@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # encoding: utf-8
 
 require "spec_helper"
@@ -11,7 +12,7 @@ describe "Schema definition" do
 
     describe "root element" do
       it "should render to XML" do
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema/>
         XML
@@ -21,7 +22,7 @@ describe "Schema definition" do
         @schema.define('FoodMart') do
           description 'Demo "FoodMart" schema āčē'
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema description="Demo &quot;FoodMart&quot; schema āčē" name="FoodMart"/>
         XML
@@ -29,7 +30,7 @@ describe "Schema definition" do
 
       it "should render to XML using class method" do
         schema = Mondrian::OLAP::Schema.define('FoodMart')
-        schema.to_xml.should be_like <<-XML
+        schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="FoodMart"/>
         XML
@@ -46,7 +47,7 @@ describe "Schema definition" do
             enabled true
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
@@ -56,10 +57,10 @@ describe "Schema definition" do
 
       it "should render to XML using options hash" do
         @schema.define do
-          cube 'Sales', :default_measure => 'Unit Sales',
-            :description => 'Sales cube', :cache => false, :enabled => true
+          cube 'Sales', default_measure: 'Unit Sales',
+            description: 'Sales cube', cache: false, enabled: true
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
@@ -72,10 +73,10 @@ describe "Schema definition" do
       it "should render to XML" do
         @schema.define do
           cube 'Sales' do
-            table 'sales_fact', :alias => 'sales'
+            table 'sales_fact', alias: 'sales'
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -88,11 +89,11 @@ describe "Schema definition" do
       it "should render table name in uppercase when using Oracle or Snowflake driver" do
         @schema.define do
           cube 'Sales' do
-            table 'sales_fact', :alias => 'sales', :schema => 'facts'
+            table 'sales_fact', alias: 'sales', schema: 'facts'
           end
         end
         %w(oracle snowflake).each do |driver|
-          @schema.to_xml(:driver => driver).should be_like <<-XML
+          @schema.to_xml(driver: driver).should be_like <<~XML
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -104,12 +105,12 @@ describe "Schema definition" do
       end
 
       it "should render table name in uppercase when :upcase_data_dictionary option is set to true" do
-        @schema.define :upcase_data_dictionary => true do
+        @schema.define upcase_data_dictionary: true do
           cube 'Sales' do
-            table 'sales_fact', :alias => 'sales', :schema => 'facts'
+            table 'sales_fact', alias: 'sales', schema: 'facts'
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -120,13 +121,13 @@ describe "Schema definition" do
       end
 
       it "should render table name in lowercase when using Oracle or Snowflake driver but with :upcase_data_dictionary set to false" do
-        @schema.define :upcase_data_dictionary => false do
+        @schema.define upcase_data_dictionary: false do
           cube 'Sales' do
-            table 'sales_fact', :alias => 'sales', :schema => 'facts'
+            table 'sales_fact', alias: 'sales', schema: 'facts'
           end
         end
         %w(oracle snowflake).each do |driver|
-          @schema.to_xml(:driver => driver).should be_like <<-XML
+          @schema.to_xml(driver: driver).should be_like <<~XML
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -140,12 +141,12 @@ describe "Schema definition" do
       it "should render table with where condition" do
         @schema.define do
           cube 'Sales' do
-            table 'sales_fact', :alias => 'sales' do
+            table 'sales_fact', alias: 'sales' do
               sql 'customer_id IS NOT NULL'
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -162,12 +163,12 @@ describe "Schema definition" do
       it "should render to XML" do
         @schema.define do
           cube 'Sales' do
-            view :alias => 'sales' do
+            view alias: 'sales' do
               sql 'select * from sales_fact'
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -191,14 +192,14 @@ describe "Schema definition" do
                 all_member_name 'All Genders'
                 primary_key 'customer_id'
                 table 'customer'
-                level 'Gender', :column => 'gender', :unique_members => true,
+                level 'Gender', column: 'gender', unique_members: true,
                   # Test attribute with a future value
-                  :approx_row_count => Thread.new { sleep 0.1; 2 }
+                  approx_row_count: Thread.new { sleep 0.1; 2 }
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -222,14 +223,14 @@ describe "Schema definition" do
                 has_all false
                 primary_key 'time_id'
                 table 'time_by_day'
-                level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true
-                level 'Quarter', :column => 'quarter', :unique_members => false
-                level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false
+                level 'Year', column: 'the_year', type: 'Numeric', unique_members: true
+                level 'Quarter', column: 'quarter', unique_members: false
+                level 'Month', column: 'month_of_year', type: 'Numeric', unique_members: false
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -255,14 +256,14 @@ describe "Schema definition" do
                 all_member_name 'All Times' # should add :has_all => true
                 primary_key 'time_id'
                 table 'time_by_day'
-                level 'Year', :column => 'the_year', :type => 'Numeric' # first level should have default :unique_members => true
-                level 'Quarter', :column => 'quarter' # next levels should have default :unique_members => false
-                level 'Month', :column => 'month_of_year', :type => 'Numeric'
+                level 'Year', column: 'the_year', type: 'Numeric' # first level should have default :unique_members => true
+                level 'Quarter', column: 'quarter' # next levels should have default :unique_members => false
+                level 'Month', column: 'month_of_year', type: 'Numeric'
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -282,21 +283,21 @@ describe "Schema definition" do
       it "should render dimension hierarchy with join" do
         @schema.define do
           cube 'Sales' do
-            dimension 'Products', :foreign_key => 'product_id' do
-              hierarchy :has_all => true, :all_member_name => 'All Products',
-                        :primary_key => 'product_id', :primary_key_table => 'product' do
-                join :left_key => 'product_class_id', :right_key => 'product_class_id' do
+            dimension 'Products', foreign_key: 'product_id' do
+              hierarchy has_all: true, all_member_name: 'All Products',
+                        primary_key: 'product_id', primary_key_table: 'product' do
+                join left_key: 'product_class_id', right_key: 'product_class_id' do
                   table 'product'
                   table 'product_class'
                 end
-                level 'Product Family', :table => 'product_class', :column => 'product_family', :unique_members => true
-                level 'Brand Name', :table => 'product', :column => 'brand_name', :unique_members => false
-                level 'Product Name', :table => 'product', :column => 'product_name', :unique_members => true
+                level 'Product Family', table: 'product_class', column: 'product_family', unique_members: true
+                level 'Brand Name', table: 'product', column: 'brand_name', unique_members: false
+                level 'Product Name', table: 'product', column: 'product_name', unique_members: true
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -319,21 +320,21 @@ describe "Schema definition" do
       it "should render table and column names in uppercase when using Oracle driver" do
         @schema.define do
           cube 'Sales' do
-            dimension 'Products', :foreign_key => 'product_id' do
-              hierarchy :has_all => true, :all_member_name => 'All Products',
-                        :primary_key => 'product_id', :primary_key_table => 'product' do
-                join :left_key => 'product_class_id', :right_key => 'product_class_id' do
+            dimension 'Products', foreign_key: 'product_id' do
+              hierarchy has_all: true, all_member_name: 'All Products',
+                        primary_key: 'product_id', primary_key_table: 'product' do
+                join left_key: 'product_class_id', right_key: 'product_class_id' do
                   table 'product'
                   table 'product_class'
                 end
-                level 'Product Family', :table => 'product_class', :column => 'product_family', :unique_members => true
-                level 'Brand Name', :table => 'product', :column => 'brand_name', :unique_members => false
-                level 'Product Name', :table => 'product', :column => 'product_name', :unique_members => true
+                level 'Product Family', table: 'product_class', column: 'product_family', unique_members: true
+                level 'Brand Name', table: 'product', column: 'brand_name', unique_members: false
+                level 'Product Name', table: 'product', column: 'product_name', unique_members: true
               end
             end
           end
         end
-        @schema.to_xml(:driver => 'oracle').should be_like <<-XML
+        @schema.to_xml(driver: 'oracle').should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -356,25 +357,25 @@ describe "Schema definition" do
       it "should render dimension hierarchy with nested joins" do
         @schema.define do
           cube 'Sales' do
-            dimension 'Products', :foreign_key => 'product_id' do
-              hierarchy :has_all => true, :all_member_name => 'All Products',
-                        :primary_key => 'product_id', :primary_key_table => 'product' do
-                join :left_key => 'product_class_id', :right_alias => 'product_class', :right_key => 'product_class_id' do
+            dimension 'Products', foreign_key: 'product_id' do
+              hierarchy has_all: true, all_member_name: 'All Products',
+                        primary_key: 'product_id', primary_key_table: 'product' do
+                join left_key: 'product_class_id', right_alias: 'product_class', right_key: 'product_class_id' do
                   table 'product'
-                  join :left_key  => 'product_type_id', :right_key => 'product_type_id' do
+                  join left_key: 'product_type_id', right_key: 'product_type_id' do
                     table 'product_class'
                     table 'product_type'
                   end
                 end
-                level 'Product Family', :table => 'product_type', :column => 'product_family', :unique_members => true
-                level 'Product Category', :table => 'product_class', :column => 'product_category', :unique_members => false
-                level 'Brand Name', :table => 'product', :column => 'brand_name', :unique_members => false
-                level 'Product Name', :table => 'product', :column => 'product_name', :unique_members => true
+                level 'Product Family', table: 'product_type', column: 'product_family', unique_members: true
+                level 'Product Category', table: 'product_class', column: 'product_category', unique_members: false
+                level 'Brand Name', table: 'product', column: 'brand_name', unique_members: false
+                level 'Product Name', table: 'product', column: 'product_name', unique_members: true
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -409,14 +410,14 @@ describe "Schema definition" do
               all_member_name 'All Genders'
               primary_key 'customer_id'
               table 'customer'
-              level 'Gender', :column => 'gender', :unique_members => true
+              level 'Gender', column: 'gender', unique_members: true
             end
           end
           cube 'Sales' do
-            dimension_usage 'Gender', :foreign_key => 'customer_id' # by default :source => 'Gender' will be added
+            dimension_usage 'Gender', foreign_key: 'customer_id' # by default :source => 'Gender' will be added
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Dimension name="Gender">
@@ -436,17 +437,17 @@ describe "Schema definition" do
     describe "Virtual cube" do
       it "should render to XML" do
         @schema.define do
-          virtual_cube 'Warehouse and Sales', :default_measure => 'Store Sales' do
-            virtual_cube_dimension 'Customers', :cube_name => 'Sales'
+          virtual_cube 'Warehouse and Sales', default_measure: 'Store Sales' do
+            virtual_cube_dimension 'Customers', cube_name: 'Sales'
             virtual_cube_dimension 'Product'
-            virtual_cube_measure '[Measures].[Store Sales]', :cube_name => 'Sales'
+            virtual_cube_measure '[Measures].[Store Sales]', cube_name: 'Sales'
             calculated_member 'Profit' do
               dimension 'Measures'
               formula '[Measures].[Store Sales] - [Measures].[Store Cost]'
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <VirtualCube defaultMeasure="Store Sales" name="Warehouse and Sales">
@@ -470,10 +471,10 @@ describe "Schema definition" do
               column 'unit_sales'
               aggregator 'sum'
             end
-            measure 'Store Sales', :column => 'store_sales' # by default should use sum aggregator
+            measure 'Store Sales', column: 'store_sales' # by default should use sum aggregator
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -493,7 +494,7 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml(:driver => 'oracle').should be_like <<-XML
+        @schema.to_xml(driver: 'oracle').should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -506,14 +507,14 @@ describe "Schema definition" do
       it "should render with measure expression" do
         @schema.define do
           cube 'Sales' do
-            measure 'Double Unit Sales', :aggregator => 'sum' do
+            measure 'Double Unit Sales', aggregator: 'sum' do
               measure_expression do
                 sql 'unit_sales * 2'
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -539,7 +540,7 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -560,7 +561,7 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -575,7 +576,7 @@ describe "Schema definition" do
       it "should render embedded cube XML defintion before additional calculated member to XML" do
         @schema.define do
           cube 'Sales' do
-            xml <<-XML
+            xml <<~XML
               <Table name="sales_fact_1997"/>
             XML
             calculated_member 'Profit' do
@@ -585,7 +586,7 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -605,19 +606,19 @@ describe "Schema definition" do
           cube 'Sales' do
             table 'sales_fact_1997' do
               agg_name 'agg_c_special_sales_fact_1997' do
-                agg_fact_count :column => 'fact_count'
-                agg_measure '[Measures].[Store Cost]', :column => 'store_cost_sum'
-                agg_measure '[Measures].[Store Sales]', :column => 'store_sales_sum'
-                agg_level '[Product].[Product Family]', :column => 'product_family'
-                agg_level '[Time].[Quarter]', :column => 'time_quarter'
-                agg_level '[Time].[Year]', :column => 'time_year'
-                agg_level '[Time].[Quarter]', :column => 'time_quarter'
-                agg_level '[Time].[Month]', :column => 'time_month'
+                agg_fact_count column: 'fact_count'
+                agg_measure '[Measures].[Store Cost]', column: 'store_cost_sum'
+                agg_measure '[Measures].[Store Sales]', column: 'store_sales_sum'
+                agg_level '[Product].[Product Family]', column: 'product_family'
+                agg_level '[Time].[Quarter]', column: 'time_quarter'
+                agg_level '[Time].[Year]', column: 'time_year'
+                agg_level '[Time].[Quarter]', column: 'time_quarter'
+                agg_level '[Time].[Month]', column: 'time_month'
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -642,22 +643,22 @@ describe "Schema definition" do
         @schema.define do
           cube 'Sales' do
             table 'sales_fact_1997' do
-              agg_pattern :pattern => 'agg_.*_sales_fact_1997' do
-                agg_fact_count :column => 'fact_count'
-                agg_measure '[Measures].[Store Cost]', :column => 'store_cost_sum'
-                agg_measure '[Measures].[Store Sales]', :column => 'store_sales_sum'
-                agg_level '[Product].[Product Family]', :column => 'product_family'
-                agg_level '[Time].[Quarter]', :column => 'time_quarter'
-                agg_level '[Time].[Year]', :column => 'time_year'
-                agg_level '[Time].[Quarter]', :column => 'time_quarter'
-                agg_level '[Time].[Month]', :column => 'time_month'
+              agg_pattern pattern: 'agg_.*_sales_fact_1997' do
+                agg_fact_count column: 'fact_count'
+                agg_measure '[Measures].[Store Cost]', column: 'store_cost_sum'
+                agg_measure '[Measures].[Store Sales]', column: 'store_sales_sum'
+                agg_level '[Product].[Product Family]', column: 'product_family'
+                agg_level '[Time].[Quarter]', column: 'time_quarter'
+                agg_level '[Time].[Year]', column: 'time_year'
+                agg_level '[Time].[Quarter]', column: 'time_quarter'
+                agg_level '[Time].[Month]', column: 'time_month'
                 agg_exclude 'agg_c_14_sales_fact_1997'
                 agg_exclude 'agg_lc_100_sales_fact_1997'
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -684,7 +685,7 @@ describe "Schema definition" do
         @schema.define do
           cube 'Sales' do
             table 'sales_fact_1997' do
-              xml <<-XML
+              xml <<~XML
                 <AggName name="agg_c_special_sales_fact_1997">
                   <AggFactCount column="fact_count"/>
                   <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
@@ -711,7 +712,7 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -750,22 +751,22 @@ describe "Schema definition" do
       it "should render XML" do
         @schema.define do
           cube 'Sales' do
-            dimension 'Employees', :foreign_key => 'employee_id' do
-              hierarchy :has_all => true, :all_member_name => 'All Employees', :primary_key => 'employee_id' do
+            dimension 'Employees', foreign_key: 'employee_id' do
+              hierarchy has_all: true, all_member_name: 'All Employees', primary_key: 'employee_id' do
                 table 'employee'
-                level 'Employee Id', :unique_members => true, :type => 'Numeric', :column => 'employee_id', :name_column => 'full_name',
-                                      :parent_column => 'supervisor_id', :null_parent_value => 0 do
-                  property 'Marital Status', :column => 'marital_status'
-                  property 'Position Title', :column => 'position_title'
-                  property 'Gender', :column => 'gender'
-                  property 'Salary', :column => 'salary'
-                  property 'Education Level', :column => 'education_level'
+                level 'Employee Id', unique_members: true, type: 'Numeric', column: 'employee_id', name_column: 'full_name',
+                                      parent_column: 'supervisor_id', null_parent_value: 0 do
+                  property 'Marital Status', column: 'marital_status'
+                  property 'Position Title', column: 'position_title'
+                  property 'Gender', column: 'gender'
+                  property 'Salary', column: 'salary'
+                  property 'Education Level', column: 'education_level'
                 end
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -796,7 +797,7 @@ describe "Schema definition" do
                 annotation 'key1', 'value1'
                 annotation 'key2', 'value2'
               end
-              measure 'Unit Sales', :column => 'unit_sales' do
+              measure 'Unit Sales', column: 'unit_sales' do
                 annotations do
                   annotation 'key3', 'value3'
                 end
@@ -806,7 +807,7 @@ describe "Schema definition" do
         end
 
         it "should render XML" do
-          @schema.to_xml.should be_like <<-XML
+          @schema.to_xml.should be_like <<~XML
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -833,14 +834,14 @@ describe "Schema definition" do
         before do
           @schema.define do
             cube 'Sales' do
-              annotations :key1 => 'value1', :key2 => 'value2'
-              measure 'Unit Sales', :column => 'unit_sales', :annotations => {:key3 => 'value3'}
+              annotations key1: 'value1', key2: 'value2'
+              measure 'Unit Sales', column: 'unit_sales', annotations: {key3: 'value3'}
             end
           end
         end
 
         it "should render XML " do
-          @schema.to_xml.should be_like <<-XML
+          @schema.to_xml.should be_like <<~XML
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -1000,7 +1001,7 @@ describe "Schema definition" do
             end
           end
         end
-        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema)
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
       end
 
       it "should execute user defined function" do
@@ -1150,13 +1151,13 @@ describe "Schema definition" do
 
           cube 'Sales' do
             table 'sales'
-            dimension 'Customers', :foreign_key => 'customer_id' do
-              hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+            dimension 'Customers', foreign_key: 'customer_id' do
+              hierarchy has_all: true, all_member_name: 'All Customers', primary_key: 'id' do
                 table 'customers'
-                level 'Name', :column => 'fullname'
+                level 'Name', column: 'fullname'
               end
             end
-            measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum', :format_string => '#,##0'
+            measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum', format_string: '#,##0'
             calculated_member 'Factorial' do
               dimension 'Measures'
               formula 'Factorial(6)'
@@ -1164,11 +1165,11 @@ describe "Schema definition" do
             end
           end
         end
-        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
       end
 
       it "should render XML" do
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -1230,19 +1231,19 @@ describe "Schema definition" do
       it "should render XML" do
         @schema.define do
           role 'California manager' do
-            schema_grant :access => 'none' do
-              cube_grant :cube => 'Sales', :access => 'all' do
-                dimension_grant :dimension => '[Measures]', :access => 'all'
-                hierarchy_grant :hierarchy => '[Customers]', :access => 'custom',
-                                :top_level => '[Customers].[State Province]', :bottom_level => '[Customers].[City]' do
-                  member_grant :member => '[Customers].[USA].[CA]', :access => 'all'
-                  member_grant :member => '[Customers].[USA].[CA].[Los Angeles]', :access => 'none'
+            schema_grant access: 'none' do
+              cube_grant cube: 'Sales', access: 'all' do
+                dimension_grant dimension: '[Measures]', access: 'all'
+                hierarchy_grant hierarchy: '[Customers]', access: 'custom',
+                                top_level: '[Customers].[State Province]', bottom_level: '[Customers].[City]' do
+                  member_grant member: '[Customers].[USA].[CA]', access: 'all'
+                  member_grant member: '[Customers].[USA].[CA].[Los Angeles]', access: 'none'
                 end
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Role name="California manager">
@@ -1264,12 +1265,12 @@ describe "Schema definition" do
     describe "Parameters" do
       before(:each) do
         @schema.define do
-          parameter 'Current User', :type => 'String', :modifiable => true, :default_value => "'demo'"
-          parameter 'Current User 1', :type => 'String', :modifiable => true, :default_value => "''"
-          parameter 'Default User', :type => 'String', :modifiable => false, :default_value => "'default'"
+          parameter 'Current User', type: 'String', modifiable: true, default_value: "'demo'"
+          parameter 'Current User 1', type: 'String', modifiable: true, default_value: "''"
+          parameter 'Default User', type: 'String', modifiable: false, default_value: "'default'"
           cube 'Sales' do
             table 'sales'
-            measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
+            measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
           end
           user_defined_function 'ParameterValue' do
             ruby :shared do
@@ -1283,11 +1284,11 @@ describe "Schema definition" do
             end
           end
         end
-        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
       end
 
       it "should render XML" do
-        @schema.to_xml.should be_like <<-XML
+        @schema.to_xml.should be_like <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Parameter defaultValue="'demo'" modifiable="true" name="Current User" type="String"/>
@@ -1326,14 +1327,14 @@ describe "Schema definition" do
       it "should execute query with schema parameter value and get value with ParamRef" do
         result = @olap.from('Sales').
           with_member('[Measures].[Current User]').as("ParamRef('Current User 1')").
-            columns('[Measures].[Current User]').execute("Current User 1" => "test")
+            columns('[Measures].[Current User]').execute('Current User 1' => 'test')
         result.values.should == ['test']
       end
 
       it "should execute query with query parameter value and get value with Parameter" do
         result = @olap.from('Sales').
           with_member('[Measures].[Current User]').as("Parameter('Current User 2', String, 'demo2')").
-            columns('[Measures].[Current User]').execute("Current User 2" => "test2")
+            columns('[Measures].[Current User]').execute('Current User 2' => 'test2')
         result.values.should == ['test2']
       end
 
@@ -1341,28 +1342,28 @@ describe "Schema definition" do
       it "should execute query with additional defined parameter string value" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('String Parameter')").
-            columns('[Measures].[Parameter]').execute(:define_parameters => {"String Parameter" => "test"})
+            columns('[Measures].[Parameter]').execute(define_parameters: {'String Parameter' => 'test'})
         result.values.should == ['test']
       end
 
       it "should execute query with additional defined parameter integer value" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('Integer Parameter')").
-            columns('[Measures].[Parameter]').execute(:define_parameters => {"Integer Parameter" => 123})
+            columns('[Measures].[Parameter]').execute(define_parameters: {'Integer Parameter' => 123})
         result.values.should == [123]
       end
 
       it "should execute query with additional defined parameter double value" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('Double Parameter')").
-            columns('[Measures].[Parameter]').execute(:define_parameters => {"Double Parameter" => 123.456})
+            columns('[Measures].[Parameter]').execute(define_parameters: {'Double Parameter' => 123.456})
         result.values.should == [123.456]
       end
 
       it "should execute query with additional defined parameter nil value" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('Nil Parameter')").
-            columns('[Measures].[Parameter]').execute(:define_parameters => {"Nil Parameter" => nil})
+            columns('[Measures].[Parameter]').execute(define_parameters: {'Nil Parameter' => nil})
         result.values.should == [nil]
       end
 
@@ -1370,7 +1371,7 @@ describe "Schema definition" do
         expect {
           @olap.from('Sales').
             with_member('[Measures].[Current User]').as("'dummy'").
-              columns('[Measures].[Current User]').execute("Current User 2" => "test2")
+              columns('[Measures].[Current User]').execute('Current User 2' => 'test2')
         }.to raise_error {|e|
           e.should be_kind_of(Mondrian::OLAP::Error)
           e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Unknown parameter 'Current User 2'"
@@ -1382,7 +1383,7 @@ describe "Schema definition" do
         expect {
           @olap.from('Sales').
             with_member('[Measures].[Current User]').as("'dummy'").
-              columns('[Measures].[Current User]').execute("Default User" => "test")
+              columns('[Measures].[Current User]').execute('Default User' => 'test')
         }.to raise_error {|e|
           e.should be_kind_of(Mondrian::OLAP::Error)
           e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Parameter 'Default User' (defined at 'Schema' scope) is not modifiable"
@@ -1398,25 +1399,25 @@ describe "Schema definition" do
       @schema = Mondrian::OLAP::Schema.define do
         cube 'Sales' do
           table 'sales'
-          dimension 'Gender', :foreign_key => 'customer_id' do
-            hierarchy :has_all => true, :primary_key => 'id' do
+          dimension 'Gender', foreign_key: 'customer_id' do
+            hierarchy has_all: true, primary_key: 'id' do
               table 'customers'
-              level 'Gender', :column => 'gender', :unique_members => true
+              level 'Gender', column: 'gender', unique_members: true
             end
           end
-          dimension 'Time', :foreign_key => 'time_id' do
-            hierarchy :has_all => false, :primary_key => 'id' do
+          dimension 'Time', foreign_key: 'time_id' do
+            hierarchy has_all: false, primary_key: 'id' do
               table 'time'
-              level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true
-              level 'Quarter', :column => 'quarter', :unique_members => false
-              level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false
+              level 'Year', column: 'the_year', type: 'Numeric', unique_members: true
+              level 'Quarter', column: 'quarter', unique_members: false
+              level 'Month', column: 'month_of_year', type: 'Numeric', unique_members: false
             end
           end
-          measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
-          measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
+          measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
+          measure 'Store Sales', column: 'store_sales', aggregator: 'sum'
         end
       end
-      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
     end
 
     it "should connect" do
@@ -1444,7 +1445,7 @@ describe "Schema definition" do
         end
       end
       expect {
-        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
       }.to raise_error {|e|
         e.should be_kind_of(Mondrian::OLAP::Error)
         e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Internal error: Must specify fact table of cube 'Sales'"
@@ -1463,7 +1464,7 @@ describe "Schema definition" do
         end
       end
       expect {
-        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+        Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
       }.to raise_error {|e|
         e.should be_kind_of(Mondrian::OLAP::Error)
         e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Named set in cube 'Sales' has bad formula"

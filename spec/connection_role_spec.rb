@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "spec_helper"
 
 describe "Connection role" do
@@ -15,40 +17,40 @@ describe "Connection role" do
       @schema = Mondrian::OLAP::Schema.define do
         cube 'Sales' do
           table 'sales'
-          dimension 'Gender', :foreign_key => 'customer_id' do
-            hierarchy :has_all => true, :primary_key => 'id' do
+          dimension 'Gender', foreign_key: 'customer_id' do
+            hierarchy has_all: true, primary_key: 'id' do
               table 'customers'
-              level 'Gender', :column => 'gender', :unique_members => true, :hide_member_if => 'IfBlankName'
+              level 'Gender', column: 'gender', unique_members: true, hide_member_if: 'IfBlankName'
             end
           end
-          dimension 'Customers', :foreign_key => 'customer_id' do
-            hierarchy :has_all => true, :all_member_name => 'All Customers', :primary_key => 'id' do
+          dimension 'Customers', foreign_key: 'customer_id' do
+            hierarchy has_all: true, all_member_name: 'All Customers', primary_key: 'id' do
               table 'customers'
-              level 'Country', :column => 'country', :unique_members => true
-              level 'State Province', :column => 'state_province', :unique_members => true
-              level 'City', :column => 'city', :unique_members => false
-              level 'Name', :column => 'fullname', :unique_members => true
+              level 'Country', column: 'country', unique_members: true
+              level 'State Province', column: 'state_province', unique_members: true
+              level 'City', column: 'city', unique_members: false
+              level 'Name', column: 'fullname', unique_members: true
             end
           end
-          dimension 'Time', :foreign_key => 'time_id' do
-            hierarchy :has_all => false, :primary_key => 'id' do
+          dimension 'Time', foreign_key: 'time_id' do
+            hierarchy has_all: false, primary_key: 'id' do
               table 'time'
-              level 'Year', :column => 'the_year', :type => 'Numeric', :unique_members => true
-              level 'Quarter', :column => 'quarter', :unique_members => false
-              level 'Month', :column => 'month_of_year', :type => 'Numeric', :unique_members => false
+              level 'Year', column: 'the_year', type: 'Numeric', unique_members: true
+              level 'Quarter', column: 'quarter', unique_members: false
+              level 'Month', column: 'month_of_year', type: 'Numeric', unique_members: false
             end
           end
-          measure 'Unit Sales', :column => 'unit_sales', :aggregator => 'sum'
-          measure 'Store Sales', :column => 'store_sales', :aggregator => 'sum'
+          measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
+          measure 'Store Sales', column: 'store_sales', aggregator: 'sum'
         end
         role role_name do
-          schema_grant :access => 'none' do
-            cube_grant :cube => 'Sales', :access => 'all' do
-              dimension_grant :dimension => '[Measures]', :access => 'all'
-              hierarchy_grant :hierarchy => '[Customers]', :access => 'custom',
-                              :top_level => '[Customers].[State Province]', :bottom_level => '[Customers].[City]' do
-                member_grant :member => '[Customers].[USA].[CA]', :access => 'all'
-                member_grant :member => '[Customers].[USA].[CA].[Los Angeles]', :access => 'none'
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              dimension_grant dimension: '[Measures]', access: 'all'
+              hierarchy_grant hierarchy: '[Customers]', access: 'custom',
+                              top_level: '[Customers].[State Province]', bottom_level: '[Customers].[City]' do
+                member_grant member: '[Customers].[USA].[CA]', access: 'all'
+                member_grant member: '[Customers].[USA].[CA].[Los Angeles]', access: 'none'
               end
             end
           end
@@ -56,10 +58,10 @@ describe "Connection role" do
         role role_name2
 
         role simple_role_name do
-          schema_grant :access => 'none' do
-            cube_grant :cube => 'Sales', :access => 'all' do
-              hierarchy_grant :hierarchy => '[Customers]', :access => 'custom', :bottom_level => '[Customers].[State Province]' do
-                member_grant :member => '[Customers].[USA]', :access => 'all'
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              hierarchy_grant hierarchy: '[Customers]', access: 'custom', bottom_level: '[Customers].[State Province]' do
+                member_grant member: '[Customers].[USA]', access: 'all'
               end
             end
           end
@@ -89,7 +91,7 @@ describe "Connection role" do
     end
 
     before(:each) do
-      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema)
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema)
     end
 
     after(:each) do
