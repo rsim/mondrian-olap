@@ -754,4 +754,13 @@ describe "Mondrian features" do
       result.values.should == [0.0]
     end
   end
+
+  describe "Instr with function returning NULL" do
+    it "should return empty value when argument is a function returning NULL" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Instr Result]').as('Instr(Trim(NULL), "Done")').
+        columns('[Measures].[Instr Result]').execute
+      result.values.should == [nil]
+    end
+  end
 end
