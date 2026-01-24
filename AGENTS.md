@@ -98,6 +98,11 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 - Use simple parentheses declaring an array of strings `%w()` instead of other symbols like `%w[]`.
 - Use frozen string literal comments for all Ruby files and ensure that frozen strings are not modified.
 
+### mise
+
+- mise might be used to manage Ruby and Java versions.
+- If mise is available then prefix ruby, rspec, rake, java calls with `mise exec --` to initialize the correct environment.
+
 ### Testing
 
 - Use RSpec for Ruby testing.
