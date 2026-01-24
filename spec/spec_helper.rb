@@ -195,8 +195,9 @@ when 'snowflake'
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:binary)
 
 when 'clickhouse'
-  Dir[File.expand_path("clickhouse*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
-    require jdbc_driver_file
+  # Load SLF4J and ClickHouse JDBC driver 0.5+ dependencies
+  Dir[File.expand_path("{slf4j*,clickhouse*}.jar", 'spec/support/jars')].each do |jar_file|
+    require jar_file
   end
   JDBC_DRIVER = 'com.clickhouse.jdbc.ClickHouseDriver'
   DATABASE_SCHEMA = ENV["#{env_prefix}_DATABASE_SCHEMA"] || ENV['DATABASE_SCHEMA'] || 'mondrian_test'
