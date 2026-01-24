@@ -252,8 +252,8 @@ when 'clickhouse'
     def quote_column_name(name)
       "`#{name.to_s}`"
     end
-    def create_table(name, options = {})
-      super(name, {options: "ENGINE=MergeTree ORDER BY tuple()"}.merge(options))
+    def create_table(name, **options)
+      super(name, **{options: "ENGINE=MergeTree ORDER BY tuple()"}.merge(options))
     end
     alias_method :exec_update_original, :exec_update
     # exec_insert tries to use Statement.RETURN_GENERATED_KEYS which is not supported by ClickHouse
@@ -317,9 +317,26 @@ when 'mariadb'
     def execute(sql, name = nil, binds = nil)
       exec_update(sql, name, binds)
     end
-    def create_table(name, options = {})
-      super(name, {options: "ENGINE=Columnstore DEFAULT CHARSET=utf8"}.merge(options))
+    def create_table(name, **options)
+      super(name, **{options: "ENGINE=Columnstore DEFAULT CHARSET=utf8"}.merge(options))
     end
+  end
+end
+
+ArJdbc::ConnectionMethods.module_eval do
+  def jdbc_connection(config)
+    config = config.deep_dup
+    adapter_class = config[:adapter_class] || ::ActiveRecord::ConnectionAdapters::JdbcAdapter
+    adapter_class.new(nil, logger, nil, config)
+  end
+end
+
+ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
+  def initialize(connection, logger = nil, connection_parameters = nil, config = {})
+    super(connection, logger, config)
+  end
+  def create_table_definition(name, **options)
+    table_definition(name, **options)
   end
 end
 
