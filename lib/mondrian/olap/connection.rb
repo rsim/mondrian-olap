@@ -31,13 +31,7 @@ module Mondrian
           props = java.util.Properties.new
           props.setProperty('JdbcUser', @params[:username]) if @params[:username]
           props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
-
-          # On Oracle increase default row prefetch size
-          # as default 10 is very low and slows down loading of all dimension members
-          if @driver == 'oracle'
-            prefetch_rows = @params[:prefetch_rows] || 100
-            props.setProperty("jdbc.defaultRowPrefetch", prefetch_rows.to_s)
-          end
+          set_driver_properties(props)
 
           conn_string = connection_string
 
@@ -480,6 +474,23 @@ module Mondrian
 
       def quote_string(string)
         "'#{string.gsub("'", "''")}'"
+      end
+
+      def set_driver_properties(props)
+        method_name = :"set_#{@driver}_properties"
+        send(method_name, props) if respond_to?(method_name, true)
+      end
+
+      # On Oracle increase default row prefetch size
+      # as default 10 is very low and slows down loading of all dimension members
+      def set_oracle_properties(props)
+        prefetch_rows = @params[:prefetch_rows] || 100
+        props.setProperty("jdbc.defaultRowPrefetch", prefetch_rows.to_s)
+      end
+
+      # ClickHouse JDBC driver requires JdbcPassword to be set
+      def set_clickhouse_properties(props)
+        props.setProperty('JdbcPassword', '') unless @params[:password]
       end
 
       def set_statement_parameters(statement, parameters)
