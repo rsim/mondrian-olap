@@ -380,10 +380,23 @@ namespace :db do
         puts "==> Copy into #{table_name}"
         file_path = "#{export_data_dir}/#{table_name}.csv"
         columns_string = File.open(file_path) { |f| f.gets }.chomp
-        clickhouse_format_class = Java::com.clickhouse.data.ClickHouseFormat rescue Java::com.clickhouse.client.ClickHouseFormat
-        conn.jdbc_connection.createStatement.write.
-          query("INSERT INTO #{table_name}(#{columns_string})").
-          data(file_path).format(clickhouse_format_class::CSVWithNames).execute
+
+        # Try the old write() API first (JDBC driver 0.4.x), fall back to client-v2 API (0.5+)
+        statement = conn.jdbc_connection.createStatement
+        if statement.respond_to?(:write)
+          # Old API for JDBC driver 0.4.x
+          clickhouse_format_class = Java::com.clickhouse.data.ClickHouseFormat rescue Java::com.clickhouse.client.ClickHouseFormat
+          statement.write.
+            query("INSERT INTO #{table_name}(#{columns_string})").
+            data(file_path).format(clickhouse_format_class::CSVWithNames).execute
+        else
+          # New API for JDBC driver 0.5+ using client-v2 API from JDBC connection
+          client = conn.jdbc_connection.getClient
+          file_input_stream = java.io.FileInputStream.new(file_path)
+          clickhouse_format = Java::com.clickhouse.data.ClickHouseFormat::CSVWithNames
+          client.insert(table_name, file_input_stream, clickhouse_format).get
+          file_input_stream.close
+        end
         count = conn.select_value("SELECT COUNT(*) FROM #{table_name}").to_i
         puts "==> Loaded #{count} records"
       end

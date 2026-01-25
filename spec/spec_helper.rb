@@ -195,8 +195,9 @@ when 'snowflake'
   ActiveRecord::ConnectionAdapters::JdbcTypeConverter::AR_TO_JDBC_TYPES.delete(:binary)
 
 when 'clickhouse'
-  Dir[File.expand_path("clickhouse*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
-    require jdbc_driver_file
+  # Load SLF4J and ClickHouse JDBC driver 0.5+ dependencies
+  Dir[File.expand_path("{slf4j*,clickhouse*}.jar", 'spec/support/jars')].each do |jar_file|
+    require jar_file
   end
   JDBC_DRIVER = 'com.clickhouse.jdbc.ClickHouseDriver'
   DATABASE_SCHEMA = ENV["#{env_prefix}_DATABASE_SCHEMA"] || ENV['DATABASE_SCHEMA'] || 'mondrian_test'
@@ -252,8 +253,8 @@ when 'clickhouse'
     def quote_column_name(name)
       "`#{name.to_s}`"
     end
-    def create_table(name, options = {})
-      super(name, {options: "ENGINE=MergeTree ORDER BY tuple()"}.merge(options))
+    def create_table(name, **options)
+      super(name, **{options: "ENGINE=MergeTree ORDER BY tuple()"}.merge(options))
     end
     alias_method :exec_update_original, :exec_update
     # exec_insert tries to use Statement.RETURN_GENERATED_KEYS which is not supported by ClickHouse
@@ -317,9 +318,26 @@ when 'mariadb'
     def execute(sql, name = nil, binds = nil)
       exec_update(sql, name, binds)
     end
-    def create_table(name, options = {})
-      super(name, {options: "ENGINE=Columnstore DEFAULT CHARSET=utf8"}.merge(options))
+    def create_table(name, **options)
+      super(name, **{options: "ENGINE=Columnstore DEFAULT CHARSET=utf8"}.merge(options))
     end
+  end
+end
+
+ArJdbc::ConnectionMethods.module_eval do
+  def jdbc_connection(config)
+    config = config.deep_dup
+    adapter_class = config[:adapter_class] || ::ActiveRecord::ConnectionAdapters::JdbcAdapter
+    adapter_class.new(nil, logger, nil, config)
+  end
+end
+
+ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
+  def initialize(connection, logger = nil, connection_parameters = nil, config = {})
+    super(connection, logger, config)
+  end
+  def create_table_definition(name, **options)
+    table_definition(name, **options)
   end
 end
 
