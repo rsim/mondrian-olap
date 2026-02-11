@@ -676,6 +676,21 @@ describe "Mondrian features" do
         columns('[Measures].[LinRegR2]').execute
       result.values.should == [1.0]
     end
+
+    it "should return NaN when value cannot be calculated due to NULL arguments" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegR2]').as(
+          <<~MDX
+            LinRegR2(
+              [Customers].[Country].Members,
+              NULL,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members)
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegR2]').execute
+      result.values.first.nan?.should == true
+    end
   end
 
   describe "LinRegVariance" do
@@ -752,6 +767,21 @@ describe "Mondrian features" do
         ).
         columns('[Measures].[LinRegVariance]').execute
       result.values.should == [0.0]
+    end
+
+    it "should return NaN when value cannot be calculated due to NULL arguments" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[LinRegVariance]').as(
+          <<~MDX
+            LinRegVariance(
+              [Customers].[All Customers],
+              NULL,
+              Rank([Customers].CurrentMember, [Customers].[Country].Members)
+            )
+          MDX
+        ).
+        columns('[Measures].[LinRegVariance]').execute
+      result.values.first.nan?.should == true
     end
   end
 
