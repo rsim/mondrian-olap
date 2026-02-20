@@ -689,7 +689,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegR2]').execute
-      result.values.first.nan?.should == true
+      result.values.first.should be_nan
     end
   end
 
@@ -781,7 +781,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegVariance]').execute
-      result.values.first.nan?.should == true
+      result.values.first.should be_nan
     end
   end
 
