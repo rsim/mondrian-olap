@@ -810,6 +810,18 @@ describe "Mondrian features" do
       dates.should include(Date.new(2020, 12, 15))
     end
 
+    it "should inherit format string for 1-arg form from the measure in the set" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[custom]').as('[Measures].[Store Sales]', format_string: '#,##0.0000').
+        with_member('[Measures].[result]').as(
+          "Max({[Measures].[custom]})"
+        ).
+        columns('[Measures].[result]').
+        rows('[Customers].[USA].[CA]').execute
+      # Should inherit #,##0.0000 format from the measure in the set
+      result.formatted_values[0][0].should =~ /\d+\.\d{4}/
+    end
+
     it "should return date value for 1-arg form but format as numeric by default" do
       result = @olap.from('Sales').
         with_member('[Measures].[Test Date]').as(date_measure_expression, format_string: 'yyyy-mm-dd').
