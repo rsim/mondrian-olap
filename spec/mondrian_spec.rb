@@ -703,7 +703,7 @@ describe "Mondrian features" do
         ).
         columns('[Measures].[Max Date]').execute
       # Should be formatted as date (from Test Date's format), not as number (from Unit Sales' format)
-      result.formatted_values[0].should =~ /\d{2}\.\d{2}\.\d{4}/
+      result.formatted_values[0].should == '15.12.2020'
     end
 
     it "should still work with numeric expressions" do
@@ -849,8 +849,8 @@ describe "Mondrian features" do
         ).
         columns('[Measures].[Max 1]', '[Measures].[Max 2]').execute
       # Max 1 should use dd.mm.yyyy, Max 2 should use yyyy-mm-dd
-      result.formatted_values[0].should =~ /\d{2}\.\d{2}\.\d{4}/
-      result.formatted_values[1].should =~ /\d{4}-\d{2}-\d{2}/
+      result.formatted_values[0].should == '15.12.2020'
+      result.formatted_values[1].should == '2020-12-15'
     end
 
     it "should work inside CoalesceEmpty" do
