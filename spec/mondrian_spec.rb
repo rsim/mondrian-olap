@@ -641,6 +641,36 @@ describe "Mondrian features" do
       Date.parse(result.values[0].to_s).should == Date.new(2020, 12, 15)
     end
 
+    it "should skip null date values and return extreme of non-null" do
+      # Only CA and OR get dates, WA is null
+      partial_date_expression =
+        "CASE [Customers].CurrentMember" \
+        " WHEN [Customers].[USA].[CA] THEN DateSerial(2020, 1, 15)" \
+        " WHEN [Customers].[USA].[OR] THEN DateSerial(2020, 6, 15)" \
+        " END"
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(partial_date_expression).
+        with_member('[Measures].[Max Date]').as(
+          "Max([Customers].[USA].Children, [Measures].[Test Date])"
+        ).
+        with_member('[Measures].[Min Date]').as(
+          "Min([Customers].[USA].Children, [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Max Date]', '[Measures].[Min Date]').execute
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 6, 15)
+      Date.parse(result.values[1].to_s).should == Date.new(2020, 1, 15)
+    end
+
+    it "should return nil when all date values are null" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as("CASE WHEN 1=2 THEN DateSerial(2020, 1, 1) END").
+        with_member('[Measures].[Max Date]').as(
+          "Max([Customers].[USA].Children, [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Max Date]').execute
+      result.values[0].should be_nil
+    end
+
     it "should return nil from Max with empty set" do
       result = @olap.from('Sales').
         with_member('[Measures].[Test Date]').as("DateSerial(2020, 1, 15)").
