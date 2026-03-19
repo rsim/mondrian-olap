@@ -810,6 +810,63 @@ describe "Mondrian features" do
       dates.should include(Date.new(2020, 12, 15))
     end
 
+    it "should return date value for 1-arg form but format as numeric by default" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression, format_string: 'yyyy-mm-dd').
+        with_member('[Measures].[result]').as(
+          "Max({[Measures].[Test Date]})"
+        ).
+        columns('[Measures].[result]').
+        rows('[Customers].[USA].[WA]').execute
+      # The value is a Date
+      result.values[0][0].should be_a(java.util.Date)
+      # But the 1-arg form (Category.Numeric) defaults to numeric formatting;
+      # explicit FORMAT_STRING is needed for date display
+      result.formatted_values[0][0].should =~ /[\d,]+/
+    end
+
+    it "should not bleed format strings between multiple date measures" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression, format_string: 'dd.mm.yyyy').
+        with_member('[Measures].[Max 1]').as(
+          "Max([Customers].[USA].Children, [Measures].[Test Date])"
+        ).
+        with_member('[Measures].[Test Date 2]').as(date_measure_expression, format_string: 'yyyy-mm-dd').
+        with_member('[Measures].[Max 2]').as(
+          "Max([Customers].[USA].Children, [Measures].[Test Date 2])"
+        ).
+        columns('[Measures].[Max 1]', '[Measures].[Max 2]').execute
+      # Max 1 should use dd.mm.yyyy, Max 2 should use yyyy-mm-dd
+      result.formatted_values[0].should =~ /\d{2}\.\d{2}\.\d{4}/
+      result.formatted_values[1].should =~ /\d{4}-\d{2}-\d{2}/
+    end
+
+    it "should work inside CoalesceEmpty" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[result]').as(
+          "CoalesceEmpty(" \
+          "Max(Filter([Customers].[USA].Children, 1=2), [Measures].[Test Date]), " \
+          "DateSerial(1970, 1, 1))"
+        ).
+        columns('[Measures].[result]').execute
+      # Max over empty set returns null, CoalesceEmpty falls back to DateSerial
+      result.values[0].should be_a(java.util.Date)
+      Date.parse(result.values[0].to_s).should == Date.new(1970, 1, 1)
+    end
+
+    it "should work with CrossJoin producing tuples" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[result]').as(
+          "Max(CrossJoin({[Customers].[USA].[CA], [Customers].[USA].[WA]}, " \
+          "{[Gender].[All Genders]}), [Measures].[Test Date])"
+        ).
+        columns('[Measures].[result]').execute
+      result.values[0].should be_a(java.util.Date)
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 12, 15)
+    end
+
     # Pre-existing Mondrian limitations: IIf and comparison operators lack
     # DateTime signatures. Not caused by the Min/Max date support changes.
 
