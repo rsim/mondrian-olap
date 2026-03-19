@@ -671,6 +671,20 @@ describe "Mondrian features" do
       result.values[0].should be_nil
     end
 
+    it "should return date from single-element set" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[Max Date]').as(
+          "Max({[Customers].[USA].[OR]}, [Measures].[Test Date])"
+        ).
+        with_member('[Measures].[Min Date]').as(
+          "Min({[Customers].[USA].[OR]}, [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Max Date]', '[Measures].[Min Date]').execute
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 6, 15)
+      Date.parse(result.values[1].to_s).should == Date.new(2020, 6, 15)
+    end
+
     it "should return nil from Max with empty set" do
       result = @olap.from('Sales').
         with_member('[Measures].[Test Date]').as("DateSerial(2020, 1, 15)").
