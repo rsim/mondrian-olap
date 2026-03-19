@@ -766,9 +766,76 @@ describe "Mondrian features" do
       result.values[0].should be_a(Numeric)
     end
 
-    # Note: IIf with date branches is not supported because IIf lacks a
-    # DateTime signature (fDbDD). This is a pre-existing Mondrian limitation,
-    # not caused by the Min/Max date support changes.
+    it "should work inside IIf with date Min/Max and null fallback" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[result]').as(
+          "IIf([Measures].[Unit Sales] > 0, " \
+          "Min([Customers].[USA].Children, [Measures].[Test Date]), NULL)"
+        ).
+        columns('[Measures].[result]').execute
+      result.values[0].should be_a(java.util.Date)
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 1, 15)
+    end
+
+    it "should support nested Min inside Max with dates" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[result]').as(
+          "Max([Customers].[USA].Children, " \
+          "Min({[Customers].CurrentMember}, [Measures].[Test Date]))"
+        ).
+        columns('[Measures].[result]').execute
+      result.values[0].should be_a(java.util.Date)
+      # Each inner Min over a single member returns that member's date,
+      # then outer Max picks the latest — same as plain Max
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 12, 15)
+    end
+
+    it "should support 1-arg form with date measure as set member" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[result]').as(
+          "Max({[Measures].[Test Date]})"
+        ).
+        columns('[Measures].[result]').
+        rows('[Customers].[USA].Children').execute
+      # Each row gets Max of a single-element set containing the date measure
+      result.values.flatten.each do |v|
+        v.should be_a(java.util.Date)
+      end
+      # CA = Jan, OR = Jun, WA = Dec
+      dates = result.values.flatten.map { |v| Date.parse(v.to_s) }
+      dates.should include(Date.new(2020, 1, 15))
+      dates.should include(Date.new(2020, 12, 15))
+    end
+
+    # Pre-existing Mondrian limitations: IIf and comparison operators lack
+    # DateTime signatures. Not caused by the Min/Max date support changes.
+
+    it "should not support IIf with date branches on both sides (no DateTime IIf signature)" do
+      expect {
+        @olap.from('Sales').
+          with_member('[Measures].[Test Date]').as(date_measure_expression).
+          with_member('[Measures].[result]').as(
+            "IIf([Measures].[Unit Sales] > 0, " \
+            "Max([Customers].[USA].Children, [Measures].[Test Date]), " \
+            "DateSerial(1970, 1, 1))"
+          ).
+          columns('[Measures].[result]').execute
+      }.to raise_error(Mondrian::OLAP::Error)
+    end
+
+    it "should not support comparison operators with date Min/Max result (no DateTime comparison signature)" do
+      expect {
+        @olap.from('Sales').
+          with_member('[Measures].[Test Date]').as(date_measure_expression).
+          with_member('[Measures].[result]').as(
+            "Max([Customers].[USA].Children, [Measures].[Test Date]) > DateSerial(2020, 6, 1)"
+          ).
+          columns('[Measures].[result]').execute
+      }.to raise_error(Mondrian::OLAP::Error)
+    end
   end
 
   describe "calculated member profiling" do
