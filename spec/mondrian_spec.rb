@@ -596,6 +596,127 @@ describe "Mondrian features" do
     end
   end
 
+  describe "Min and Max with date expressions" do
+    # Use CASE to assign different dates to USA state children
+    let(:date_measure_expression) do
+      "CASE [Customers].CurrentMember" \
+      " WHEN [Customers].[USA].[CA] THEN DateSerial(2020, 1, 15)" \
+      " WHEN [Customers].[USA].[OR] THEN DateSerial(2020, 6, 15)" \
+      " WHEN [Customers].[USA].[WA] THEN DateSerial(2020, 12, 15)" \
+      " END"
+    end
+
+    it "should return date value from Max" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[Max Date]').as(
+          "Max([Customers].[USA].Children, [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Max Date]').execute
+      result.values[0].should be_a(java.util.Date)
+    end
+
+    it "should return date value from Min" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[Min Date]').as(
+          "Min([Customers].[USA].Children, [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Min Date]').execute
+      result.values[0].should be_a(java.util.Date)
+    end
+
+    it "should return date value from Max with Filter" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression).
+        with_member('[Measures].[Max Date]').as(
+          "Max(Filter([Customers].[USA].Children, [Measures].[Unit Sales] > 0), [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Max Date]').execute
+      result.values[0].should be_a(java.util.Date)
+    end
+
+    it "should return nil from Max with empty set" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as("DateSerial(2020, 1, 15)").
+        with_member('[Measures].[Max Date]').as(
+          "Max(Filter([Customers].[USA].Children, 1=2), [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Max Date]').execute
+      result.values[0].should be_nil
+    end
+
+    it "should inherit date format from value expression, not from Filter condition" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Test Date]').as(date_measure_expression, format_string: 'dd.mm.yyyy').
+        with_member('[Measures].[Max Date]').as(
+          "Max(Filter([Customers].[USA].Children, [Measures].[Unit Sales] > 0), [Measures].[Test Date])"
+        ).
+        columns('[Measures].[Max Date]').execute
+      # Should be formatted as date (from Test Date's format), not as number (from Unit Sales' format)
+      result.formatted_values[0].should =~ /\d{2}\.\d{2}\.\d{4}/
+    end
+
+    it "should still work with numeric expressions" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Max Sales]').as(
+          "Max([Customers].[Country].Members, [Measures].[Unit Sales])"
+        ).
+        columns('[Measures].[Max Sales]').execute
+      result.values[0].should be_a(Numeric)
+    end
+
+    it "should work with arithmetic numeric expressions" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[Max Sales]').as(
+          "Max([Customers].[Country].Members, [Measures].[Unit Sales] * 2)"
+        ).
+        columns('[Measures].[Max Sales]').execute
+      result.values[0].should be_a(Numeric)
+
+      simple_max = @olap.from('Sales').
+        with_member('[Measures].[Max Sales]').as(
+          "Max([Customers].[Country].Members, [Measures].[Unit Sales])"
+        ).
+        columns('[Measures].[Max Sales]').execute.values[0]
+      result.values[0].should == simple_max * 2
+    end
+
+    it "should work inside IIf with 2-arg numeric form" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[result]').as(
+          "IIf([Measures].[Unit Sales] > 0, " \
+          "Min([Customers].[Country].Members, [Measures].[Unit Sales]), 0)"
+        ).
+        columns('[Measures].[result]').execute
+      result.values[0].should be_a(Numeric)
+    end
+
+    it "should work inside IIf with 1-arg numeric form" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[result]').as(
+          "IIf([Measures].[Unit Sales] > 0, " \
+          "Max([Customers].[Country].Members), 0)"
+        ).
+        columns('[Measures].[result]').execute
+      result.values[0].should be_a(Numeric)
+    end
+
+    it "should work inside IIf with 2-arg numeric form in both branches" do
+      result = @olap.from('Sales').
+        with_member('[Measures].[result]').as(
+          "IIf([Measures].[Unit Sales] > 0, " \
+          "Min([Customers].[Country].Members, [Measures].[Unit Sales]), Max([Customers].[Country].Members, [Measures].[Unit Sales]))"
+        ).
+        columns('[Measures].[result]').execute
+      result.values[0].should be_a(Numeric)
+    end
+
+    # Note: IIf with date branches is not supported because IIf lacks a
+    # DateTime signature (fDbDD). This is a pre-existing Mondrian limitation,
+    # not caused by the Min/Max date support changes.
+  end
+
   describe "calculated member profiling" do
     it "should include calculated member when formula uses a function" do
       result = @olap.from('Sales').
