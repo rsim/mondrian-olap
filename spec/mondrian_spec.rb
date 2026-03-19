@@ -606,7 +606,7 @@ describe "Mondrian features" do
       " END"
     end
 
-    it "should return date value from Max" do
+    it "should return the latest date from Max" do
       result = @olap.from('Sales').
         with_member('[Measures].[Test Date]').as(date_measure_expression).
         with_member('[Measures].[Max Date]').as(
@@ -614,9 +614,11 @@ describe "Mondrian features" do
         ).
         columns('[Measures].[Max Date]').execute
       result.values[0].should be_a(java.util.Date)
+      # WA = Dec 2020, the latest date
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 12, 15)
     end
 
-    it "should return date value from Min" do
+    it "should return the earliest date from Min" do
       result = @olap.from('Sales').
         with_member('[Measures].[Test Date]').as(date_measure_expression).
         with_member('[Measures].[Min Date]').as(
@@ -624,9 +626,11 @@ describe "Mondrian features" do
         ).
         columns('[Measures].[Min Date]').execute
       result.values[0].should be_a(java.util.Date)
+      # CA = Jan 2020, the earliest date
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 1, 15)
     end
 
-    it "should return date value from Max with Filter" do
+    it "should return the latest date from Max with Filter" do
       result = @olap.from('Sales').
         with_member('[Measures].[Test Date]').as(date_measure_expression).
         with_member('[Measures].[Max Date]').as(
@@ -634,6 +638,7 @@ describe "Mondrian features" do
         ).
         columns('[Measures].[Max Date]').execute
       result.values[0].should be_a(java.util.Date)
+      Date.parse(result.values[0].to_s).should == Date.new(2020, 12, 15)
     end
 
     it "should return nil from Max with empty set" do
@@ -662,8 +667,13 @@ describe "Mondrian features" do
         with_member('[Measures].[Max Sales]').as(
           "Max([Customers].[Country].Members, [Measures].[Unit Sales])"
         ).
-        columns('[Measures].[Max Sales]').execute
+        with_member('[Measures].[Min Sales]').as(
+          "Min([Customers].[Country].Members, [Measures].[Unit Sales])"
+        ).
+        columns('[Measures].[Max Sales]', '[Measures].[Min Sales]').execute
       result.values[0].should be_a(Numeric)
+      result.values[1].should be_a(Numeric)
+      result.values[0].should > result.values[1]
     end
 
     it "should work with arithmetic numeric expressions" do
