@@ -23,4 +23,13 @@ end
 
 require_relative 'spec/rake_tasks'
 
+desc "Copy Mondrian JAR from mondrian-olap-java build to lib/mondrian/jars"
+task :copy_mondrian_jar do
+  target_dir = "lib/mondrian/jars"
+  Dir.glob("#{target_dir}/mondrian*.jar").each { |f| rm f }
+  source_files = Dir.glob("../mondrian-olap-java/mondrian/target/mondrian*.jar")
+  raise "No mondrian*.jar found in ../mondrian-olap-java/mondrian/target/" if source_files.empty?
+  cp source_files, target_dir
+end
+
 Dir["lib/tasks/**/*.rake"].each { |ext| load ext } if defined?(Rake)
