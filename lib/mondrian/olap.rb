@@ -16,8 +16,8 @@ end
 
 directory = File.expand_path("../jars", __FILE__)
 if (mondrian_olap_jar_path = ENV['MONDRIAN_OLAP_JAR_PATH'])
-  unless File.exist?(mondrian_olap_jar_path) && File.basename(mondrian_olap_jar_path) =~ /\Amondrian-.*\.jar\z/
-    mondrian_olap_jar_path = nil
+  unless File.file?(mondrian_olap_jar_path) && File.basename(mondrian_olap_jar_path) =~ /\Amondrian-.*\.jar\z/
+    raise ArgumentError, "MONDRIAN_OLAP_JAR_PATH must point to a valid Mondrian OLAP jar file"
   end
 end
 Dir["#{directory}/*.jar"].each do |file|
