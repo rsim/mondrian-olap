@@ -15,3 +15,10 @@ gem 'activerecord', '~> 6.1.7.10'
 gem 'activerecord-jdbc-adapter', '~> 61.3'
 gem 'activerecord-oracle_enhanced-adapter', '~> 6.1.6'
 gem 'pry', '~> 0.14.1'
+
+if JRUBY_VERSION.to_i >= 10
+  gem 'mutex_m'
+  gem 'base64'
+  gem 'bigdecimal'
+  gem 'drb'
+end

@@ -75,4 +75,4 @@ You can also run all tests on all standard databases (mysql jdbc_mysql postgresq
 
 # JRuby versions
 
-It is recommended to use mise to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 9.4 on Java 8, 11, 17, and 21.
+It is recommended to use mise to run tests with different JRuby implementations. mondrian-olap is being tested with latest versions of JRuby 9.4 and 10 on Java 8 (deprecated), 11, 17, 21, and 25.
