@@ -15,9 +15,16 @@ require 'nokogiri'
 end
 
 directory = File.expand_path("../jars", __FILE__)
+if (mondrian_olap_jar_path = ENV['MONDRIAN_OLAP_JAR_PATH'])
+  unless File.file?(mondrian_olap_jar_path) && File.basename(mondrian_olap_jar_path) =~ /\Amondrian-.*\.jar\z/
+    raise ArgumentError, "MONDRIAN_OLAP_JAR_PATH must point to a valid Mondrian OLAP jar file"
+  end
+end
 Dir["#{directory}/*.jar"].each do |file|
+  next if mondrian_olap_jar_path && File.basename(file) =~ /\Amondrian-/
   require file
 end
+require mondrian_olap_jar_path if mondrian_olap_jar_path
 
 %w(error connection query result schema schema_udf cube).each do |file|
   require "mondrian/olap/#{file}"

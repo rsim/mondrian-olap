@@ -54,7 +54,7 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 
 - **JRuby** 9.4 or later (compatible with Ruby 3.1+)
 - **Java** 8 or later LTS version
-- **Mondrian OLAP** Java library from a fork https://github.com/rsim/mondrian/tree/9.3.0.0-rsim
+- **Mondrian OLAP** Java library from a fork https://github.com/rsim/mondrian-olap-java
 - **Databases**: PostgreSQL, MySQL, Oracle, Microsoft SQL Server, ClickHouse or other JDBC compatible databases
 - **Testing**: RSpec
 

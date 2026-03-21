@@ -10,7 +10,7 @@ DESCRIPTION
 
 SQL language is good for doing ad-hoc queries from relational databases but it becomes very complicated when doing more complex analytical queries to get summary results. Alternative approach is OLAP (On-Line Analytical Processing) databases and engines that provide easier multidimensional analysis of data at different summary levels.
 
-One of the most popular open-source OLAP engines is [Mondrian](http://mondrian.pentaho.com). Mondrian OLAP engine can be put in front of relational SQL database and it provides MDX multidimensional query language which is much more suited for analytical purposes.
+One of the most popular open-source OLAP engines is [Mondrian](https://mondrian.pentaho.com/documentation/olap.php). Mondrian OLAP engine can be put in front of relational SQL database and it provides MDX multidimensional query language which is much more suited for analytical purposes.
 
 mondrian-olap is JRuby gem which includes Mondrian OLAP engine and provides Ruby DSL for creating OLAP schemas on top of relational database schemas and provides MDX query language and query builder Ruby methods for making analytical queries.
 
