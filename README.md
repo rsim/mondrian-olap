@@ -181,7 +181,7 @@ where('[Time].[2010].[Q1]').
 execute
 ```
 
-See more examples of queries in `spec/query_spec.rb`.
+See more examples of queries in `test/query_test.rb`.
 
 Currently there are query builder methods just for most frequently used MDX functions, there will be new query builder methods in next releases of mondrian-olap gem.
 
@@ -210,7 +210,7 @@ cube.member('[Customers].[USA]').descendants_at_level('City')
                                         # => get all descendants of member in specified hierarchy level
 ```
 
-See more examples of dimension and member queries in `spec/cube_spec.rb`.
+See more examples of dimension and member queries in `test/cube_test.rb`.
 
 ### Cache control
 
@@ -237,7 +237,7 @@ cube.flush_region_cache_with_segments(
 
 The `flush_region_cache_with_segments` method is particularly useful for partial cache clearing when you know which specific dimension members have changed data, avoiding the need to flush the entire cache.
 
-See more examples of cache control in `spec/cube_cache_control_spec.rb`.
+See more examples of cache control in `test/cube_cache_control_test.rb`.
 
 ### Query timeout
 
@@ -372,7 +372,7 @@ schema = Mondrian::OLAP::Schema.define do
 end
 ```
 
-See more examples of user defined functions in `spec/schema_definition_spec.rb`.
+See more examples of user defined functions in `test/schema_definition_test.rb`.
 
 ### Data access roles
 
@@ -397,7 +397,7 @@ schema = Mondrian::OLAP::Schema.define do
 end
 ```
 
-See more examples of data access roles in `spec/connection_role_spec.rb`.
+See more examples of data access roles in `test/connection_role_test.rb`.
 
 ### Drill through
 
@@ -453,7 +453,7 @@ drill_through = olap.from('Sales').
   )
 ```
 
-See more examples of drill through in `spec/query_spec.rb`.
+See more examples of drill through in `test/query_test.rb`.
 
 ### Additional schema options
 
@@ -483,7 +483,8 @@ end
 REQUIREMENTS
 ------------
 
-mondrian-olap gem is compatible with JRuby versions 9.3.x and 9.4.x, JVM 8, 11, and 17. mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
+mondrian-olap gem is compatible with JRuby versions 9.4 and 10, Java 8 (deprecated), 11, 17, 21, 25.
+mondrian-olap works only with JRuby and not with other Ruby implementations as it includes Mondrian OLAP Java libraries.
 
 mondrian-olap supports MySQL, PostgreSQL, Oracle, Microsoft SQL Server, Vertica, Snowflake, and ClickHouse databases as well as other databases that are supported by Mondrian OLAP engine (using jdbc_driver and jdbc_url connection parameters). When using MySQL or PostgreSQL databases then install jdbc-mysql or jdbc-postgres gem and require "jdbc/mysql" or "jdbc/postgres" to load the corresponding JDBC database driver. When using Oracle then require Oracle JDBC driver `ojdbc*.jar`. When using MS SQL Server you then use the Microsoft JDBC driver `mssql-jdbc-*.jar`. When using Vertica, Snowflake, or ClickHouse then require corresponding JDBC drivers.
 

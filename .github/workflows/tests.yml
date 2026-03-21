@@ -11,7 +11,7 @@ env:
   JRUBY_OPTS: -W0
 
 jobs:
-  rspec:
+  test:
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -23,9 +23,8 @@ jobs:
             JAVA_VERSION: 11
           - JRUBY_VERSION: 9.4.14.0
             JAVA_VERSION: 17
-          # Tests on JRuby 10 are failing due to https://github.com/jruby/jruby/issues/8987
-          # - JRUBY_VERSION: 10.0.2.0
-          #   JAVA_VERSION: 21
+          - JRUBY_VERSION: 10.0.4.0
+            JAVA_VERSION: 21
     env:
       JRUBY_VERSION: ${{ matrix.JRUBY_VERSION }}
       JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
@@ -98,15 +97,15 @@ jobs:
       - name: Run Tests
         run: |
           for driver in mysql postgresql oracle sqlserver; do
-            MONDRIAN_DRIVER=$driver bundle exec rake spec
+            MONDRIAN_DRIVER=$driver bundle exec rake test
           done
       - name: Export test data and run ClickHouse tests
         run: |
           MONDRIAN_DRIVER=mysql bundle exec rake db:export_data
           MONDRIAN_DRIVER=clickhouse bundle exec rake db:create_data
-          MONDRIAN_DRIVER=clickhouse bundle exec rake spec
+          MONDRIAN_DRIVER=clickhouse bundle exec rake test
 
-  windows-rspec:
+  windows-test:
     runs-on: windows-2025
     strategy:
       fail-fast: false
@@ -118,8 +117,8 @@ jobs:
             JAVA_VERSION: 11
           - JRUBY_VERSION: 9.4.14.0
             JAVA_VERSION: 17
-          # - JRUBY_VERSION: 10.0.2.0
-          #   JAVA_VERSION: 21
+          - JRUBY_VERSION: 10.0.4.0
+            JAVA_VERSION: 21
     env:
       JRUBY_VERSION: ${{ matrix.JRUBY_VERSION }}
       JAVA_VERSION: ${{ matrix.JAVA_VERSION }}
@@ -150,7 +149,7 @@ jobs:
         run: |
           Invoke-WebRequest -Uri "https://download.microsoft.com/download/4/D/C/4DCD85FA-0041-4D2E-8DD9-833C1873978C/sqljdbc_7.2.1.0_enu.exe" -OutFile "sqljdbc_7.2.1.0_enu.exe"
           7z x sqljdbc_7.2.1.0_enu.exe -y > nul
-          Copy-Item -Path "sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar" -Destination "spec\support\jars\"
+          Copy-Item -Path "sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar" -Destination "test\support\jars\"
       - name: Setup Ruby and install gems
         uses: ruby/setup-ruby@v1
         with:
@@ -164,4 +163,4 @@ jobs:
       - name: Create Database Data
         run: bundle exec rake db:create_data
       - name: Run Tests
-        run: bundle exec rake spec:sqlserver
+        run: bundle exec rake test:sqlserver

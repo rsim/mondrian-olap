@@ -1,9 +1,10 @@
-require 'rdoc'
-require 'rspec'
+# frozen_string_literal: true
+
+require "bundler/setup"
+
 require 'logger'
 require 'active_record'
 require 'activerecord-jdbc-adapter'
-require 'pry'
 
 # Autoload corresponding JDBC driver during require 'jdbc/...'
 Java::JavaLang::System.setProperty("jdbc.driver.autoload", "true")
@@ -21,7 +22,7 @@ DATABASE_INSTANCE = ENV["#{env_prefix}_DATABASE_INSTANCE"] || ENV['DATABASE_INST
 
 case MONDRIAN_DRIVER
 when 'mysql', 'jdbc_mysql'
-  if jdbc_driver_file = Dir[File.expand_path("mysql*.jar", 'spec/support/jars')].first
+  if jdbc_driver_file = Dir[File.expand_path("mysql*.jar", 'test/support/jars')].first
     require jdbc_driver_file
   else
     require 'jdbc/mysql'
@@ -34,7 +35,7 @@ when 'postgresql'
   require 'arjdbc/postgresql'
 
 when 'oracle'
-  Dir[File.expand_path("ojdbc*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+  Dir[File.expand_path("ojdbc*.jar", 'test/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
 
@@ -73,10 +74,10 @@ when 'oracle'
       register_class_with_precision m, %r(date)i,  ActiveRecord::Type::DateTime
     end
   end
-  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
+  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __dir__)
 
 when 'sqlserver'
-  Dir[File.expand_path("mssql-jdbc*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+  Dir[File.expand_path("mssql-jdbc*.jar", 'test/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
   require 'arjdbc/jdbc/adapter'
@@ -132,7 +133,7 @@ when 'sqlserver'
   JDBC_DRIVER = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
 
 when 'vertica'
-  Dir[File.expand_path("vertica*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+  Dir[File.expand_path("vertica*.jar", 'test/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
   JDBC_DRIVER = 'com.vertica.jdbc.Driver'
@@ -168,13 +169,13 @@ when 'vertica'
   end
 
 when 'snowflake'
-  Dir[File.expand_path("snowflake*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+  Dir[File.expand_path("snowflake*.jar", 'test/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
   JDBC_DRIVER = 'net.snowflake.client.jdbc.SnowflakeDriver'
   DATABASE_SCHEMA = ENV["#{env_prefix}_DATABASE_SCHEMA"] || ENV['DATABASE_SCHEMA'] || 'mondrian_test'
   WAREHOUSE_NAME = ENV["#{env_prefix}_WAREHOUSE_NAME"] || ENV['WAREHOUSE_NAME'] || 'mondrian_test'
-  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __FILE__)
+  CATALOG_FILE = File.expand_path('../fixtures/MondrianTestOracle.xml', __dir__)
   require 'arjdbc/jdbc/adapter'
   ActiveRecord::ConnectionAdapters::JdbcAdapter.class_eval do
     def initialize(connection, logger = nil, connection_parameters = nil, config = {})
@@ -196,7 +197,7 @@ when 'snowflake'
 
 when 'clickhouse'
   # Load SLF4J and ClickHouse JDBC driver 0.5+ dependencies
-  Dir[File.expand_path("{slf4j*,clickhouse*}.jar", 'spec/support/jars')].each do |jar_file|
+  Dir[File.expand_path("{slf4j*,clickhouse*}.jar", 'test/support/jars')].each do |jar_file|
     require jar_file
   end
   JDBC_DRIVER = 'com.clickhouse.jdbc.ClickHouseDriver'
@@ -271,7 +272,7 @@ when 'clickhouse'
   end
 
 when 'mariadb'
-  Dir[File.expand_path("mariadb*.jar", 'spec/support/jars')].each do |jdbc_driver_file|
+  Dir[File.expand_path("mariadb*.jar", 'test/support/jars')].each do |jdbc_driver_file|
     require jdbc_driver_file
   end
   JDBC_DRIVER = 'org.mariadb.jdbc.Driver'
@@ -353,14 +354,8 @@ puts "==> Using #{MONDRIAN_DRIVER} driver"
 end
 
 require 'mondrian/olap'
-require_relative 'support/matchers/be_like'
 
-RSpec.configure do |config|
-  config.include Matchers
-  config.expect_with(:rspec) { |c| c.syntax = [:should, :expect] }
-end
-
-CATALOG_FILE = File.expand_path('../fixtures/MondrianTest.xml', __FILE__) unless defined?(CATALOG_FILE)
+CATALOG_FILE = File.expand_path('../fixtures/MondrianTest.xml', __dir__) unless defined?(CATALOG_FILE)
 
 CONNECTION_PARAMS = if MONDRIAN_DRIVER =~ /^jdbc/
   {
@@ -372,8 +367,6 @@ CONNECTION_PARAMS = if MONDRIAN_DRIVER =~ /^jdbc/
   }
 else
   {
-    # Uncomment to test PostgreSQL SSL connection
-    # properties: {'ssl'=>'true','sslfactory'=>'org.postgresql.ssl.NonValidatingFactory'},
     driver: MONDRIAN_DRIVER,
     host: DATABASE_HOST,
     port: DATABASE_PORT,
@@ -449,14 +442,6 @@ when 'snowflake'
     dialect: 'jdbc'
   }
 when 'clickhouse'
-  # CREATE USER mondrian_test IDENTIFIED WITH plaintext_password BY 'mondrian_test';
-  # CREATE DATABASE mondrian_test;
-  # GRANT ALL ON mondrian_test.* TO mondrian_test;
-
-  # For testing different protocols
-  # CONNECTION_PARAMS[:protocol] = 'http'
-  # CONNECTION_PARAMS[:properties] ={'http_connection_provider' => 'APACHE_HTTP_CLIENT'}
-
   AR_CONNECTION_PARAMS = {
     adapter: 'jdbc',
     driver: JDBC_DRIVER,

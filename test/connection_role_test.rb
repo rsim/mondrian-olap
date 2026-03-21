@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require_relative "test_helper"
 
 describe "Connection role" do
 
@@ -90,73 +90,71 @@ describe "Connection role" do
       end
     end
 
-    before(:each) do
+    before do
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema)
     end
 
-    after(:each) do
+    after do
       @olap.role_name = nil if @olap
     end
 
     it "should connect" do
-      @olap.should be_connected
+      assert @olap.connected?
     end
 
     it "should get available role names" do
-      @olap.available_role_names.sort.should == @all_roles.sort
+      assert_equal @all_roles.sort, @olap.available_role_names.sort
     end
 
     it "should not get role name if not set" do
-      @olap.role_name.should be_nil
-      @olap.role_names.should be_empty
+      assert_nil @olap.role_name
+      assert_empty @olap.role_names
     end
 
     it "should set and get role name" do
       @olap.role_name = @role_name
-      @olap.role_name.should == @role_name
-      @olap.role_names.should == [@role_name]
+      assert_equal @role_name, @olap.role_name
+      assert_equal [@role_name], @olap.role_names
     end
 
     it "should raise error when invalid role name is set" do
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         @olap.role_name = 'invalid'
-      }.to raise_error {|e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == "org.olap4j.OlapException: Unknown role 'invalid'"
-        e.root_cause_message.should == "Unknown role 'invalid'"
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal "org.olap4j.OlapException: Unknown role 'invalid'", error.message
+      assert_equal "Unknown role 'invalid'", error.root_cause_message
     end
 
     it "should set and get several role names" do
       @olap.role_names = [@role_name, @role_name2]
-      @olap.role_name.should == "[#{@role_name}, #{@role_name2}]"
-      @olap.role_names.should == [@role_name, @role_name2]
+      assert_equal "[#{@role_name}, #{@role_name2}]", @olap.role_name
+      assert_equal [@role_name, @role_name2], @olap.role_names
     end
 
     it "should not get non-visible member" do
       @cube = @olap.cube('Sales')
-      @cube.member('[Customers].[USA].[CA].[Los Angeles]').should_not be_nil
+      assert @cube.member('[Customers].[USA].[CA].[Los Angeles]')
       @olap.role_name = @role_name
-      @cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
+      assert_nil @cube.member('[Customers].[USA].[CA].[Los Angeles]')
     end
 
     # TODO: investigate why role name is not returned when set in connection string
     # it "should set role name from connection parameters" do
-    #   @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge :schema => @schema,
-    #     :role => @role_name)
-    #   @olap.role_name.should == @role_name
+    #   @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema, role: @role_name)
+    #   assert_equal @role_name, @olap.role_name
     # end
 
     it "should not get non-visible member when role name set in connection parameters" do
       olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema, role: @role_name)
       cube = olap.cube('Sales')
-      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
+      assert_nil cube.member('[Customers].[USA].[CA].[Los Angeles]')
     end
 
     it "should not get non-visible member when several role names set in connection parameters" do
       olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge schema: @schema, roles: [@role_name, @role_name2])
       cube = olap.cube('Sales')
-      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
+      assert_nil cube.member('[Customers].[USA].[CA].[Los Angeles]')
     end
 
     it "should see members from ragged dimensions when using single role" do
@@ -164,24 +162,24 @@ describe "Connection role" do
       # This syntax will create a union role with one role.
       @olap.role_names = [@role_name]
       cube = @olap.cube('Sales')
-      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
-      cube.member('[Gender].[All Genders]').should_not be_nil
+      assert_nil cube.member('[Customers].[USA].[CA].[Los Angeles]')
+      assert cube.member('[Gender].[All Genders]')
     end
 
     it "should see members from ragged dimensions when using multiple roles" do
       @olap.role_names = [@role_name, @role_name2]
       cube = @olap.cube('Sales')
-      cube.member('[Customers].[USA].[CA].[Los Angeles]').should be_nil
-      cube.member('[Gender].[All Genders]').should_not be_nil
+      assert_nil cube.member('[Customers].[USA].[CA].[Los Angeles]')
+      assert cube.member('[Gender].[All Genders]')
     end
 
     # Test patch for UnionRoleImpl getBottomLevelDepth method
     it "should see member as drillable when using union of union role" do
       @olap.role_names = [@union_role_name]
       cube = @olap.cube('Sales')
-      cube.member('[Customers].[All Customers]').should be_drillable
-      cube.member('[Customers].[All Customers].[USA]').should be_drillable
-      cube.member('[Customers].[All Customers].[USA].[CA]').should_not be_drillable
+      assert cube.member('[Customers].[All Customers]').drillable?
+      assert cube.member('[Customers].[All Customers].[USA]').drillable?
+      refute cube.member('[Customers].[All Customers].[USA].[CA]').drillable?
     end
 
   end

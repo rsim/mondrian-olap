@@ -1,15 +1,41 @@
 # frozen_string_literal: true
 # encoding: utf-8
 
+require 'rake/testtask'
+
+Rake::TestTask.new(:test) do |t|
+  t.libs << 'test'
+  t.pattern = 'test/**/*_test.rb'
+  t.warning = false
+end
+
+namespace :test do
+  %w(mysql jdbc_mysql postgresql oracle sqlserver vertica snowflake clickhouse mariadb).each do |driver|
+    desc "Run tests with #{driver} driver"
+    task driver do
+      ENV['MONDRIAN_DRIVER'] = driver
+      Rake::Task['test'].reenable
+      Rake::Task['test'].invoke
+    end
+  end
+
+  desc "Run tests with all primary database drivers"
+  task :all do
+    %w(mysql jdbc_mysql postgresql oracle sqlserver).each do |driver|
+      Rake::Task["test:#{driver}"].invoke
+    end
+  end
+end
+
 namespace :db do
-  task :require_spec_helper do
-    require File.expand_path("../spec_helper", __FILE__)
+  task :require_database_setup do
+    require_relative "support/database_setup"
   end
 
   import_data_drivers = %w(vertica snowflake clickhouse mariadb)
 
   desc "Create test database tables"
-  task :create_tables => :require_spec_helper do
+  task :create_tables => :require_database_setup do
     puts "==> Creating tables for test data"
     ActiveRecord::Schema.instance_eval do
 
@@ -118,7 +144,7 @@ namespace :db do
     end
   end
 
-  task :define_models => :require_spec_helper do
+  task :define_models => :require_database_setup do
     class TimeDimension < ActiveRecord::Base
       self.table_name = "time"
       validates_presence_of :the_date
@@ -308,7 +334,7 @@ namespace :db do
     end
   end
 
-  export_data_dir = File.expand_path("spec/support/data")
+  export_data_dir = File.expand_path("test/support/data")
   table_names = %w(time product_classes products customers promotions sales warehouse)
 
   desc "Export test data"
@@ -336,7 +362,7 @@ namespace :db do
     end
   end
 
-  task :import_data => :require_spec_helper do
+  task :import_data => :require_database_setup do
     puts "==> Importing data"
     conn = ActiveRecord::Base.connection
 
@@ -416,22 +442,4 @@ namespace :db do
     end
   end
 
-end
-
-namespace :spec do
-  %w(mysql jdbc_mysql postgresql oracle sqlserver vertica snowflake clickhouse mariadb).each do |driver|
-    desc "Run specs with #{driver} driver"
-    task driver do
-      ENV['MONDRIAN_DRIVER'] = driver
-      Rake::Task['spec'].reenable
-      Rake::Task['spec'].invoke
-    end
-  end
-
-  desc "Run specs with all primary database drivers"
-  task :all do
-    %w(mysql jdbc_mysql postgresql oracle sqlserver).each do |driver|
-      Rake::Task["spec:#{driver}"].invoke
-    end
-  end
 end

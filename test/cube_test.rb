@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require_relative "test_helper"
 
 describe "Cube" do
   before(:all) do
@@ -75,39 +75,39 @@ describe "Cube" do
   end
 
   it "should get all cube names" do
-    @olap.cube_names.should == ['Sales']
+    assert_equal ['Sales'], @olap.cube_names
   end
 
   it "should get cube by name" do
-    @olap.cube('Sales').should be_a(Mondrian::OLAP::Cube)
+    assert_kind_of Mondrian::OLAP::Cube, @olap.cube('Sales')
   end
 
   it "should return nil when getting cube with invalid name" do
-    @olap.cube('invalid').should be_nil
+    assert_nil @olap.cube('invalid')
   end
 
   it "should get cube name" do
-    @olap.cube('Sales').name.should == 'Sales'
+    assert_equal 'Sales', @olap.cube('Sales').name
   end
 
   it "should get cube description" do
-    @olap.cube('Sales').description.should == 'Sales description'
+    assert_equal 'Sales description', @olap.cube('Sales').description
   end
 
   it "should get cube caption" do
-    @olap.cube('Sales').caption.should == 'Sales caption'
+    assert_equal 'Sales caption', @olap.cube('Sales').caption
   end
 
   it "should get cube annotations" do
-    @olap.cube('Sales').annotations.should == {'foo' => 'bar'}
+    assert_equal({'foo' => 'bar'}, @olap.cube('Sales').annotations)
   end
 
   it "should be visible" do
-    @olap.cube('Sales').should be_visible
+    assert @olap.cube('Sales').visible?
   end
 
   it "should not be virtual" do
-    @olap.cube('Sales').should_not be_virtual
+    assert_equal false, @olap.cube('Sales').virtual?
   end
 
   describe "dimensions" do
@@ -117,57 +117,57 @@ describe "Cube" do
     end
 
     it "should get dimension names" do
-      @cube.dimension_names.should == @dimension_names
+      assert_equal @dimension_names, @cube.dimension_names
     end
 
     it "should get dimensions" do
-      @cube.dimensions.map(&:name).should == @dimension_names
+      assert_equal @dimension_names, @cube.dimensions.map(&:name)
     end
 
     it "should get dimension by name" do
-      @cube.dimension('Gender').name.should == 'Gender'
+      assert_equal 'Gender', @cube.dimension('Gender').name
     end
 
     it "should return nil when getting dimension with invalid name" do
-      @cube.dimension('invalid').should be_nil
+      assert_nil @cube.dimension('invalid')
     end
 
     it "should get dimension description" do
-      @cube.dimension('Gender').description.should == 'Gender description'
+      assert_equal 'Gender description', @cube.dimension('Gender').description
     end
 
     it "should get dimension caption" do
-      @cube.dimension('Gender').caption.should == 'Gender caption'
+      assert_equal 'Gender caption', @cube.dimension('Gender').caption
     end
 
     it "should get dimension full name" do
-      @cube.dimension('Gender').full_name.should == '[Gender]'
+      assert_equal '[Gender]', @cube.dimension('Gender').full_name
     end
 
     it "should get measures dimension" do
-      @cube.dimension('Measures').should be_measures
+      assert @cube.dimension('Measures').measures?
     end
 
     it "should get measures caption" do
-      @cube.dimension('Measures').caption.should == 'Measures caption'
+      assert_equal 'Measures caption', @cube.dimension('Measures').caption
     end
 
     it "should get dimension type" do
-      @cube.dimension('Gender').dimension_type.should == :standard
-      @cube.dimension('Time').dimension_type.should == :time
-      @cube.dimension('Measures').dimension_type.should == :measures
+      assert_equal :standard, @cube.dimension('Gender').dimension_type
+      assert_equal :time, @cube.dimension('Time').dimension_type
+      assert_equal :measures, @cube.dimension('Measures').dimension_type
     end
 
     it "should get dimension annotations" do
-      @cube.dimension('Customers').annotations.should == {'foo' => 'bar'}
+      assert_equal({'foo' => 'bar'}, @cube.dimension('Customers').annotations)
     end
 
     it "should get dimension empty annotations" do
-      @cube.dimension('Gender').annotations.should == {}
+      assert_equal({}, @cube.dimension('Gender').annotations)
     end
 
     it "should be visible" do
-      @cube.dimension('Gender').should be_visible
+      assert @cube.dimension('Gender').visible?
     end
 
   end
@@ -179,21 +179,21 @@ describe "Cube" do
     end
 
     it "should get hierarchy names" do
-      @cube.hierarchy_names.should == @hierarchy_names
+      assert_equal @hierarchy_names, @cube.hierarchy_names
     end
 
     it "should get hierarchy by name" do
-      @cube.hierarchy('Gender').name.should == 'Gender'
+      assert_equal 'Gender', @cube.hierarchy('Gender').name
     end
 
     it "should get hierarchy dimension name" do
       hierarchy = @cube.hierarchy('Time.Weekly')
-      hierarchy.dimension.name.should == 'Time'
-      hierarchy.dimension_name.should == 'Time'
+      assert_equal 'Time', hierarchy.dimension.name
+      assert_equal 'Time', hierarchy.dimension_name
     end
 
     it "should return nil when getting dimension with invalid name" do
-      @cube.hierarchy('invalid').should be_nil
+      assert_nil @cube.hierarchy('invalid')
     end
   end
 
@@ -204,75 +204,76 @@ describe "Cube" do
 
     it "should get hierarchies" do
       hierarchies = @cube.dimension('Gender').hierarchies
-      hierarchies.size.should == 1
-      hierarchies[0].name.should == 'Gender'
+      assert_equal 1, hierarchies.size
+      assert_equal 'Gender', hierarchies[0].name
     end
 
     it "should get hierarchy description" do
-      hierarchies = @cube.dimension('Gender').hierarchies.first.description.should == 'Gender hierarchy description'
+      assert_equal 'Gender hierarchy description', @cube.dimension('Gender').hierarchies.first.description
     end
 
     it "should get hierarchy caption" do
-      hierarchies = @cube.dimension('Gender').hierarchies.first.caption.should == 'Gender hierarchy caption'
+      assert_equal 'Gender hierarchy caption', @cube.dimension('Gender').hierarchies.first.caption
     end
 
     it "should get hierarchy names" do
-      @cube.dimension('Time').hierarchy_names.should == ['Time', 'Time.Weekly']
+      assert_equal ['Time', 'Time.Weekly'], @cube.dimension('Time').hierarchy_names
     end
 
     it "should get hierarchy by name" do
-      @cube.dimension('Time').hierarchy('Time.Weekly').name.should == 'Time.Weekly'
+      assert_equal 'Time.Weekly', @cube.dimension('Time').hierarchy('Time.Weekly').name
     end
 
     it "should return nil when getting hierarchy with invalid name" do
-      @cube.dimension('Time').hierarchy('invalid').should be_nil
+      assert_nil @cube.dimension('Time').hierarchy('invalid')
     end
 
     it "should get default hierarchy" do
-      @cube.dimension('Time').hierarchy.name.should == 'Time'
+      assert_equal 'Time', @cube.dimension('Time').hierarchy.name
     end
 
     it "should get hierarchy full name" do
-      @cube.dimension('Time').hierarchy.full_name.should == '[Time]'
-      @cube.dimension('Time').hierarchy('Time.Weekly').full_name.should == '[Time.Weekly]'
+      assert_equal '[Time]', @cube.dimension('Time').hierarchy.full_name
+      assert_equal '[Time.Weekly]', @cube.dimension('Time').hierarchy('Time.Weekly').full_name
     end
 
     it "should get hierarchy levels" do
-      @cube.dimension('Customers').hierarchy.levels.map(&:name).should ==  ['(All)', 'Country', 'State Province', 'City', 'Name']
+      assert_equal ['(All)', 'Country', 'State Province', 'City', 'Name'], @cube.dimension('Customers').hierarchy.levels.map(&:name)
     end
 
     it "should get hierarchy level names" do
-      @cube.dimension('Time').hierarchy.level_names.should == ['Year', 'Quarter', 'Month']
-      @cube.dimension('Customers').hierarchy.level_names.should ==  ['(All)', 'Country', 'State Province', 'City', 'Name']
+      assert_equal ['Year', 'Quarter', 'Month'], @cube.dimension('Time').hierarchy.level_names
+      assert_equal ['(All)', 'Country', 'State Province', 'City', 'Name'], @cube.dimension('Customers').hierarchy.level_names
     end
 
     it "should get hierarchy level depths" do
-      @cube.dimension('Customers').hierarchy.levels.map(&:depth).should ==  [0, 1, 2, 3, 4]
+      assert_equal [0, 1, 2, 3, 4], @cube.dimension('Customers').hierarchy.levels.map(&:depth)
     end
 
     it "should get hierarchy level members count" do
-      @cube.dimension('Gender').hierarchy.levels.map(&:members_count).should == [1, 2]
+      assert_equal [1, 2], @cube.dimension('Gender').hierarchy.levels.map(&:members_count)
     end
 
     it "should set and get hierarchy level cardinality" do
       level = @cube.dimension('Gender').hierarchy.levels.last
-      level.cardinality.should == Java::JavaLang::Integer::MIN_VALUE
-      level.cardinality = 2
-      @olap.cube('Sales').dimension('Gender').hierarchy.levels.last.cardinality.should == 2
       level.cardinality = nil
-      @olap.cube('Sales').dimension('Gender').hierarchy.levels.last.cardinality.should == Java::JavaLang::Integer::MIN_VALUE
+      assert_equal Java::JavaLang::Integer::MIN_VALUE, level.cardinality
+      level.cardinality = 2
+      assert_equal 2, @olap.cube('Sales').dimension('Gender').hierarchy.levels.last.cardinality
+      level.cardinality = nil
+      assert_equal Java::JavaLang::Integer::MIN_VALUE, @olap.cube('Sales').dimension('Gender').hierarchy.levels.last.cardinality
     end
 
     it "should get hierarchy annotations" do
-      @cube.dimension('Customers').hierarchy.annotations.should == {'foo' => 'bar'}
+      assert_equal({'foo' => 'bar'}, @cube.dimension('Customers').hierarchy.annotations)
     end
 
     it "should get hierarchy empty annotations" do
-      @cube.dimension('Gender').hierarchy.annotations.should == {}
+      assert_equal({}, @cube.dimension('Gender').hierarchy.annotations)
     end
 
     it "should be visible" do
-      @cube.dimension('Gender').hierarchies.first.should be_visible
+      assert @cube.dimension('Gender').hierarchies.first.visible?
     end
 
   end
@@ -283,39 +284,40 @@ describe "Cube" do
     end
 
     it "should get hierarchy all member" do
-      @cube.dimension('Gender').hierarchy.has_all?.should == true
-      @cube.dimension('Gender').hierarchy.all_member_name.should == 'All Genders'
+      assert_equal true, @cube.dimension('Gender').hierarchy.has_all?
+      assert_equal 'All Genders', @cube.dimension('Gender').hierarchy.all_member_name
     end
 
     it "should not get all member for hierarchy without all member" do
-      @cube.dimension('Time').hierarchy.has_all?.should == false
-      @cube.dimension('Time').hierarchy.all_member_name.should be_nil
+      assert_equal false, @cube.dimension('Time').hierarchy.has_all?
+      assert_nil @cube.dimension('Time').hierarchy.all_member_name
     end
 
     it "should get hierarchy root members" do
-      @cube.dimension('Gender').hierarchy.root_members.map(&:name).should == ['All Genders']
-      @cube.dimension('Gender').hierarchy.root_member_names.should == ['All Genders']
-      @cube.dimension('Time').hierarchy.root_members.map(&:name).should == ['2010', '2011']
-      @cube.dimension('Time').hierarchy.root_member_names.should == ['2010', '2011']
+      assert_equal ['All Genders'], @cube.dimension('Gender').hierarchy.root_members.map(&:name)
+      assert_equal ['All Genders'], @cube.dimension('Gender').hierarchy.root_member_names
+      assert_equal ['2010', '2011'], @cube.dimension('Time').hierarchy.root_members.map(&:name)
+      assert_equal ['2010', '2011'], @cube.dimension('Time').hierarchy.root_member_names
     end
 
     it "should return child members for specified member" do
-      @cube.dimension('Gender').hierarchy.child_names('All Genders').should == ['F', 'M']
-      @cube.dimension('Customers').hierarchy.child_names('USA', 'OR').should ==
+      assert_equal ['F', 'M'], @cube.dimension('Gender').hierarchy.child_names('All Genders')
+      assert_equal(
         ["Albany", "Beaverton", "Corvallis", "Lake Oswego", "Lebanon", "Milwaukie",
-        "Oregon City", "Portland", "Salem", "W. Linn", "Woodburn"]
+        "Oregon City", "Portland", "Salem", "W. Linn", "Woodburn"],
+        @cube.dimension('Customers').hierarchy.child_names('USA', 'OR'))
     end
 
     it "should return child members for hierarchy" do
-      @cube.dimension('Gender').hierarchy.child_names.should == ['F', 'M']
+      assert_equal ['F', 'M'], @cube.dimension('Gender').hierarchy.child_names
     end
 
     it "should not return child members for leaf member" do
-      @cube.dimension('Gender').hierarchy.child_names('All Genders', 'F').should == []
+      assert_equal [], @cube.dimension('Gender').hierarchy.child_names('All Genders', 'F')
     end
 
     it "should return nil as child members if parent member not found" do
-      @cube.dimension('Gender').hierarchy.child_names('N').should be_nil
+      assert_nil @cube.dimension('Gender').hierarchy.child_names('N')
     end
 
   end
@@ -326,53 +328,51 @@ describe "Cube" do
     end
 
     it "should get level description" do
-      @cube.dimension('Gender').hierarchy.level('Gender').description.should == 'Gender level description'
+      assert_equal 'Gender level description', @cube.dimension('Gender').hierarchy.level('Gender').description
     end
 
     it "should get level caption" do
-      @cube.dimension('Gender').hierarchy.level('Gender').caption.should == 'Gender level caption'
+      assert_equal 'Gender level caption', @cube.dimension('Gender').hierarchy.level('Gender').caption
     end
 
     it "should get level full name" do
-      @cube.dimension('Gender').hierarchy.level('Gender').full_name.should == '[Gender].[Gender]'
+      assert_equal '[Gender].[Gender]', @cube.dimension('Gender').hierarchy.level('Gender').full_name
     end
 
     it "should return nil when getting level with invalid name" do
-      @cube.dimension('Gender').hierarchy.level('invalid').should be_nil
+      assert_nil @cube.dimension('Gender').hierarchy.level('invalid')
     end
 
     it "should get primary hierarchy level members" do
-      @cube.dimension('Customers').hierarchy.level('Country').members.
-        map(&:name).should == ['Canada', 'Mexico', 'USA']
+      assert_equal ['Canada', 'Mexico', 'USA'], @cube.dimension('Customers').hierarchy.level('Country').members.map(&:name)
     end
 
     it "should get secondary hierarchy level members" do
-      @cube.dimension('Time').hierarchy('Time.Weekly').level('Year').members.
-        map(&:name).should == ['2010', '2011']
+      assert_equal ['2010', '2011'], @cube.dimension('Time').hierarchy('Time.Weekly').level('Year').members.map(&:name)
     end
 
     it "should get child level" do
-      @cube.dimension('Customers').hierarchy.level('Country').child_level.name.should == 'State Province'
+      assert_equal 'State Province', @cube.dimension('Customers').hierarchy.level('Country').child_level.name
     end
 
     it "should get parent level" do
-      @cube.dimension('Customers').hierarchy.level('State Province').parent_level.name.should == 'Country'
+      assert_equal 'Country', @cube.dimension('Customers').hierarchy.level('State Province').parent_level.name
     end
 
     it "should get descendant level" do
-      @cube.dimension('Customers').hierarchy.level('Country').descendant_level('City').name.should == 'City'
+      assert_equal 'City', @cube.dimension('Customers').hierarchy.level('Country').descendant_level('City').name
     end
 
     it "should get level annotations" do
-      @cube.dimension('Customers').hierarchy.level('Country').annotations.should == {'foo' => 'bar'}
+      assert_equal({'foo' => 'bar'}, @cube.dimension('Customers').hierarchy.level('Country').annotations)
     end
 
     it "should get level empty annotations" do
-      @cube.dimension('Gender').hierarchy.level('Gender').annotations.should == {}
+      assert_equal({}, @cube.dimension('Gender').hierarchy.level('Gender').annotations)
     end
 
     it "should be visible" do
-      @cube.dimension('Gender').hierarchy.level('Gender').should be_visible
+      assert @cube.dimension('Gender').hierarchy.level('Gender').visible?
     end
 
   end
@@ -383,126 +383,129 @@ describe "Cube" do
     end
 
     it "should return member for specified full name" do
-      @cube.member('[Gender].[All Genders]').name.should == 'All Genders'
-      @cube.member('[Customers].[USA].[OR]').name.should == 'OR'
+      assert_equal 'All Genders', @cube.member('[Gender].[All Genders]').name
+      assert_equal 'OR', @cube.member('[Customers].[USA].[OR]').name
     end
 
     it "should return all member caption" do
-      @cube.member('[Gender].[All Genders]').caption.should == 'All Genders caption'
+      assert_equal 'All Genders caption', @cube.member('[Gender].[All Genders]').caption
     end
 
     it "should return member caption from expression" do
-      @cube.member('[Gender].[F]').caption.should ==
-        (%w(mysql oracle).include?(MONDRIAN_DRIVER) ? 'dummy' : 'F')
+      assert_equal(
+        (%w(mysql oracle).include?(MONDRIAN_DRIVER) ? 'dummy' : 'F'),
+        @cube.member('[Gender].[F]').caption)
     end
 
     it "should not return member for invalid full name" do
-      @cube.member('[Gender].[invalid]').should be_nil
+      assert_nil @cube.member('[Gender].[invalid]')
     end
 
     it "should return child members for member" do
-      @cube.member('[Gender].[All Genders]').children.map(&:name).should == ['F', 'M']
-      @cube.member('[Customers].[USA].[OR]').children.map(&:name).should ==
+      assert_equal ['F', 'M'], @cube.member('[Gender].[All Genders]').children.map(&:name)
+      assert_equal(
         ["Albany", "Beaverton", "Corvallis", "Lake Oswego", "Lebanon", "Milwaukie",
-        "Oregon City", "Portland", "Salem", "W. Linn", "Woodburn"]
+        "Oregon City", "Portland", "Salem", "W. Linn", "Woodburn"],
+        @cube.member('[Customers].[USA].[OR]').children.map(&:name))
     end
 
     it "should return empty children array if member does not have children" do
-      @cube.member('[Gender].[F]').children.should be_empty
+      assert_empty @cube.member('[Gender].[F]').children
     end
 
     it "should return children count for member" do
-      @cube.member('[Gender].[All Genders]').children_count.should == 2
-      @cube.member('[Customers].[USA].[OR]').children_count.should == 11
-      @cube.member('[Gender].[F]').children_count.should == 0
+      assert_equal 2, @cube.member('[Gender].[All Genders]').children_count
+      assert_equal 11, @cube.member('[Customers].[USA].[OR]').children_count
+      assert_equal 0, @cube.member('[Gender].[F]').children_count
     end
 
     it "should return member level" do
-      @cube.member('[Customers].[USA]').level.name.should == 'Country'
+      assert_equal 'Country', @cube.member('[Customers].[USA]').level.name
     end
 
     it "should return member depth" do
-      @cube.member('[Customers].[All Customers]').depth.should == 0
-      @cube.member('[Customers].[USA]').depth.should == 1
-      @cube.member('[Customers].[USA].[CA]').depth.should == 2
+      assert_equal 0, @cube.member('[Customers].[All Customers]').depth
+      assert_equal 1, @cube.member('[Customers].[USA]').depth
+      assert_equal 2, @cube.member('[Customers].[USA].[CA]').depth
     end
 
     it "should return descendants for member at specified level" do
-      @cube.member('[Customers].[Mexico]').descendants_at_level('City').map(&:name).should ==
+      assert_equal(
         ["San Andres", "Santa Anita", "Santa Fe", "Tixapan", "Acapulco", "Guadalajara",
-        "Mexico City", "Tlaxiaco", "La Cruz", "Orizaba", "Merida", "Camacho", "Hidalgo"]
+        "Mexico City", "Tlaxiaco", "La Cruz", "Orizaba", "Merida", "Camacho", "Hidalgo"],
+        @cube.member('[Customers].[Mexico]').descendants_at_level('City').map(&:name))
     end
 
     it "should not return descendants for member when upper level specified" do
-      @cube.member('[Customers].[Mexico].[DF]').descendants_at_level('Country').should be_nil
+      assert_nil @cube.member('[Customers].[Mexico].[DF]').descendants_at_level('Country')
     end
 
     it "should be drillable when member has descendants" do
-      @cube.member('[Customers].[USA]').should be_drillable
+      assert @cube.member('[Customers].[USA]').drillable?
     end
 
     it "should not be drillable when member has no descendants" do
-      @cube.member('[Gender].[F]').should_not be_drillable
+      assert_equal false, @cube.member('[Gender].[F]').drillable?
     end
 
     it "should not be drillable when member is calculated" do
-      @cube.member('[Customers].[Non-USA]').should_not be_drillable
+      assert_equal false, @cube.member('[Customers].[Non-USA]').drillable?
     end
 
     it "should be calculated when member is calculated" do
-      @cube.member('[Customers].[Non-USA]').should be_calculated
+      assert @cube.member('[Customers].[Non-USA]').calculated?
     end
 
     it "should be calculated when member is calculated in non-default hierarchy" do
-      @cube.member('[Time.Weekly].[Last week]').should be_calculated
+      assert @cube.member('[Time.Weekly].[Last week]').calculated?
     end
 
     it "should not be calculated in query when calculated member defined in schema" do
-      @cube.member('[Customers].[Non-USA]').should_not be_calculated_in_query
+      assert_equal false, @cube.member('[Customers].[Non-USA]').calculated_in_query?
     end
 
     it "should not be calculated when normal member" do
-      @cube.member('[Customers].[USA]').should_not be_calculated
+      assert_equal false, @cube.member('[Customers].[USA]').calculated?
     end
 
     it "should be all member when member is all member" do
-      @cube.member('[Customers].[All Customers]').should be_all_member
+      assert @cube.member('[Customers].[All Customers]').all_member?
     end
 
     it "should not be all member when member is not all member" do
-      @cube.member('[Customers].[USA]').should_not be_all_member
+      assert_equal false, @cube.member('[Customers].[USA]').all_member?
     end
 
     it "should get dimension type of standard dimension member" do
-      @cube.member('[Customers].[USA]').dimension_type.should == :standard
+      assert_equal :standard, @cube.member('[Customers].[USA]').dimension_type
     end
 
     it "should get dimension type of measure" do
-      @cube.member('[Measures].[Unit Sales]').dimension_type.should == :measures
+      assert_equal :measures, @cube.member('[Measures].[Unit Sales]').dimension_type
     end
 
     it "should get dimension type of time dimension member" do
-      @cube.member('[Time].[2011]').dimension_type.should == :time
+      assert_equal :time, @cube.member('[Time].[2011]').dimension_type
     end
 
     it "should be visible when member is visible" do
-      @cube.member('[Measures].[Store Sales]').should be_visible
+      assert_equal true, @cube.member('[Measures].[Store Sales]').visible?
     end
 
     it "should not be visible when member is not visible" do
-      @cube.member('[Measures].[Store Cost]').should_not be_visible
+      assert_equal false, @cube.member('[Measures].[Store Cost]').visible?
     end
 
     it "should get measure annotations" do
-      @cube.member('[Measures].[Unit Sales]').annotations.should == {'foo' => 'bar'}
+      assert_equal({'foo' => 'bar'}, @cube.member('[Measures].[Unit Sales]').annotations)
     end
 
     it "should get measure empty annotations" do
-      @cube.member('[Measures].[Store Sales]').annotations.should == {}
+      assert_equal({}, @cube.member('[Measures].[Store Sales]').annotations)
     end
 
     it "should get member empty annotations" do
-      @cube.member('[Customers].[USA]').annotations.should == {}
+      assert_equal({}, @cube.member('[Customers].[USA]').annotations)
     end
   end
 end

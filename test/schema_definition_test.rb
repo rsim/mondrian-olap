@@ -1,20 +1,19 @@
 # frozen_string_literal: true
-# encoding: utf-8
 
-require "spec_helper"
+require_relative "test_helper"
 
 describe "Schema definition" do
 
   describe "elements" do
-    before(:each) do
+    before do
       @schema = Mondrian::OLAP::Schema.new
     end
 
     describe "root element" do
       it "should render to XML" do
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema/>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema/>
         XML
       end
 
@@ -22,17 +21,17 @@ describe "Schema definition" do
         @schema.define('FoodMart') do
           description 'Demo "FoodMart" schema āčē'
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema description="Demo &quot;FoodMart&quot; schema āčē" name="FoodMart"/>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema description="Demo &quot;FoodMart&quot; schema āčē" name="FoodMart"/>
         XML
       end
 
       it "should render to XML using class method" do
         schema = Mondrian::OLAP::Schema.define('FoodMart')
-        schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="FoodMart"/>
+        assert_like schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="FoodMart"/>
         XML
       end
     end
@@ -47,11 +46,11 @@ describe "Schema definition" do
             enabled true
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
+          </Schema>
         XML
       end
 
@@ -60,11 +59,11 @@ describe "Schema definition" do
           cube 'Sales', default_measure: 'Unit Sales',
             description: 'Sales cube', cache: false, enabled: true
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
+          </Schema>
         XML
       end
     end
@@ -76,13 +75,13 @@ describe "Schema definition" do
             table 'sales_fact', alias: 'sales'
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Table alias="sales" name="sales_fact"/>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table alias="sales" name="sales_fact"/>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -93,13 +92,13 @@ describe "Schema definition" do
           end
         end
         %w(oracle snowflake).each do |driver|
-          @schema.to_xml(driver: driver).should be_like <<~XML
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Schema name="default">
-            <Cube name="Sales">
-              <Table alias="SALES" name="SALES_FACT" schema="FACTS"/>
-            </Cube>
-          </Schema>
+          assert_like @schema.to_xml(driver: driver), <<~XML
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Schema name="default">
+              <Cube name="Sales">
+                <Table alias="SALES" name="SALES_FACT" schema="FACTS"/>
+              </Cube>
+            </Schema>
           XML
         end
       end
@@ -110,30 +109,30 @@ describe "Schema definition" do
             table 'sales_fact', alias: 'sales', schema: 'facts'
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Table alias="SALES" name="SALES_FACT" schema="FACTS"/>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table alias="SALES" name="SALES_FACT" schema="FACTS"/>
+            </Cube>
+          </Schema>
         XML
       end
 
-      it "should render table name in lowercase when using Oracle or Snowflake driver but with :upcase_data_dictionary set to false" do
+      it "should render table name in lowercase when using Oracle or Snowflake driver but with :upcase_data_dictionary false" do
         @schema.define upcase_data_dictionary: false do
           cube 'Sales' do
             table 'sales_fact', alias: 'sales', schema: 'facts'
           end
         end
         %w(oracle snowflake).each do |driver|
-          @schema.to_xml(driver: driver).should be_like <<~XML
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Schema name="default">
-            <Cube name="Sales">
-              <Table alias="sales" name="sales_fact" schema="facts"/>
-            </Cube>
-          </Schema>
+          assert_like @schema.to_xml(driver: driver), <<~XML
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Schema name="default">
+              <Cube name="Sales">
+                <Table alias="sales" name="sales_fact" schema="facts"/>
+              </Cube>
+            </Schema>
           XML
         end
       end
@@ -146,15 +145,15 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Table alias="sales" name="sales_fact">
-              <SQL>customer_id IS NOT NULL</SQL>
-            </Table>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table alias="sales" name="sales_fact">
+                <SQL>customer_id IS NOT NULL</SQL>
+              </Table>
+            </Cube>
+          </Schema>
         XML
       end
     end
@@ -168,15 +167,15 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <View alias="sales">
-              <SQL>select * from sales_fact</SQL>
-            </View>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <View alias="sales">
+                <SQL>select * from sales_fact</SQL>
+              </View>
+            </Cube>
+          </Schema>
         XML
       end
     end
@@ -199,18 +198,18 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Dimension foreignKey="customer_id" name="Gender">
-              <Hierarchy allMemberName="All Genders" hasAll="true" primaryKey="customer_id">
-                <Table name="customer"/>
-                <Level approxRowCount="2" column="gender" name="Gender" uniqueMembers="true"/>
-              </Hierarchy>
-            </Dimension>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Dimension foreignKey="customer_id" name="Gender">
+                <Hierarchy allMemberName="All Genders" hasAll="true" primaryKey="customer_id">
+                  <Table name="customer"/>
+                  <Level approxRowCount="2" column="gender" name="Gender" uniqueMembers="true"/>
+                </Hierarchy>
+              </Dimension>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -230,20 +229,20 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Dimension foreignKey="time_id" name="Time">
-              <Hierarchy hasAll="false" primaryKey="time_id">
-                <Table name="time_by_day"/>
-                <Level column="the_year" name="Year" type="Numeric" uniqueMembers="true"/>
-                <Level column="quarter" name="Quarter" uniqueMembers="false"/>
-                <Level column="month_of_year" name="Month" type="Numeric" uniqueMembers="false"/>
-              </Hierarchy>
-            </Dimension>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Dimension foreignKey="time_id" name="Time">
+                <Hierarchy hasAll="false" primaryKey="time_id">
+                  <Table name="time_by_day"/>
+                  <Level column="the_year" name="Year" type="Numeric" uniqueMembers="true"/>
+                  <Level column="quarter" name="Quarter" uniqueMembers="false"/>
+                  <Level column="month_of_year" name="Month" type="Numeric" uniqueMembers="false"/>
+                </Hierarchy>
+              </Dimension>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -253,30 +252,30 @@ describe "Schema definition" do
             dimension 'Time' do
               foreign_key 'time_id'
               hierarchy do
-                all_member_name 'All Times' # should add :has_all => true
+                all_member_name 'All Times' # should add has_all: true
                 primary_key 'time_id'
                 table 'time_by_day'
-                level 'Year', column: 'the_year', type: 'Numeric' # first level should have default :unique_members => true
-                level 'Quarter', column: 'quarter' # next levels should have default :unique_members => false
+                level 'Year', column: 'the_year', type: 'Numeric' # first level should have default unique_members: true
+                level 'Quarter', column: 'quarter' # next levels should have default unique_members: false
                 level 'Month', column: 'month_of_year', type: 'Numeric'
               end
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Dimension foreignKey="time_id" name="Time">
-              <Hierarchy allMemberName="All Times" hasAll="true" primaryKey="time_id">
-                <Table name="time_by_day"/>
-                <Level column="the_year" name="Year" type="Numeric" uniqueMembers="true"/>
-                <Level column="quarter" name="Quarter" uniqueMembers="false"/>
-                <Level column="month_of_year" name="Month" type="Numeric" uniqueMembers="false"/>
-              </Hierarchy>
-            </Dimension>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Dimension foreignKey="time_id" name="Time">
+                <Hierarchy allMemberName="All Times" hasAll="true" primaryKey="time_id">
+                  <Table name="time_by_day"/>
+                  <Level column="the_year" name="Year" type="Numeric" uniqueMembers="true"/>
+                  <Level column="quarter" name="Quarter" uniqueMembers="false"/>
+                  <Level column="month_of_year" name="Month" type="Numeric" uniqueMembers="false"/>
+                </Hierarchy>
+              </Dimension>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -297,23 +296,23 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Dimension foreignKey="product_id" name="Products">
-              <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="product_id" primaryKeyTable="product">
-                <Join leftKey="product_class_id" rightKey="product_class_id">
-                  <Table name="product"/>
-                  <Table name="product_class"/>
-                </Join>
-                <Level column="product_family" name="Product Family" table="product_class" uniqueMembers="true"/>
-                <Level column="brand_name" name="Brand Name" table="product" uniqueMembers="false"/>
-                <Level column="product_name" name="Product Name" table="product" uniqueMembers="true"/>
-              </Hierarchy>
-            </Dimension>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Dimension foreignKey="product_id" name="Products">
+                <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="product_id" primaryKeyTable="product">
+                  <Join leftKey="product_class_id" rightKey="product_class_id">
+                    <Table name="product"/>
+                    <Table name="product_class"/>
+                  </Join>
+                  <Level column="product_family" name="Product Family" table="product_class" uniqueMembers="true"/>
+                  <Level column="brand_name" name="Brand Name" table="product" uniqueMembers="false"/>
+                  <Level column="product_name" name="Product Name" table="product" uniqueMembers="true"/>
+                </Hierarchy>
+              </Dimension>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -334,23 +333,23 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml(driver: 'oracle').should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Dimension foreignKey="PRODUCT_ID" name="Products">
-              <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="PRODUCT_ID" primaryKeyTable="PRODUCT">
-                <Join leftKey="PRODUCT_CLASS_ID" rightKey="PRODUCT_CLASS_ID">
-                  <Table name="PRODUCT"/>
-                  <Table name="PRODUCT_CLASS"/>
-                </Join>
-                <Level column="PRODUCT_FAMILY" name="Product Family" table="PRODUCT_CLASS" uniqueMembers="true"/>
-                <Level column="BRAND_NAME" name="Brand Name" table="PRODUCT" uniqueMembers="false"/>
-                <Level column="PRODUCT_NAME" name="Product Name" table="PRODUCT" uniqueMembers="true"/>
-              </Hierarchy>
-            </Dimension>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml(driver: 'oracle'), <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Dimension foreignKey="PRODUCT_ID" name="Products">
+                <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="PRODUCT_ID" primaryKeyTable="PRODUCT">
+                  <Join leftKey="PRODUCT_CLASS_ID" rightKey="PRODUCT_CLASS_ID">
+                    <Table name="PRODUCT"/>
+                    <Table name="PRODUCT_CLASS"/>
+                  </Join>
+                  <Level column="PRODUCT_FAMILY" name="Product Family" table="PRODUCT_CLASS" uniqueMembers="true"/>
+                  <Level column="BRAND_NAME" name="Brand Name" table="PRODUCT" uniqueMembers="false"/>
+                  <Level column="PRODUCT_NAME" name="Product Name" table="PRODUCT" uniqueMembers="true"/>
+                </Hierarchy>
+              </Dimension>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -375,27 +374,27 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Dimension foreignKey="product_id" name="Products">
-              <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="product_id" primaryKeyTable="product">
-                <Join leftKey="product_class_id" rightAlias="product_class" rightKey="product_class_id">
-                  <Table name="product"/>
-                  <Join leftKey="product_type_id" rightKey="product_type_id">
-                    <Table name="product_class"/>
-                    <Table name="product_type"/>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Dimension foreignKey="product_id" name="Products">
+                <Hierarchy allMemberName="All Products" hasAll="true" primaryKey="product_id" primaryKeyTable="product">
+                  <Join leftKey="product_class_id" rightAlias="product_class" rightKey="product_class_id">
+                    <Table name="product"/>
+                    <Join leftKey="product_type_id" rightKey="product_type_id">
+                      <Table name="product_class"/>
+                      <Table name="product_type"/>
+                    </Join>
                   </Join>
-                </Join>
-                <Level column="product_family" name="Product Family" table="product_type" uniqueMembers="true"/>
-                <Level column="product_category" name="Product Category" table="product_class" uniqueMembers="false"/>
-                <Level column="brand_name" name="Brand Name" table="product" uniqueMembers="false"/>
-                <Level column="product_name" name="Product Name" table="product" uniqueMembers="true"/>
-              </Hierarchy>
-            </Dimension>
-          </Cube>
-        </Schema>
+                  <Level column="product_family" name="Product Family" table="product_type" uniqueMembers="true"/>
+                  <Level column="product_category" name="Product Category" table="product_class" uniqueMembers="false"/>
+                  <Level column="brand_name" name="Brand Name" table="product" uniqueMembers="false"/>
+                  <Level column="product_name" name="Product Name" table="product" uniqueMembers="true"/>
+                </Hierarchy>
+              </Dimension>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -414,22 +413,22 @@ describe "Schema definition" do
             end
           end
           cube 'Sales' do
-            dimension_usage 'Gender', foreign_key: 'customer_id' # by default :source => 'Gender' will be added
+            dimension_usage 'Gender', foreign_key: 'customer_id' # by default source: 'Gender' will be added
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Dimension name="Gender">
-            <Hierarchy allMemberName="All Genders" hasAll="true" primaryKey="customer_id">
-              <Table name="customer"/>
-              <Level column="gender" name="Gender" uniqueMembers="true"/>
-            </Hierarchy>
-          </Dimension>
-          <Cube name="Sales">
-            <DimensionUsage foreignKey="customer_id" name="Gender" source="Gender"/>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Dimension name="Gender">
+              <Hierarchy allMemberName="All Genders" hasAll="true" primaryKey="customer_id">
+                <Table name="customer"/>
+                <Level column="gender" name="Gender" uniqueMembers="true"/>
+              </Hierarchy>
+            </Dimension>
+            <Cube name="Sales">
+              <DimensionUsage foreignKey="customer_id" name="Gender" source="Gender"/>
+            </Cube>
+          </Schema>
         XML
       end
     end
@@ -447,18 +446,18 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <VirtualCube defaultMeasure="Store Sales" name="Warehouse and Sales">
-            <VirtualCubeDimension cubeName="Sales" name="Customers"/>
-            <VirtualCubeDimension name="Product"/>
-            <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Store Sales]"/>
-            <CalculatedMember dimension="Measures" name="Profit">
-              <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
-            </CalculatedMember>
-          </VirtualCube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <VirtualCube defaultMeasure="Store Sales" name="Warehouse and Sales">
+              <VirtualCubeDimension cubeName="Sales" name="Customers"/>
+              <VirtualCubeDimension name="Product"/>
+              <VirtualCubeMeasure cubeName="Sales" name="[Measures].[Store Sales]"/>
+              <CalculatedMember dimension="Measures" name="Profit">
+                <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
+              </CalculatedMember>
+            </VirtualCube>
+          </Schema>
         XML
       end
     end
@@ -474,14 +473,14 @@ describe "Schema definition" do
             measure 'Store Sales', column: 'store_sales' # by default should use sum aggregator
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
-            <Measure aggregator="sum" column="store_sales" name="Store Sales"/>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
+              <Measure aggregator="sum" column="store_sales" name="Store Sales"/>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -494,13 +493,13 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml(driver: 'oracle').should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Measure aggregator="sum" column="UNIT_SALES" name="Unit Sales"/>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml(driver: 'oracle'), <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Measure aggregator="sum" column="UNIT_SALES" name="Unit Sales"/>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -514,17 +513,17 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Measure aggregator="sum" name="Double Unit Sales">
-              <MeasureExpression>
-                <SQL>unit_sales * 2</SQL>
-              </MeasureExpression>
-            </Measure>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Measure aggregator="sum" name="Double Unit Sales">
+                <MeasureExpression>
+                  <SQL>unit_sales * 2</SQL>
+                </MeasureExpression>
+              </Measure>
+            </Cube>
+          </Schema>
         XML
       end
     end
@@ -540,15 +539,15 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <CalculatedMember dimension="Measures" formatString="#,##0.00" name="Profit">
-              <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
-            </CalculatedMember>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <CalculatedMember dimension="Measures" formatString="#,##0.00" name="Profit">
+                <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
+              </CalculatedMember>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -561,15 +560,15 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <CalculatedMember hierarchy="[Time.Weekly]" name="Current week">
-              <Formula>[Time.Weekly].[Week].CurrentDateMember</Formula>
-            </CalculatedMember>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <CalculatedMember hierarchy="[Time.Weekly]" name="Current week">
+                <Formula>[Time.Weekly].[Week].CurrentDateMember</Formula>
+              </CalculatedMember>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -586,16 +585,16 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Table name="sales_fact_1997"/>
-            <CalculatedMember dimension="Measures" formatString="#,##0.00" name="Profit">
-              <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
-            </CalculatedMember>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table name="sales_fact_1997"/>
+              <CalculatedMember dimension="Measures" formatString="#,##0.00" name="Profit">
+                <Formula>[Measures].[Store Sales] - [Measures].[Store Cost]</Formula>
+              </CalculatedMember>
+            </Cube>
+          </Schema>
         XML
       end
     end
@@ -618,24 +617,24 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Table name="sales_fact_1997">
-              <AggName name="agg_c_special_sales_fact_1997">
-                <AggFactCount column="fact_count"/>
-                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
-                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
-                <AggLevel column="product_family" name="[Product].[Product Family]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_year" name="[Time].[Year]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_month" name="[Time].[Month]"/>
-              </AggName>
-            </Table>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table name="sales_fact_1997">
+                <AggName name="agg_c_special_sales_fact_1997">
+                  <AggFactCount column="fact_count"/>
+                  <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                  <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                  <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_year" name="[Time].[Year]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_month" name="[Time].[Month]"/>
+                </AggName>
+              </Table>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -658,26 +657,26 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Table name="sales_fact_1997">
-              <AggPattern pattern="agg_.*_sales_fact_1997">
-                <AggFactCount column="fact_count"/>
-                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
-                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
-                <AggLevel column="product_family" name="[Product].[Product Family]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_year" name="[Time].[Year]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_month" name="[Time].[Month]"/>
-                <AggExclude name="agg_c_14_sales_fact_1997"/>
-                <AggExclude name="agg_lc_100_sales_fact_1997"/>
-              </AggPattern>
-            </Table>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table name="sales_fact_1997">
+                <AggPattern pattern="agg_.*_sales_fact_1997">
+                  <AggFactCount column="fact_count"/>
+                  <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                  <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                  <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_year" name="[Time].[Year]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_month" name="[Time].[Month]"/>
+                  <AggExclude name="agg_c_14_sales_fact_1997"/>
+                  <AggExclude name="agg_lc_100_sales_fact_1997"/>
+                </AggPattern>
+              </Table>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -712,36 +711,36 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Table name="sales_fact_1997">
-              <AggName name="agg_c_special_sales_fact_1997">
-                <AggFactCount column="fact_count"/>
-                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
-                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
-                <AggLevel column="product_family" name="[Product].[Product Family]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_year" name="[Time].[Year]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_month" name="[Time].[Month]"/>
-              </AggName>
-              <AggPattern pattern="agg_.*_sales_fact_1997">
-                <AggFactCount column="fact_count"/>
-                <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
-                <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
-                <AggLevel column="product_family" name="[Product].[Product Family]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_year" name="[Time].[Year]"/>
-                <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
-                <AggLevel column="time_month" name="[Time].[Month]"/>
-                <AggExclude name="agg_c_14_sales_fact_1997"/>
-                <AggExclude name="agg_lc_100_sales_fact_1997"/>
-              </AggPattern>
-            </Table>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Table name="sales_fact_1997">
+                <AggName name="agg_c_special_sales_fact_1997">
+                  <AggFactCount column="fact_count"/>
+                  <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                  <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                  <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_year" name="[Time].[Year]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_month" name="[Time].[Month]"/>
+                </AggName>
+                <AggPattern pattern="agg_.*_sales_fact_1997">
+                  <AggFactCount column="fact_count"/>
+                  <AggMeasure column="store_cost_sum" name="[Measures].[Store Cost]"/>
+                  <AggMeasure column="store_sales_sum" name="[Measures].[Store Sales]"/>
+                  <AggLevel column="product_family" name="[Product].[Product Family]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_year" name="[Time].[Year]"/>
+                  <AggLevel column="time_quarter" name="[Time].[Quarter]"/>
+                  <AggLevel column="time_month" name="[Time].[Month]"/>
+                  <AggExclude name="agg_c_14_sales_fact_1997"/>
+                  <AggExclude name="agg_lc_100_sales_fact_1997"/>
+                </AggPattern>
+              </Table>
+            </Cube>
+          </Schema>
         XML
       end
 
@@ -766,24 +765,25 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Cube name="Sales">
-            <Dimension foreignKey="employee_id" name="Employees">
-              <Hierarchy allMemberName="All Employees" hasAll="true" primaryKey="employee_id">
-                <Table name="employee"/>
-                <Level column="employee_id" name="Employee Id" nameColumn="full_name" nullParentValue="0" parentColumn="supervisor_id" type="Numeric" uniqueMembers="true">
-                  <Property column="marital_status" name="Marital Status"/>
-                  <Property column="position_title" name="Position Title"/>
-                  <Property column="gender" name="Gender"/>
-                  <Property column="salary" name="Salary"/>
-                  <Property column="education_level" name="Education Level"/>
-                </Level>
-              </Hierarchy>
-            </Dimension>
-          </Cube>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Cube name="Sales">
+              <Dimension foreignKey="employee_id" name="Employees">
+                <Hierarchy allMemberName="All Employees" hasAll="true" primaryKey="employee_id">
+                  <Table name="employee"/>
+                  <Level column="employee_id" name="Employee Id" nameColumn="full_name" nullParentValue="0"
+                      parentColumn="supervisor_id" type="Numeric" uniqueMembers="true">
+                    <Property column="marital_status" name="Marital Status"/>
+                    <Property column="position_title" name="Position Title"/>
+                    <Property column="gender" name="Gender"/>
+                    <Property column="salary" name="Salary"/>
+                    <Property column="education_level" name="Education Level"/>
+                  </Level>
+                </Hierarchy>
+              </Dimension>
+            </Cube>
+          </Schema>
         XML
       end
     end
@@ -807,26 +807,26 @@ describe "Schema definition" do
         end
 
         it "should render XML" do
-          @schema.to_xml.should be_like <<~XML
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Schema name="default">
-            <Cube name="Sales">
-              <Annotations>
-                <Annotation name="key1">value1</Annotation>
-                <Annotation name="key2">value2</Annotation>
-              </Annotations>
-              <Measure aggregator="sum" column="unit_sales" name="Unit Sales">
+          assert_like @schema.to_xml, <<~XML
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Schema name="default">
+              <Cube name="Sales">
                 <Annotations>
-                  <Annotation name="key3">value3</Annotation>
+                  <Annotation name="key1">value1</Annotation>
+                  <Annotation name="key2">value2</Annotation>
                 </Annotations>
-              </Measure>
-            </Cube>
-          </Schema>
+                <Measure aggregator="sum" column="unit_sales" name="Unit Sales">
+                  <Annotations>
+                    <Annotation name="key3">value3</Annotation>
+                  </Annotations>
+                </Measure>
+              </Cube>
+            </Schema>
           XML
         end
 
         it "should access annotations from schema definition" do
-          @schema.cubes.first.annotations_hash.should == {'key1' => 'value1', 'key2' => 'value2'}
+          assert_equal({'key1' => 'value1', 'key2' => 'value2'}, @schema.cubes.first.annotations_hash)
         end
       end
 
@@ -841,33 +841,33 @@ describe "Schema definition" do
         end
 
         it "should render XML " do
-          @schema.to_xml.should be_like <<~XML
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Schema name="default">
-            <Cube name="Sales">
-              <Annotations>
-                <Annotation name="key1">value1</Annotation>
-                <Annotation name="key2">value2</Annotation>
-              </Annotations>
-              <Measure aggregator="sum" column="unit_sales" name="Unit Sales">
+          assert_like @schema.to_xml, <<~XML
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Schema name="default">
+              <Cube name="Sales">
                 <Annotations>
-                  <Annotation name="key3">value3</Annotation>
+                  <Annotation name="key1">value1</Annotation>
+                  <Annotation name="key2">value2</Annotation>
                 </Annotations>
-              </Measure>
-            </Cube>
-          </Schema>
+                <Measure aggregator="sum" column="unit_sales" name="Unit Sales">
+                  <Annotations>
+                    <Annotation name="key3">value3</Annotation>
+                  </Annotations>
+                </Measure>
+              </Cube>
+            </Schema>
           XML
         end
 
         it "should access annotations from schema definition" do
-          @schema.cubes.first.annotations_hash.should == {'key1' => 'value1', 'key2' => 'value2'}
-          @schema.cubes.first.measures.first.annotations_hash.should == {'key3' => 'value3'}
+          assert_equal({'key1' => 'value1', 'key2' => 'value2'}, @schema.cubes.first.annotations_hash)
+          assert_equal({'key3' => 'value3'}, @schema.cubes.first.measures.first.annotations_hash)
         end
       end
     end
 
     describe "User defined functions and formatters in Ruby" do
-      before(:each) do
+      before do
         @schema.define do
           cube 'Sales' do
             table 'sales'
@@ -1007,17 +1007,17 @@ describe "Schema definition" do
       it "should execute user defined function" do
         result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
         value = 1*2*3*4*5*6
-        result.values.should == [value]
-        result.formatted_values.should == ["%020d" % value]
+        assert_equal [value], result.values
+        assert_equal ["%020d" % value], result.formatted_values
       end
 
       it "should format members and properties" do
         result = @olap.from('Sales').columns('[Measures].[City]').rows('[Customers].[All Customers].Children').execute
         result.row_members.each_with_index do |member, i|
-          member.caption.should == member.name.upcase
+          assert_equal member.name.upcase, member.caption
           city = member.property_value('City')
-          result.formatted_values[i].first.should == city
-          member.property_formatted_value('City').should == city.upcase
+          assert_equal city, result.formatted_values[i].first
+          assert_equal city.upcase, member.property_formatted_value('City')
         end
       end
 
@@ -1026,7 +1026,7 @@ describe "Schema definition" do
           with_member('[Measures].[Upper Name]').as('[Customers].CurrentMember.UpperName').
           columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
         result.row_members.each_with_index do |member, i|
-          result.values[i].should == [member.name.upcase]
+          assert_equal [member.name.upcase], result.values[i]
         end
       end
 
@@ -1035,7 +1035,7 @@ describe "Schema definition" do
           with_member('[Measures].[Upper Name]').as("[Customers].CurrentMember.toUpperName('dummy')").
           columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
         result.row_members.each_with_index do |member, i|
-          result.values[i].should == [member.name.upcase]
+          assert_equal [member.name.upcase], result.values[i]
         end
       end
 
@@ -1044,7 +1044,7 @@ describe "Schema definition" do
           with_member('[Measures].[Upper Name]').as("{[Customers].CurrentMember}.firstUpperName").
           columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
         result.row_members.each_with_index do |member, i|
-          result.values[i].should == [member.name.upcase]
+          assert_equal [member.name.upcase], result.values[i]
         end
       end
 
@@ -1053,7 +1053,7 @@ describe "Schema definition" do
           with_member('[Measures].[Upper Name]').as("{[Customers].CurrentMember}.firstToUpperName('dummy')").
           columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
         result.row_members.each_with_index do |member, i|
-          result.values[i].should == [member.name.upcase]
+          assert_equal [member.name.upcase], result.values[i]
         end
       end
 
@@ -1063,7 +1063,7 @@ describe "Schema definition" do
           columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
         first_member = result.row_members.first
         result.row_members.each_with_index do |member, i|
-          result.values[i].should == [first_member.name.upcase]
+          assert_equal [first_member.name.upcase], result.values[i]
         end
       end
 
@@ -1073,7 +1073,7 @@ describe "Schema definition" do
           columns('[Measures].[Upper Name]').rows('[Customers].Children').execute
         first_member = result.row_members.first
         result.row_members.each_with_index do |member, i|
-          result.values[i].should == [first_member.name.upcase]
+          assert_equal [first_member.name.upcase], result.values[i]
         end
       end
 
@@ -1082,7 +1082,7 @@ describe "Schema definition" do
           with_member('[Measures].[Children Set]').as("SetToStr(ChildrenSet([Customers].CurrentMember))").
           columns('[Measures].[Children Set]').rows('[Customers].DefaultMember').execute
         result.row_members.each_with_index do |member, i|
-          result.values[i].first.should == "{#{member.children.map(&:full_name).join(', ')}}"
+          assert_equal "{#{member.children.map(&:full_name).join(', ')}}", result.values[i].first
         end
       end
 
@@ -1092,7 +1092,7 @@ describe "Schema definition" do
             as("TupleToStr(SetFirstTuple([Customers].CurrentMember.Children * [Time].DefaultMember))").
           columns('[Measures].[First Tuple]').rows('[Customers].DefaultMember').execute
         result.row_members.each_with_index do |member, i|
-          result.values[i].first.should == "(#{member.children.first.full_name}, [Time].[All Time])"
+          assert_equal "(#{member.children.first.full_name}, [Time].[All Time])", result.values[i].first
         end
       end
 
@@ -1102,13 +1102,13 @@ describe "Schema definition" do
             as("SetToStr(SetFirstTuples([Customers].CurrentMember.Children * [Time].DefaultMember, 1))").
           columns('[Measures].[First Tuple]').rows('[Customers].DefaultMember').execute
         result.row_members.each_with_index do |member, i|
-          result.values[i].first.should == "{(#{member.children.first.full_name}, [Time].[All Time])}"
+          assert_equal "{(#{member.children.first.full_name}, [Time].[All Time])}", result.values[i].first
         end
       end
     end
 
     describe "Shared user defined functions in Ruby" do
-      before(:each) do
+      before do
         shared_schema = Mondrian::OLAP::Schema.define do
           user_defined_function 'Factorial' do
             ruby :shared do
@@ -1169,7 +1169,7 @@ describe "Schema definition" do
       end
 
       it "should render XML" do
-        @schema.to_xml.should be_like <<~XML
+        assert_like @schema.to_xml, <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -1196,33 +1196,33 @@ describe "Schema definition" do
       it "should execute user defined function" do
         result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
         value = 1*2*3*4*5*6
-        result.values.should == [value]
-        result.formatted_values.should == ["%020d" % value]
+        assert_equal [value], result.values
+        assert_equal ["%020d" % value], result.formatted_values
       end
 
       it "should get measure cell formatter name" do
-        @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter_name.should == 'Integer20Digits'
+        assert_equal 'Integer20Digits', @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter_name
       end
 
       it "should not get measure cell formatter name if not specified" do
-        @olap.cube('Sales').member('[Measures].[Unit Sales]').cell_formatter_name.should be_nil
+        assert_nil @olap.cube('Sales').member('[Measures].[Unit Sales]').cell_formatter_name
       end
 
       it "should get measure cell formatter" do
-        @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter.class.name.should ==
-          'Mondrian::OLAP::Schema::CellFormatter::Integer20DigitsUdf'
+        assert_equal 'Mondrian::OLAP::Schema::CellFormatter::Integer20DigitsUdf',
+          @olap.cube('Sales').member('[Measures].[Factorial]').cell_formatter.class.name
       end
 
       it "should not get measure cell formatter if not specified" do
-        @olap.cube('Sales').member('[Measures].[Unit Sales]').cell_formatter.should be_nil
+        assert_nil @olap.cube('Sales').member('[Measures].[Unit Sales]').cell_formatter
       end
 
       it "should get measure format string" do
-        @olap.cube('Sales').member('[Measures].[Unit Sales]').format_string.should == '#,##0'
+        assert_equal '#,##0', @olap.cube('Sales').member('[Measures].[Unit Sales]').format_string
       end
 
       it "should not get measure format string if not specified" do
-        @olap.cube('Sales').member('[Measures].[Factorial]').format_string.should be_nil
+        assert_nil @olap.cube('Sales').member('[Measures].[Factorial]').format_string
       end
 
     end
@@ -1243,7 +1243,7 @@ describe "Schema definition" do
             end
           end
         end
-        @schema.to_xml.should be_like <<~XML
+        assert_like @schema.to_xml, <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Role name="California manager">
@@ -1263,7 +1263,7 @@ describe "Schema definition" do
     end
 
     describe "Parameters" do
-      before(:each) do
+      before do
         @schema.define do
           parameter 'Current User', type: 'String', modifiable: true, default_value: "'demo'"
           parameter 'Current User 1', type: 'String', modifiable: true, default_value: "''"
@@ -1288,54 +1288,55 @@ describe "Schema definition" do
       end
 
       it "should render XML" do
-        @schema.to_xml.should be_like <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Schema name="default">
-          <Parameter defaultValue="'demo'" modifiable="true" name="Current User" type="String"/>
-          <Parameter defaultValue="''" modifiable="true" name="Current User 1" type="String"/>
-          <Parameter defaultValue="'default'" modifiable="false" name="Default User" type="String"/>
-          <Cube name="Sales">
-            <Table name="sales"/>
-            <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
-          </Cube>
-          <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.ParametervalueUdf" name="ParameterValue"/>
-        </Schema>
+        assert_like @schema.to_xml, <<~XML
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Schema name="default">
+            <Parameter defaultValue="'demo'" modifiable="true" name="Current User" type="String"/>
+            <Parameter defaultValue="''" modifiable="true" name="Current User 1" type="String"/>
+            <Parameter defaultValue="'default'" modifiable="false" name="Default User" type="String"/>
+            <Cube name="Sales">
+              <Table name="sales"/>
+              <Measure aggregator="sum" column="unit_sales" name="Unit Sales"/>
+            </Cube>
+            <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.ParametervalueUdf"
+              name="ParameterValue"/>
+          </Schema>
         XML
       end
 
       it "should get parameter definition from connection" do
         parameter = @olap.mondrian_parameter('Current User')
-        parameter.should_not be_nil
-        parameter.name.should == 'Current User'
-        parameter.description.should be_nil
-        parameter.should be_modifiable
-        parameter.scope.to_s.should == 'Schema'
-        parameter.type.to_s.should == 'STRING'
+        refute_nil parameter
+        assert_equal 'Current User', parameter.name
+        assert_nil parameter.description
+        assert parameter.modifiable?
+        assert_equal 'Schema', parameter.scope.to_s
+        assert_equal 'STRING', parameter.type.to_s
       end
 
       it "should not get parameter definition with invalid name" do
-        @olap.mondrian_parameter('Current User 2').should be_nil
+        assert_nil @olap.mondrian_parameter('Current User 2')
       end
 
       it "should get default parameter value with ParamRef" do
         result = @olap.from('Sales').
           with_member('[Measures].[Current User]').as("ParamRef('Current User')").
             columns('[Measures].[Current User]').execute
-        result.values.should == ['demo']
+        assert_equal ['demo'], result.values
       end
 
       it "should execute query with schema parameter value and get value with ParamRef" do
         result = @olap.from('Sales').
           with_member('[Measures].[Current User]').as("ParamRef('Current User 1')").
             columns('[Measures].[Current User]').execute('Current User 1' => 'test')
-        result.values.should == ['test']
+        assert_equal ['test'], result.values
       end
 
       it "should execute query with query parameter value and get value with Parameter" do
         result = @olap.from('Sales').
           with_member('[Measures].[Current User]').as("Parameter('Current User 2', String, 'demo2')").
             columns('[Measures].[Current User]').execute('Current User 2' => 'test2')
-        result.values.should == ['test2']
+        assert_equal ['test2'], result.values
       end
 
       # can be used in user defined functions
@@ -1343,52 +1344,50 @@ describe "Schema definition" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('String Parameter')").
             columns('[Measures].[Parameter]').execute(define_parameters: {'String Parameter' => 'test'})
-        result.values.should == ['test']
+        assert_equal ['test'], result.values
       end
 
       it "should execute query with additional defined parameter integer value" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('Integer Parameter')").
             columns('[Measures].[Parameter]').execute(define_parameters: {'Integer Parameter' => 123})
-        result.values.should == [123]
+        assert_equal [123], result.values
       end
 
       it "should execute query with additional defined parameter double value" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('Double Parameter')").
             columns('[Measures].[Parameter]').execute(define_parameters: {'Double Parameter' => 123.456})
-        result.values.should == [123.456]
+        assert_equal [123.456], result.values
       end
 
       it "should execute query with additional defined parameter nil value" do
         result = @olap.from('Sales').
           with_member('[Measures].[Parameter]').as("ParameterValue('Nil Parameter')").
             columns('[Measures].[Parameter]').execute(define_parameters: {'Nil Parameter' => nil})
-        result.values.should == [nil]
+        assert_equal [nil], result.values
       end
 
       it "should fail if executing with invalid parameter name" do
-        expect {
+        error = assert_raises(Mondrian::OLAP::Error) {
           @olap.from('Sales').
             with_member('[Measures].[Current User]').as("'dummy'").
               columns('[Measures].[Current User]').execute('Current User 2' => 'test2')
-        }.to raise_error {|e|
-          e.should be_kind_of(Mondrian::OLAP::Error)
-          e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Unknown parameter 'Current User 2'"
-          e.root_cause_message.should == "Unknown parameter 'Current User 2'"
         }
+        assert_kind_of Mondrian::OLAP::Error, error
+        assert_equal "mondrian.olap.MondrianException: Mondrian Error:Unknown parameter 'Current User 2'", error.message
+        assert_equal "Unknown parameter 'Current User 2'", error.root_cause_message
       end
 
       it "should fail if executing with non-modifiable parameter" do
-        expect {
+        error = assert_raises(Mondrian::OLAP::Error) {
           @olap.from('Sales').
             with_member('[Measures].[Current User]').as("'dummy'").
               columns('[Measures].[Current User]').execute('Default User' => 'test')
-        }.to raise_error {|e|
-          e.should be_kind_of(Mondrian::OLAP::Error)
-          e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Parameter 'Default User' (defined at 'Schema' scope) is not modifiable"
-          e.root_cause_message.should == "Parameter 'Default User' (defined at 'Schema' scope) is not modifiable"
         }
+        assert_kind_of Mondrian::OLAP::Error, error
+        assert_equal "mondrian.olap.MondrianException: Mondrian Error:Parameter 'Default User' (defined at 'Schema' scope) is not modifiable", error.message
+        assert_equal "Parameter 'Default User' (defined at 'Schema' scope) is not modifiable", error.root_cause_message
       end
     end
 
@@ -1421,21 +1420,22 @@ describe "Schema definition" do
     end
 
     it "should connect" do
-      @olap.should be_connected
+      assert @olap.connected?
     end
 
     it "should execute query" do
-      @olap.from('Sales').
-        columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-        rows('descendants([Time].[2010].[Q1])').
-        where('[Gender].[F]').
-        execute.should be_a(Mondrian::OLAP::Result)
+      assert_kind_of Mondrian::OLAP::Result,
+        @olap.from('Sales').
+          columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('descendants([Time].[2010].[Q1])').
+          where('[Gender].[F]').
+          execute
     end
 
   end
 
   describe "errors" do
-    before(:each) do
+    before do
       @schema = Mondrian::OLAP::Schema.new
     end
 
@@ -1444,13 +1444,13 @@ describe "Schema definition" do
         cube 'Sales' do
         end
       end
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
-      }.to raise_error {|e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Internal error: Must specify fact table of cube 'Sales'"
-        e.root_cause_message.should == "Internal error: Must specify fact table of cube 'Sales'"
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal "mondrian.olap.MondrianException: Mondrian Error:Internal error: Must specify fact table of cube 'Sales'",
+        error.message
+      assert_equal "Internal error: Must specify fact table of cube 'Sales'", error.root_cause_message
     end
 
     it "should raise error when invalid calculated member formula" do
@@ -1463,13 +1463,12 @@ describe "Schema definition" do
           end
         end
       end
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
-      }.to raise_error {|e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Named set in cube 'Sales' has bad formula"
-        e.root_cause_message.should == "No function matches signature 'Dummy(<Numeric Expression>)'"
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal "mondrian.olap.MondrianException: Mondrian Error:Named set in cube 'Sales' has bad formula", error.message
+      assert_equal "No function matches signature 'Dummy(<Numeric Expression>)'", error.root_cause_message
     end
 
   end

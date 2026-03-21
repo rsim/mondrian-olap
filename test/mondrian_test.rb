@@ -1,7 +1,6 @@
 # frozen_string_literal: true
-# encoding: utf-8
 
-require "spec_helper"
+require_relative "test_helper"
 
 describe "Mondrian features" do
   before(:all) do
@@ -108,37 +107,33 @@ describe "Mondrian features" do
 
   # test for http://jira.pentaho.com/browse/MONDRIAN-1050
   it "should order rows by DateTime expression" do
-    lambda do
-      @olap.from('Sales').
-      columns('[Measures].[Unit Sales]').
-      rows('[Customers].children').order('Now()', :asc).
-      execute
-    end.should_not raise_error
+    @olap.from('Sales').
+    columns('[Measures].[Unit Sales]').
+    rows('[Customers].children').order('Now()', :asc).
+    execute
   end
 
   # test for https://jira.pentaho.com/browse/MONDRIAN-2683
   it "should order crossjoin of rows" do
-    lambda do
-      @olap.from('Sales').
-      columns('[Measures].[Unit Sales]').
-      rows('[Customers].[Country].Members').crossjoin('[Gender].[Gender].Members').
-        order('[Measures].[Unit Sales]', :bdesc).
-      execute
-    end.should_not raise_error
+    @olap.from('Sales').
+    columns('[Measures].[Unit Sales]').
+    rows('[Customers].[Country].Members').crossjoin('[Gender].[Gender].Members').
+      order('[Measures].[Unit Sales]', :bdesc).
+    execute
   end
 
   it "should generate correct member name from large number key" do
     result = @olap.from('Sales').
       columns("Filter([Customers.ID].[ID].Members, [Customers.ID].CurrentMember.Properties('Name') = 'Big Number')").
       execute
-    result.column_names.should == ["10000000000"]
+    assert_equal ["10000000000"], result.column_names
   end
 
   # test for https://jira.pentaho.com/browse/MONDRIAN-990
   it "should return result when diacritical marks used" do
     full_name = '[Customers].[USA].[CA].[Rīga]'
     result = @olap.from('Sales').columns(full_name).execute
-    result.column_full_names.should == [full_name]
+    assert_equal [full_name], result.column_full_names
   end
 
   it "should execute MDX with join tables" do
@@ -155,20 +150,20 @@ describe "Mondrian features" do
       FROM [Sales]
     MDX
 
-    expect { @olap.execute mdx }.not_to raise_error
+    @olap.execute mdx
   end
 
   # Test for https://jira.pentaho.com/browse/MONDRIAN-2714
   it "should return datetime property as java.sql.Timestamp" do
     full_name = '[2010].[Q1].[1].[1]'
     member = @olap.cube('Sales').member(full_name)
-    member.property_value('Date').should be_a(java.sql.Timestamp)
+    assert_kind_of java.sql.Timestamp, member.property_value('Date')
 
     result = @olap.from('Sales').
       with_member('[Measures].[date]').as("#{full_name}.Properties('Date')", format_string: 'dd.mm.yyyy').
       columns('[Measures].[date]').execute
-    result.values.first.should be_a(java.sql.Timestamp)
-    result.formatted_values.first.should == '01.01.2010'
+    assert_kind_of java.sql.Timestamp, result.values.first
+    assert_equal '01.01.2010', result.formatted_values.first
   end
 
   it "should return date property as java.sql.Date" do
@@ -182,13 +177,13 @@ describe "Mondrian features" do
 
     member = @olap.cube('Sales').hierarchy('Customers').level('Name').members.first
     date_value = member.property_value('Birthdate')
-    date_value.should be_a(expected_date_class)
+    assert_kind_of expected_date_class, date_value
 
     result = @olap.from('Sales').
       with_member('[Measures].[date]').as("#{member.full_name}.Properties('Birthdate')", format_string: 'dd.mm.yyyy').
       columns('[Measures].[date]').execute
-    result.values.first.should be_a(expected_date_class)
-    result.formatted_values.first.should == Date.parse(date_value.to_s).strftime("%d.%m.%Y")
+    assert_kind_of expected_date_class, result.values.first
+    assert_equal Date.parse(date_value.to_s).strftime("%d.%m.%Y"), result.formatted_values.first
   end
 
   describe "optimized Aggregate" do
@@ -204,7 +199,7 @@ describe "Mondrian features" do
         with_member('[Customers].[CA and OR]').as("Aggregate({[Customers].[USA].[CA], [Customers].[USA].[OR]})").
         columns('[Measures].[Unit Sales]').
         rows('[Customers].[CA and OR]').execute
-      result.values[0][0].should == expected_value
+      assert_equal expected_value, result.values[0][0]
     end
 
     it "should aggregate stored members from several dimensions" do
@@ -213,7 +208,7 @@ describe "Mondrian features" do
           as("Aggregate({[Gender].[F]} * {[Customers].[USA].[CA], [Customers].[USA].[OR]})").
         columns('[Measures].[Unit Sales]').
         rows('[Customers].[CA and OR]').execute
-      result.values[0][0].should == expected_value('[Gender].[F]')
+      assert_equal expected_value('[Gender].[F]'), result.values[0][0]
     end
 
     it "should aggregate stored members and a measure" do
@@ -221,7 +216,7 @@ describe "Mondrian features" do
         with_member('[Measures].[CA and OR]').
           as("Aggregate({[Customers].[USA].[CA], [Customers].[USA].[OR]} * {[Measures].[Unit Sales]})").
         columns('[Measures].[CA and OR]').execute
-      result.values[0].should == expected_value
+      assert_equal expected_value, result.values[0]
     end
 
     it "should aggregate stored members with expression" do
@@ -229,7 +224,7 @@ describe "Mondrian features" do
         with_member('[Measures].[CA and OR twice]').
           as("Aggregate({[Customers].[USA].[CA], [Customers].[USA].[OR]}, [Measures].[Unit Sales] * 2)").
         columns('[Measures].[CA and OR twice]').execute
-      result.values[0].should == expected_value * 2
+      assert_equal expected_value * 2, result.values[0]
     end
 
     it "should aggregate calculated aggregate members" do
@@ -239,7 +234,7 @@ describe "Mondrian features" do
         with_member('[Customers].[CA and OR]').as("Aggregate({[Customers].[CA calculated], [Customers].[OR calculated]})").
         columns('[Measures].[Unit Sales]').
         rows('[Customers].[CA and OR]').execute
-      result.values[0][0].should == expected_value
+      assert_equal expected_value, result.values[0][0]
     end
   end
 
@@ -247,16 +242,14 @@ describe "Mondrian features" do
     result = @olap.from('Sales').
       with_member('[Measures].[is dirty]').as('IsDirty()').
       columns('[Measures].[is dirty]').execute
-    result.values[0].should == false
+    assert_equal false, result.values[0]
   end
 
   it "should support multiple values IN expression" do
-    lambda do
-      @olap.from('Sales').
-      columns('[Measures].[Unit Sales]').
-      where('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
-      execute
-    end.should_not raise_error
+    @olap.from('Sales').
+    columns('[Measures].[Unit Sales]').
+    where('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
+    execute
   end
 
   describe "functions with double argument" do
@@ -264,7 +257,7 @@ describe "Mondrian features" do
       result = @olap.from('Sales').
         with_member('[Measures].[Abs Store Sales]').as('Abs([Measures].[Store Sales])').
         columns('[Measures].[Store Sales]', '[Measures].[Abs Store Sales]').execute
-      result.values[0].should == result.values[1]
+      assert_equal result.values[1], result.values[0]
     end
 
     it "should get Round with decimal measure" do
@@ -272,7 +265,7 @@ describe "Mondrian features" do
         with_member('[Measures].[Round Store Sales]').as('Round([Measures].[Store Sales])').
         columns('[Measures].[Store Sales]', '[Measures].[Round Store Sales]').
         where('[Customers].[USA].[CA]').execute
-      result.values[0].round.should == result.values[1]
+      assert_equal result.values[1], result.values[0].round
     end
   end
 
@@ -284,8 +277,8 @@ describe "Mondrian features" do
         where('[Time].[2010]').
         execute
 
-      result.row_names.should == ['Product 100', 'Product 99', 'Product 98']
-      result.values.map(&:first).map(&:to_i).should == [100, 99, 98]
+      assert_equal ['Product 100', 'Product 99', 'Product 98'], result.row_names
+      assert_equal [100, 99, 98], result.values.map(&:first).map(&:to_i)
     end
   end
 
@@ -297,8 +290,8 @@ describe "Mondrian features" do
         where('[Time].[2010]').
         execute
 
-      result.row_names.should == ['Product 1', 'Product 2', 'Product 3']
-      result.values.map(&:first).map(&:to_i).should == [1, 2, 3]
+      assert_equal ['Product 1', 'Product 2', 'Product 3'], result.row_names
+      assert_equal [1, 2, 3], result.values.map(&:first).map(&:to_i)
     end
   end
 
@@ -323,37 +316,37 @@ describe "Mondrian features" do
       execute.column_names
     end
     it "should exclude dimension members without measure data in non-virtual cube" do
-      nonempty_crossjoin_from_cube("Sales").should == ["Product 1"]
+      assert_equal ["Product 1"], nonempty_crossjoin_from_cube("Sales")
     end
 
     # This is for debugging SqlTupleReader.generateSelectForLevels patches (not to generate SELECTs from non-relevant sub-cubes)
     # which wasn't failing before but this test helps to debug generated SQL statements.
     it "should ignore non-relevant sub-cubes in virtual cube" do
-      nonempty_crossjoin_from_cube("Sales and Warehouse").should == ["Product 1"]
+      assert_equal ["Product 1"], nonempty_crossjoin_from_cube("Sales and Warehouse")
     end
 
     it "should not raise an error when slicer calculated member evaluates to #null member" do
-      @olap2.from("Sales").
+      assert_equal ["2010"], @olap2.from("Sales").
       with_member('[Customers].[NNN]').as("[Customers].[YYY]").
       columns('[Measures].[Unit Sales]').
       rows('Generate(NonEmptyCrossJoin([Time].[Year].Members, [Product].[Food]), [Time].CurrentMember)').
       where('[Customers].[NNN]').
-      execute.row_names.should == ["2010"]
+      execute.row_names
     end
   end
 
   describe "CASE match statement" do
     it "should match measure to numeric value" do
-      @olap.from('Sales').
+      assert_equal [1], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[Case]').
           as('CASE [Measures].[one] WHEN 1 THEN 1 ELSE 0 END').
         columns('[Measures].[Case]').execute.
-        values.should == [1]
+        values
     end
 
     it "should allow numeric and string result values" do
-      @olap.from('Sales').
+      assert_equal [1, '(none)'], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[two]').as('2').
         with_member('[Measures].[Case 1]').
@@ -361,11 +354,11 @@ describe "Mondrian features" do
         with_member('[Measures].[Case 2]').
           as("CASE [Measures].[one] WHEN 2 THEN 2 ELSE '(none)' END").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]').execute.
-        values.should == [1, '(none)']
+        values
     end
 
     it "should allow members and tuples as scalar result values" do
-      @olap.from('Sales').
+      assert_equal [1, 1, 1, 1, 1, 2], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[two]').as('2').
         with_member('[Measures].[Case 1]').
@@ -383,11 +376,11 @@ describe "Mondrian features" do
         columns(
           '[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]', '[Measures].[Case 5]',
           '[Measures].[Case 6]'
-        ).execute.values.should == [1, 1, 1, 1, 1, 2]
+        ).execute.values
     end
 
     it "should return member or tuple as result" do
-      @olap.from('Sales').
+      assert_equal ['one', 'two', 'one', 'two'], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[two]').as('2').
         with_member('[Measures].[Case 1]').
@@ -399,11 +392,11 @@ describe "Mondrian features" do
         with_member('[Measures].[Case 4]').
           as("CASE 2 WHEN 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
-        values.should == ['one', 'two', 'one', 'two']
+        values
     end
 
     it "should allow members and NULLs as scalar result values" do
-      @olap.from('Sales').
+      assert_equal [nil, 1, 1, nil], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[Case 1]').
           as("CASE 1 WHEN 1 THEN NULL ELSE [Measures].[one] END").
@@ -414,22 +407,22 @@ describe "Mondrian features" do
         with_member('[Measures].[Case 4]').
           as("CASE 2 WHEN 1 THEN [Measures].[one] ELSE NULL END").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
-        values.should == [nil, 1, 1, nil]
+        values
     end
   end
 
   describe "CASE test statement" do
     it "should match measure to numeric value" do
-      @olap.from('Sales').
+      assert_equal [1], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[Case]').
           as('CASE WHEN [Measures].[one] = 1 THEN 1 ELSE 0 END').
         columns('[Measures].[Case]').execute.
-        values.should == [1]
+        values
     end
 
     it "should allow numeric and string result values" do
-      @olap.from('Sales').
+      assert_equal [1, '(none)'], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[two]').as('2').
         with_member('[Measures].[Case 1]').
@@ -438,11 +431,11 @@ describe "Mondrian features" do
         with_member('[Measures].[Case 2]').
           as("CASE WHEN [Measures].[one] = 2 THEN 2 ELSE '(none)' END").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]').execute.
-        values.should == [1, '(none)']
+        values
     end
 
     it "should allow members and tuples as scalar result values" do
-      @olap.from('Sales').
+      assert_equal [1, 1, 1, 1, 1, 2], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[two]').as('2').
         with_member('[Measures].[Case 1]').
@@ -460,11 +453,11 @@ describe "Mondrian features" do
         columns(
           '[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]', '[Measures].[Case 5]',
           '[Measures].[Case 6]'
-        ).execute.values.should == [1, 1, 1, 1, 1, 2]
+        ).execute.values
     end
 
     it "should return member or tuple as result" do
-      @olap.from('Sales').
+      assert_equal ['one', 'two', 'one', 'two'], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[two]').as('2').
         with_member('[Measures].[Case 1]').
@@ -476,11 +469,11 @@ describe "Mondrian features" do
         with_member('[Measures].[Case 4]').
           as("CASE WHEN 2 = 1 THEN ([Measures].[one], [Gender].[F]) ELSE ([Measures].[two], [Gender].[M]) END.Item(0).Name").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
-        values.should == ['one', 'two', 'one', 'two']
+        values
     end
 
     it "should allow members and NULLs as scalar result values" do
-      @olap.from('Sales').
+      assert_equal [nil, 1, 1, nil], @olap.from('Sales').
         with_member('[Measures].[one]').as('1').
         with_member('[Measures].[Case 1]').
           as("CASE WHEN 1 = 1 THEN NULL ELSE [Measures].[one] END").
@@ -491,59 +484,59 @@ describe "Mondrian features" do
         with_member('[Measures].[Case 4]').
           as("CASE WHEN 1 = 2 THEN [Measures].[one] ELSE NULL END").
         columns('[Measures].[Case 1]', '[Measures].[Case 2]', '[Measures].[Case 3]', '[Measures].[Case 4]').execute.
-        values.should == [nil, 1, 1, nil]
+        values
     end
   end
 
   describe "Generate" do
     it "should use measure cast to string as a string argument" do
-      @olap.from('Sales').
+      assert_equal ['F,M'], @olap.from('Sales').
         with_member('[Measures].[Gender name]').as('[Gender].CurrentMember.Name').
         with_member('[Measures].[Generate]').
           as("Generate([Gender].[Gender].Members, Cast([Measures].[Gender name] AS String), ',')").
         columns('[Measures].[Generate]').execute.
-        values.should == ['F,M']
+        values
     end
 
     it "should use measure with string expression as a string argument" do
-      @olap.from('Sales').
+      assert_equal ['F,M'], @olap.from('Sales').
         with_member('[Measures].[Gender name]').as('[Gender].CurrentMember.Name').
         with_member('[Measures].[Generate]').
           as("Generate([Gender].[Gender].Members, [Measures].[Gender name], ',')").
         columns('[Measures].[Generate]').execute.
-        values.should == ['F,M']
+        values
     end
 
     it "should use other dimension member and return set" do
-      @olap.from('Sales').
+      assert_equal ['{[Gender].[F], [Gender].[M]}'], @olap.from('Sales').
         with_member('[Measures].[Gender name]').as('[Gender].CurrentMember.Name').
         with_member('[Measures].[Generate]').
           as("SetToStr(Generate([Gender].[Gender].Members, [Gender].CurrentMember, ALL))").
         columns('[Measures].[Generate]').execute.
-        values.should == ['{[Gender].[F], [Gender].[M]}']
+        values
     end
   end
 
   describe "CoalesceEmpty" do
     it "should support DateTime values" do
-      @olap.from('Sales').
+      assert_equal [['2010-01-01']], @olap.from('Sales').
         with_member('[Measures].[Date]').
           as("[Time].CurrentMember.Properties('Date')", format_string: 'yyyy-mm-dd').
         with_member('[Measures].[Coalesce]').
           as("CoalesceEmpty([Measures].[Date], DateSerial(1970, 1, 1))").
         columns('[Measures].[Coalesce]').
         rows('[Time].[2010].[Q1].[1].[1]').execute.
-        formatted_values.should == [['2010-01-01']]
+        formatted_values
     end
 
     it "should support mix of numeric and string values" do
-      @olap.from('Sales').
+      assert_equal [123, 'dummy'], @olap.from('Sales').
         with_member('[Measures].[Coalesce 1]').
           as("CoalesceEmpty(123, 'dummy')").
         with_member('[Measures].[Coalesce 2]').
           as("CoalesceEmpty(CASE WHEN 1=2 THEN 1 END, 'dummy')").
         columns('[Measures].[Coalesce 1]', '[Measures].[Coalesce 2]').execute.
-        values.should == [123, 'dummy']
+        values
     end
   end
 
@@ -561,7 +554,7 @@ describe "Mondrian features" do
       end
 
       it "should support empty arguments" do
-        @olap.from('Sales').
+        assert_equal (operator == 'MATCHES' ? [false] : [true]) * 3, @olap.from('Sales').
           with_member('[Measures].[Matches 1]').
             as("(CASE WHEN 1=2 THEN 'dummy' END) #{operator} '.*dum.*'").
           with_member('[Measures].[Matches 2]').
@@ -569,16 +562,16 @@ describe "Mondrian features" do
           with_member('[Measures].[Matches 3]').
             as("[Measures].[missing] #{operator} '.*dum.*'").
           columns('[Measures].[Matches 1]', '[Measures].[Matches 2]', '[Measures].[Matches 3]').execute.
-          values.should == (operator == 'MATCHES' ? [false] : [true]) * 3
+          values
       end
 
       it "should support numeric argument" do
-        @olap.from('Sales').
+        assert_equal (operator == 'MATCHES' ? [true] : [false]), @olap.from('Sales').
           with_member('[Measures].[number]').as('123').
           with_member('[Measures].[Matches 1]').
             as("[Measures].[number] #{operator} '\\d+'").
           columns('[Measures].[Matches 1]').execute.
-          values.should == (operator == 'MATCHES' ? [true] : [false])
+          values
       end
     end
   end
@@ -592,7 +585,7 @@ describe "Mondrian features" do
           as("[Measures].[Unit Sales] * [Measures].[Store Sales]").
         columns('[Measures].[parent calculation]', '[Measures].[child calculation]').
         execute.values
-      values[0].should == values[1]
+      assert_equal values[1], values[0]
     end
   end
 
@@ -601,14 +594,14 @@ describe "Mondrian features" do
       result = @olap.from('Sales').
         with_member('[Measures].[Unit Sales 2]').as('[Measures].[Unit Sales] * 2').
         columns('[Measures].[Unit Sales 2]').execute(profiling: true)
-      result.profiling_timing_string.should =~ /^\[Measures\]\.\[Unit Sales 2\] invoked 1 times/
+      assert_match /^\[Measures\]\.\[Unit Sales 2\] invoked 1 times/, result.profiling_timing_string
     end
 
     it "should not include calculated member when formula is another measure" do
       result = @olap.from('Sales').
         with_member('[Measures].[Unit Sales 2]').as('[Measures].[Unit Sales]').
         columns('[Measures].[Unit Sales 2]').execute(profiling: true)
-      result.profiling_timing_string.should_not include("[Measures].[Unit Sales 2]")
+      assert_equal false, result.profiling_timing_string.include?("[Measures].[Unit Sales 2]")
     end
   end
 
@@ -631,7 +624,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegR2]').execute
-      result.values.should == [0.0]
+      assert_equal [0.0], result.values
     end
 
     it "should return approximately 0.52 for moderate positive correlation" do
@@ -656,7 +649,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegR2]').execute
-      result.values.should == [0.52]
+      assert_equal [0.52], result.values
     end
 
     it "should return 1.0 for perfect linear correlation" do
@@ -674,7 +667,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegR2]').execute
-      result.values.should == [1.0]
+      assert_equal [1.0], result.values
     end
 
     it "should return NaN when value cannot be calculated due to NULL arguments" do
@@ -689,7 +682,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegR2]').execute
-      result.values.first.should be_nan
+      assert result.values.first.nan?
     end
   end
 
@@ -719,7 +712,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegVariance]').execute
-      result.values.should == [266.67]
+      assert_equal [266.67], result.values
     end
 
     it "should return moderate variance for moderate positive correlation" do
@@ -747,7 +740,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegVariance]').execute
-      result.values.should == [104.17]
+      assert_equal [104.17], result.values
     end
 
     it "should return 0.0 for perfect linear correlation" do
@@ -766,7 +759,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegVariance]').execute
-      result.values.should == [0.0]
+      assert_equal [0.0], result.values
     end
 
     it "should return NaN when value cannot be calculated due to NULL arguments" do
@@ -781,7 +774,7 @@ describe "Mondrian features" do
           MDX
         ).
         columns('[Measures].[LinRegVariance]').execute
-      result.values.first.should be_nan
+      assert result.values.first.nan?
     end
   end
 
@@ -790,7 +783,7 @@ describe "Mondrian features" do
       result = @olap.from('Sales').
         with_member('[Measures].[Instr Result]').as('Instr(Trim(NULL), "Done")').
         columns('[Measures].[Instr Result]').execute
-      result.values.should == [nil]
+      assert_equal [nil], result.values
     end
   end
 end

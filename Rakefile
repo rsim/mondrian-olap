@@ -1,15 +1,7 @@
 require "bundler/gem_tasks"
-require "rspec/core/rake_task"
 
-desc "Run specs"
-RSpec::Core::RakeTask.new(:spec)
-RSpec::Core::RakeTask.new(:rcov) do |t|
-  t.rcov = true
-  t.rcov_opts =  ['--exclude', '/Library,spec/']
-end
-
-desc "Run specs (default)"
-task :default => :spec
+desc "Run tests (default)"
+task :default => :test
 
 require 'rdoc/task'
 RDoc::Task.new do |rdoc|
@@ -21,7 +13,7 @@ RDoc::Task.new do |rdoc|
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
 
-require_relative 'spec/rake_tasks'
+require_relative 'test/rake_tasks'
 
 desc "Copy Mondrian JAR from mondrian-olap-java build to lib/mondrian/jars"
 task :copy_mondrian_jar do

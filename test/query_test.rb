@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require_relative "test_helper"
 
 describe "Query" do
   def qt(name)
@@ -60,148 +60,148 @@ describe "Query" do
     end
 
     it "should return axes" do
-      @result.axes_count.should == 2
+      assert_equal 2, @result.axes_count
     end
 
     it "should return column names" do
-      @result.column_names.should == @expected_column_names
-      @result.column_full_names.should == @expected_column_full_names
+      assert_equal @expected_column_names, @result.column_names
+      assert_equal @expected_column_full_names, @result.column_full_names
     end
 
     it "should return row names" do
-      @result.row_names.should == @expected_row_names
-      @result.row_full_names.should == @expected_row_full_names
+      assert_equal @expected_row_names, @result.row_names
+      assert_equal @expected_row_full_names, @result.row_full_names
     end
 
     it "should return axis by index names" do
-      @result.axis_names[0].should == @expected_column_names
-      @result.axis_full_names[0].should == @expected_column_full_names
+      assert_equal @expected_column_names, @result.axis_names[0]
+      assert_equal @expected_column_full_names, @result.axis_full_names[0]
     end
 
     it "should return column members" do
-      @result.column_members.map(&:name).should == @expected_column_names
-      @result.column_members.map(&:full_name).should == @expected_column_full_names
-      @result.column_members.map(&:"drillable?").should == @expected_drillable_columns
+      assert_equal @expected_column_names, @result.column_members.map(&:name)
+      assert_equal @expected_column_full_names, @result.column_members.map(&:full_name)
+      assert_equal @expected_drillable_columns, @result.column_members.map(&:"drillable?")
     end
 
     it "should return row members" do
-      @result.row_members.map(&:name).should == @expected_row_names
-      @result.row_members.map(&:full_name).should == @expected_row_full_names
-      @result.row_members.map(&:"drillable?").should == @expected_drillable_rows
+      assert_equal @expected_row_names, @result.row_members.map(&:name)
+      assert_equal @expected_row_full_names, @result.row_members.map(&:full_name)
+      assert_equal @expected_drillable_rows, @result.row_members.map(&:"drillable?")
     end
 
     it "should return cells" do
-      @result.values.should == @expected_result_values
+      assert_equal @expected_result_values, @result.values
     end
 
     it "should return cells with specified axes number sequence" do
-      @result.values(0, 1).should == @expected_result_values_by_columns
+      assert_equal @expected_result_values_by_columns, @result.values(0, 1)
     end
 
     it "should return cells with specified axes name sequence" do
-      @result.values(:columns, :rows).should == @expected_result_values_by_columns
+      assert_equal @expected_result_values_by_columns, @result.values(:columns, :rows)
     end
 
     it "should return formatted cells" do
-      @result.formatted_values.map { |r| r.map { |s| BigDecimal(s.gsub(',', '')) } }.should == @expected_result_values
+      assert_equal @expected_result_values, @result.formatted_values.map { |r| r.map { |s| BigDecimal(s.gsub(',', '')) } }
     end
 
   end
 
   describe "builder" do
 
-    before(:each) do
+    before do
       @query = @olap.from('Sales')
     end
 
     describe "from cube" do
       it "should return query" do
-        @query.should be_a(Mondrian::OLAP::Query)
-        @query.cube_name.should == 'Sales'
+        assert_kind_of Mondrian::OLAP::Query, @query
+        assert_equal 'Sales', @query.cube_name
       end
     end
 
     describe "columns" do
       it "should accept list" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').should equal(@query)
-        @query.columns.should == ['[Measures].[Unit Sales]', '[Measures].[Store Sales]']
+        assert_same @query, @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]')
+        assert_equal ['[Measures].[Unit Sales]', '[Measures].[Store Sales]'], @query.columns
       end
 
       it "should accept list as array" do
         @query.columns(['[Measures].[Unit Sales]', '[Measures].[Store Sales]'])
-        @query.columns.should == ['[Measures].[Unit Sales]', '[Measures].[Store Sales]']
+        assert_equal ['[Measures].[Unit Sales]', '[Measures].[Store Sales]'], @query.columns
       end
 
       it "should accept with several method calls" do
         @query.columns('[Measures].[Unit Sales]').columns('[Measures].[Store Sales]')
-        @query.columns.should == ['[Measures].[Unit Sales]', '[Measures].[Store Sales]']
+        assert_equal ['[Measures].[Unit Sales]', '[Measures].[Store Sales]'], @query.columns
       end
     end
 
     describe "other axis" do
       it "should accept axis with index member list" do
         @query.axis(0, '[Measures].[Unit Sales]', '[Measures].[Store Sales]')
-        @query.axis(0).should == ['[Measures].[Unit Sales]', '[Measures].[Store Sales]']
+        assert_equal ['[Measures].[Unit Sales]', '[Measures].[Store Sales]'], @query.axis(0)
       end
 
       it "should accept rows list" do
         @query.rows('[Product].children')
-        @query.rows.should == ['[Product].children']
+        assert_equal ['[Product].children'], @query.rows
       end
 
       it "should accept pages list" do
         @query.pages('[Product].children')
-        @query.pages.should == ['[Product].children']
+        assert_equal ['[Product].children'], @query.pages
       end
     end
 
     describe "crossjoin" do
       it "should do crossjoin of several dimensions" do
         @query.rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]')
-        @query.rows.should == [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+        assert_equal [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']], @query.rows
       end
 
       it "should do crossjoin passing array as first argument" do
         @query.rows('[Product].children').crossjoin(['[Customers].[Canada]', '[Customers].[USA]'])
-        @query.rows.should == [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+        assert_equal [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']], @query.rows
       end
     end
 
     describe "nonempty_crossjoin" do
       it "should do nonempty_crossjoin of several dimensions" do
         @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]')
-        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
+        assert_equal [:nonempty_crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']], @query.rows
       end
     end
 
     describe "nonempty" do
       it "should limit to set of members with nonempty values" do
         @query.rows('[Product].children').nonempty
-        @query.rows.should == [:nonempty, ['[Product].children']]
+        assert_equal [:nonempty, ['[Product].children']], @query.rows
       end
     end
 
     describe "distinct" do
       it "should limit to set of distinct tuples" do
         @query.rows('[Product].children').distinct.nonempty.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]')
-        @query.rows.should == [:nonempty, [:distinct, ["[Product].children"]]]
+        assert_equal [:nonempty, [:distinct, ["[Product].children"]]], @query.rows
       end
     end
 
     describe "order" do
       it "should order by one measure" do
         @query.rows('[Product].children').order('[Measures].[Unit Sales]', :bdesc)
-        @query.rows.should == [:order, ['[Product].children'], '[Measures].[Unit Sales]', 'BDESC']
+        assert_equal [:order, ['[Product].children'], '[Measures].[Unit Sales]', 'BDESC'], @query.rows
       end
 
       it "should order using String order direction" do
         @query.rows('[Product].children').order('[Measures].[Unit Sales]', 'DESC')
-        @query.rows.should == [:order, ['[Product].children'], '[Measures].[Unit Sales]', 'DESC']
+        assert_equal [:order, ['[Product].children'], '[Measures].[Unit Sales]', 'DESC'], @query.rows
       end
 
       it "should order by measure and other member" do
         @query.rows('[Product].children').order(['[Measures].[Unit Sales]', '[Customers].[USA]'], :basc)
-        @query.rows.should == [:order, ['[Product].children'], ['[Measures].[Unit Sales]', '[Customers].[USA]'], 'BASC']
+        assert_equal [:order, ['[Product].children'], ['[Measures].[Unit Sales]', '[Customers].[USA]'], 'BASC'], @query.rows
       end
     end
 
@@ -209,22 +209,22 @@ describe "Query" do
       describe extreme do
         it "should select #{extreme} count rows by measure" do
           @query.rows('[Product].children').send(:"#{extreme}_count", 5, '[Measures].[Unit Sales]')
-          @query.rows.should == [:"#{extreme}_count", ['[Product].children'], 5, '[Measures].[Unit Sales]']
+          assert_equal [:"#{extreme}_count", ['[Product].children'], 5, '[Measures].[Unit Sales]'], @query.rows
         end
 
         it "should select #{extreme} count rows without measure" do
           @query.rows('[Product].children').send(:"#{extreme}_count", 5)
-          @query.rows.should == [:"#{extreme}_count", ['[Product].children'], 5]
+          assert_equal [:"#{extreme}_count", ['[Product].children'], 5], @query.rows
         end
 
         it "should select #{extreme} percent rows by measure" do
           @query.rows('[Product].children').send(:"#{extreme}_percent", 20, '[Measures].[Unit Sales]')
-          @query.rows.should == [:"#{extreme}_percent", ['[Product].children'], 20, '[Measures].[Unit Sales]']
+          assert_equal [:"#{extreme}_percent", ['[Product].children'], 20, '[Measures].[Unit Sales]'], @query.rows
         end
 
         it "should select #{extreme} sum rows by measure" do
           @query.rows('[Product].children').send(:"#{extreme}_sum", 1000, '[Measures].[Unit Sales]')
-          @query.rows.should == [:"#{extreme}_sum", ['[Product].children'], 1000, '[Measures].[Unit Sales]']
+          assert_equal [:"#{extreme}_sum", ['[Product].children'], 1000, '[Measures].[Unit Sales]'], @query.rows
         end
       end
     end
@@ -232,30 +232,30 @@ describe "Query" do
     describe "hierarchize" do
       it "should hierarchize simple set" do
         @query.rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
-        @query.rows.should == [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]
+        assert_equal [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']], @query.rows
       end
 
       it "should hierarchize last set of crossjoin" do
         @query.rows('[Product].children').crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
-        @query.rows.should == [:crossjoin, ['[Product].children'],
-          [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]]
+        assert_equal [:crossjoin, ['[Product].children'],
+          [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]], @query.rows
       end
 
       it "should hierarchize last set of nonempty_crossjoin" do
         @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
-        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'],
-          [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]]
+        assert_equal [:nonempty_crossjoin, ['[Product].children'],
+          [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]], @query.rows
       end
 
       it "should hierarchize all crossjoin" do
         @query.rows('[Product].children').crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize_all
-        @query.rows.should == [:hierarchize, [:crossjoin, ['[Product].children'],
-          ['[Customers].[Country].Members', '[Customers].[City].Members']]]
+        assert_equal [:hierarchize, [:crossjoin, ['[Product].children'],
+          ['[Customers].[Country].Members', '[Customers].[City].Members']]], @query.rows
       end
 
       it "should hierarchize with POST" do
         @query.rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize(:post)
-        @query.rows.should == [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members'], 'POST']
+        assert_equal [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members'], 'POST'], @query.rows
       end
 
     end
@@ -263,90 +263,89 @@ describe "Query" do
     describe "except" do
       it "should except one set from other" do
         @query.rows('[Customers].[Country].Members').except('[Customers].[USA]')
-        @query.rows.should == [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]
+        assert_equal [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']], @query.rows
       end
 
       it "should except from last set of crossjoin" do
         @query.rows('[Product].children').crossjoin('[Customers].[Country].Members').except('[Customers].[USA]')
-        @query.rows.should == [:crossjoin, ['[Product].children'],
-          [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]]
+        assert_equal [:crossjoin, ['[Product].children'],
+          [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]], @query.rows
       end
 
       it "should except from last set of nonempty_crossjoin" do
         @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members').except('[Customers].[USA]')
-        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'],
-          [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]]
+        assert_equal [:nonempty_crossjoin, ['[Product].children'],
+          [:except, ['[Customers].[Country].Members'], ['[Customers].[USA]']]], @query.rows
       end
     end
 
     describe "filter" do
       it "should filter set by condition" do
         @query.rows('[Customers].[Country].Members').filter('[Measures].[Unit Sales] > 1000')
-        @query.rows.should == [:filter, ['[Customers].[Country].Members'], '[Measures].[Unit Sales] > 1000']
+        assert_equal [:filter, ['[Customers].[Country].Members'], '[Measures].[Unit Sales] > 1000'], @query.rows
       end
 
       it "should filter using set alias" do
         @query.rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', as: 'S')
-        @query.rows.should == [:filter, ['[Customers].[Country].Members'], 'NOT ISEMPTY(S.CURRENT)', 'S']
+        assert_equal [:filter, ['[Customers].[Country].Members'], 'NOT ISEMPTY(S.CURRENT)', 'S'], @query.rows
       end
 
       it "should filter last set of nonempty_crossjoin" do
         @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members').
           filter_last("[Customers].CurrentMember.Name = 'USA'")
-        @query.rows.should == [:nonempty_crossjoin, ['[Product].children'],
-          [:filter, ['[Customers].[Country].Members'], "[Customers].CurrentMember.Name = 'USA'"]]
+        assert_equal [:nonempty_crossjoin, ['[Product].children'],
+          [:filter, ['[Customers].[Country].Members'], "[Customers].CurrentMember.Name = 'USA'"]], @query.rows
       end
     end
 
     describe "generate" do
       it "should generate new set" do
         @query.rows('[Customers].[Country].Members').generate('[Customers].CurrentMember')
-        @query.rows.should == [:generate, ['[Customers].[Country].Members'], ['[Customers].CurrentMember']]
+        assert_equal [:generate, ['[Customers].[Country].Members'], ['[Customers].CurrentMember']], @query.rows
       end
 
       it "should generate new set with all option" do
         @query.rows('[Customers].[Country].Members').generate('[Customers].CurrentMember', :all)
-        @query.rows.should == [:generate, ['[Customers].[Country].Members'], ['[Customers].CurrentMember'], 'ALL']
+        assert_equal [:generate, ['[Customers].[Country].Members'], ['[Customers].CurrentMember'], 'ALL'], @query.rows
       end
     end
 
     describe "where" do
       it "should accept conditions" do
-        @query.where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').should equal(@query)
-        @query.where.should == ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]']
+        assert_same @query, @query.where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]')
+        assert_equal ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]'], @query.where
       end
 
       it "should accept conditions as array" do
         @query.where(['[Time].[2010].[Q1]', '[Customers].[USA].[CA]'])
-        @query.where.should == ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]']
+        assert_equal ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]'], @query.where
       end
 
       it "should accept conditions with several method calls" do
         @query.where('[Time].[2010].[Q1]').where('[Customers].[USA].[CA]')
-        @query.where.should == ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]']
+        assert_equal ['[Time].[2010].[Q1]', '[Customers].[USA].[CA]'], @query.where
       end
 
       it "should do crossjoin of where conditions" do
         @query.where('[Customers].[USA]').crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]')
-        @query.where.should == [:crossjoin, ['[Customers].[USA]'], ['[Time].[2011].[Q1]', '[Time].[2011].[Q2]']]
+        assert_equal [:crossjoin, ['[Customers].[USA]'], ['[Time].[2011].[Q1]', '[Time].[2011].[Q2]']], @query.where
       end
 
       it "should do nonempty_crossjoin of where conditions" do
         @query.where('[Customers].[USA]').nonempty_crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]')
-        @query.where.should == [:nonempty_crossjoin, ['[Customers].[USA]'], ['[Time].[2011].[Q1]', '[Time].[2011].[Q2]']]
+        assert_equal [:nonempty_crossjoin, ['[Customers].[USA]'], ['[Time].[2011].[Q1]', '[Time].[2011].[Q2]']], @query.where
       end
     end
 
     describe "with member" do
       it "should accept definition" do
-        @query.with_member('[Measures].[ProfitPct]').
-          as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])').
-          should equal(@query)
-        @query.with.should == [
+        assert_same @query, @query.with_member('[Measures].[ProfitPct]').
+          as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])')
+        assert_equal [
           [ :member, '[Measures].[ProfitPct]',
             'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])'
           ]
-        ]
+        ], @query.with
       end
 
       it "should accept definition with additional parameters" do
@@ -354,307 +353,307 @@ describe "Query" do
           as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
             solve_order: 1,
             format_string: 'Percent')
-        @query.with.should == [
+        assert_equal [
           [ :member, '[Measures].[ProfitPct]',
             'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
             {solve_order: 1, format_string: 'Percent'}
           ]
-        ]
+        ], @query.with
       end
     end
 
     describe "with set" do
       it "should accept simple defition" do
         @query.with_set('SelectedRows').as('[Product].children')
-        @query.with.should == [
+        assert_equal [
           [ :set, 'SelectedRows',
             ['[Product].children']
           ]
-        ]
+        ], @query.with
       end
 
       it "should accept definition with crossjoin" do
         @query.with_set('SelectedRows').as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]')
-        @query.with.should == [
+        assert_equal [
           [ :set, 'SelectedRows',
             [:crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
           ]
-        ]
+        ], @query.with
       end
 
       it "should accept definition with nonempty_crossjoin" do
         @query.with_set('SelectedRows').as('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]')
-        @query.with.should == [
+        assert_equal [
           [ :set, 'SelectedRows',
             [:nonempty_crossjoin, ['[Product].children'], ['[Customers].[Canada]', '[Customers].[USA]']]
           ]
-        ]
+        ], @query.with
       end
     end
 
     describe "to MDX" do
       it "should return MDX query" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
-          SQL
+          MDX
       end
 
       it "should return query with crossjoin" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
           where('[Time].[2010].[Q1]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1])
-          SQL
+          MDX
       end
 
       it "should return query with several crossjoins" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
           crossjoin('[Time].[2010].[Q1]', '[Time].[2010].[Q2]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     CROSSJOIN(CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}),
                               {[Time].[2010].[Q1], [Time].[2010].[Q2]}) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with crossjoin and nonempty" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').nonempty.
           where('[Time].[2010].[Q1]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     NON EMPTY CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1])
-          SQL
+          MDX
       end
 
       it "should return query with nonempty_crossjoin" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]').
           where('[Time].[2010].[Q1]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     NONEMPTYCROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1])
-          SQL
+          MDX
       end
 
       it "should return query with where with several same dimension members" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Customers].[Canada]', '[Customers].[USA]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE {[Customers].[Canada], [Customers].[USA]}
-          SQL
+          MDX
       end
 
       it "should return query with where with several different dimension members returned by function" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('Head([Customers].Members).Item(0)', 'Head([Gender].Members).Item(0)').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE (Head([Customers].Members).Item(0), Head([Gender].Members).Item(0))
-          SQL
+          MDX
       end
 
       it "should return query with where with crossjoin" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Customers].[USA]').crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE CROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
-          SQL
+          MDX
       end
 
       it "should return query with where with nonempty_crossjoin" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Customers].[USA]').nonempty_crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE NONEMPTYCROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
-          SQL
+          MDX
       end
 
       it "should return query with order by one measure" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').order('[Measures].[Unit Sales]', :bdesc).
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     ORDER([Product].children, [Measures].[Unit Sales], BDESC) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with order by measure and other member" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').order(['[Measures].[Unit Sales]', '[Customers].[USA]'], :asc).
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     ORDER([Product].children, ([Measures].[Unit Sales], [Customers].[USA]), ASC) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       %w(top bottom).each do |extreme|
         it "should return query with #{extreme} count by one measure" do
-          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
             rows('[Product].children').send(:"#{extreme}_count", 5, '[Measures].[Unit Sales]').
-            to_mdx.should be_like <<-SQL
+            to_mdx, <<~MDX
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}COUNT([Product].children, 5, [Measures].[Unit Sales]) ON ROWS
                 FROM  [Sales]
-            SQL
+            MDX
         end
 
         it "should return query with #{extreme} count without measure" do
-          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
             rows('[Product].children').send(:"#{extreme}_count", 5).
-            to_mdx.should be_like <<-SQL
+            to_mdx, <<~MDX
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}COUNT([Product].children, 5) ON ROWS
                 FROM  [Sales]
-            SQL
+            MDX
         end
 
         it "should return query with #{extreme} count by measure and other member" do
-          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
             rows('[Product].children').send(:"#{extreme}_count", 5, ['[Measures].[Unit Sales]', '[Customers].[USA]']).
-            to_mdx.should be_like <<-SQL
+            to_mdx, <<~MDX
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}COUNT([Product].children, 5, ([Measures].[Unit Sales], [Customers].[USA])) ON ROWS
                 FROM  [Sales]
-            SQL
+            MDX
         end
 
         it "should return query with #{extreme} percent by one measure" do
-          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
             rows('[Product].children').send(:"#{extreme}_percent", 20, '[Measures].[Unit Sales]').
-            to_mdx.should be_like <<-SQL
+            to_mdx, <<~MDX
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}PERCENT([Product].children, 20, [Measures].[Unit Sales]) ON ROWS
                 FROM  [Sales]
-            SQL
+            MDX
         end
 
         it "should return query with #{extreme} sum by one measure" do
-          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
             rows('[Product].children').send(:"#{extreme}_sum", 1000, '[Measures].[Unit Sales]').
-            to_mdx.should be_like <<-SQL
+            to_mdx, <<~MDX
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}SUM([Product].children, 1000, [Measures].[Unit Sales]) ON ROWS
                 FROM  [Sales]
-            SQL
+            MDX
         end
       end
 
       it "should return query with hierarchize" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize.
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     HIERARCHIZE({[Customers].[Country].Members, [Customers].[City].Members}) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with hierarchize and order" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize(:post).
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     HIERARCHIZE({[Customers].[Country].Members, [Customers].[City].Members}, POST) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with except" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members').except('[Customers].[USA]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     EXCEPT([Customers].[Country].Members, {[Customers].[USA]}) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with filter" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members').filter('[Measures].[Unit Sales] > 1000').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members, [Measures].[Unit Sales] > 1000) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with filter and set alias" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', as: 'S').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with filter non-empty" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members').filter_nonempty.
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with generate" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members').generate('[Customers].CurrentMember').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     GENERATE([Customers].[Country].Members, [Customers].CurrentMember) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query with generate all" do
-        @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Customers].[Country].Members').generate('[Customers].CurrentMember', :all).
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     GENERATE([Customers].[Country].Members, [Customers].CurrentMember, ALL) ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
 
       it "should return query including WITH MEMBER clause" do
-        @query.
+        assert_like @query.
           with_member('[Measures].[ProfitPct]').
             as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
               solve_order: 1, format_string: 'Percent', caption: 'Profit %').
@@ -664,7 +663,7 @@ describe "Query" do
           columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
           rows('[Product].children').
           where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             WITH
                MEMBER [Measures].[ProfitPct] AS
                'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
@@ -676,11 +675,11 @@ describe "Query" do
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
-          SQL
+          MDX
       end
 
       it "should return query including WITH SET clause" do
-        @query.with_set('CrossJoinSet').
+        assert_like @query.with_set('CrossJoinSet').
             as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
           with_set('MemberSet').as('[Product].[All Products]').
           with_set('FunctionSet').as('[Product].AllMembers').
@@ -690,7 +689,7 @@ describe "Query" do
             as('[Measures].[Store Sales] - [Measures].[Store Cost]').
           columns('[Measures].[Profit]').
           rows('CrossJoinSet').
-          to_mdx.should be_like <<-SQL
+          to_mdx, <<~MDX
             WITH
                SET CrossJoinSet AS 'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
                SET MemberSet AS '{[Product].[All Products]}'
@@ -702,7 +701,7 @@ describe "Query" do
             SELECT  {[Measures].[Profit]} ON COLUMNS,
                     CrossJoinSet ON ROWS
               FROM  [Sales]
-          SQL
+          MDX
       end
     end
 
@@ -712,12 +711,12 @@ describe "Query" do
           rows('[Product].children').
           where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
           execute
-        result.values.should == sql_select_numbers(@sql_select)
+        assert_equal sql_select_numbers(@sql_select), result.values
       end
 
       it "should not fail without columns" do
         result = @query.rows('[Product].DefaultMember').execute
-        result.values.should == [[]]
+        assert_equal [[]], result.values
       end
     end
 
@@ -727,57 +726,53 @@ describe "Query" do
           rows('[Product].children').
           where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
           execute
-        Nokogiri::HTML.fragment(result.to_html).css('tr').size.should == (sql_select_numbers(@sql_select).size + 1)
+        assert_equal (sql_select_numbers(@sql_select).size + 1), Nokogiri::HTML.fragment(result.to_html).css('tr').size
       end
     end
 
   end
 
   describe "errors" do
-    before(:each) do
+    before do
       @query = @olap.from('Sales')
     end
 
     it "should raise error when invalid MDX statement" do
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         @olap.execute "SELECT dummy FROM"
-      }.to raise_error {|e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
-        e.root_cause_message.should == "Syntax error at line 1, column 14, token 'FROM'"
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal 'org.olap4j.OlapException: mondrian gave exception while parsing query', error.message
+      assert_equal "Syntax error at line 1, column 14, token 'FROM'", error.root_cause_message
     end
 
     it "should raise error when invalid MDX object" do
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         @query.columns('[Measures].[Dummy]').execute
-      }.to raise_error {|e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
-        e.root_cause_message.should == "MDX object '[Measures].[Dummy]' not found in cube 'Sales'"
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal 'org.olap4j.OlapException: mondrian gave exception while parsing query', error.message
+      assert_equal "MDX object '[Measures].[Dummy]' not found in cube 'Sales'", error.root_cause_message
     end
 
     it "should raise error when invalid formula" do
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         @query.with_member('[Measures].[Dummy]').as('Dummy(123)').
           columns('[Measures].[Dummy]').execute
-      }.to raise_error {|e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == 'org.olap4j.OlapException: mondrian gave exception while parsing query'
-        e.root_cause_message.should == "No function matches signature 'Dummy(<Numeric Expression>)'"
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal 'org.olap4j.OlapException: mondrian gave exception while parsing query', error.message
+      assert_equal "No function matches signature 'Dummy(<Numeric Expression>)'", error.root_cause_message
     end
 
     it "should raise error when TokenMgrError is raised" do
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         @query.with_member('[Measures].[Dummy]').as('[Measures].[Store Sales]]').
           columns('[Measures].[Dummy]').execute
-      }.to raise_error {|e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should =~ /mondrian\.parser\.TokenMgrError/
-        e.root_cause_message.should =~ /Lexical error/
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_match /mondrian\.parser\.TokenMgrError/, error.message
+      assert_match /Lexical error/, error.root_cause_message
     end
 
   end
@@ -790,54 +785,63 @@ describe "Query" do
         where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
         execute
       @drill_through = @result.drill_through(:row => 0, :column => 0)
+      # Ensure that column metadata are loaded before loading rows and closing result set, as tests are executed in random order.
+      @drill_through.column_types
+      @drill_through.column_names
+      @drill_through.table_names
+      @drill_through.column_labels
     end
 
-    it "should return column types" do
-      @drill_through.column_types.should == [
-        :INT, :VARCHAR, :INT, :INT, :INT,
-        :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR,
-        :VARCHAR, :VARCHAR, :VARCHAR, :BIGINT,
-        :VARCHAR,
-        :DECIMAL
-      ]
-    end if MONDRIAN_DRIVER == 'mysql'
+    if MONDRIAN_DRIVER == 'mysql'
+      it "should return column types" do
+        assert_equal [
+          :INT, :VARCHAR, :INT, :INT, :INT,
+          :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR, :VARCHAR,
+          :VARCHAR, :VARCHAR, :VARCHAR, :BIGINT,
+          :VARCHAR,
+          :DECIMAL
+        ], @drill_through.column_types
+      end
+    end
 
-    it "should return column names" do
-      # ignore calculated customer full name column name which is shown differently on each database
-      @drill_through.column_names[0..12].should == %w(
-        the_year quarter month_of_year week_of_year day_of_month
-        product_family product_department product_category product_subcategory brand_name product_name
-        state_province city
-      )
-      @drill_through.column_names[14..16].should == %w(
-        id gender unit_sales
-      )
-    end if %w(mysql postgresql).include? MONDRIAN_DRIVER
+    if %w(mysql postgresql).include? MONDRIAN_DRIVER
+      it "should return column names" do
+        # ignore calculated customer full name column name which is shown differently on each database
+        assert_equal %w(
+          the_year quarter month_of_year week_of_year day_of_month
+          product_family product_department product_category product_subcategory brand_name product_name
+          state_province city
+        ), @drill_through.column_names[0..12]
+        assert_equal %w(
+          id gender unit_sales
+        ), @drill_through.column_names[14..16]
+      end
 
-    it "should return table names" do
-      # ignore calculated customer full name column name which is shown differently on each database
-      @drill_through.table_names[0..12].should == [
-        "time", "time", "time", "time", "time",
-        "product_classes", "product_classes", "product_classes", "product_classes", "products", "products",
-        "customers", "customers"
-      ]
-      @drill_through.table_names[14..16].should == [
-        "customers", "customers", "sales"
-      ]
-    end if %w(mysql postgresql).include? MONDRIAN_DRIVER
+      it "should return table names" do
+        # ignore calculated customer full name column name which is shown differently on each database
+        assert_equal [
+          "time", "time", "time", "time", "time",
+          "product_classes", "product_classes", "product_classes", "product_classes", "products", "products",
+          "customers", "customers"
+        ], @drill_through.table_names[0..12]
+        assert_equal [
+          "customers", "customers", "sales"
+        ], @drill_through.table_names[14..16]
+      end
+    end
 
     it "should return column labels" do
-      @drill_through.column_labels.should == [
+      assert_equal [
         "Year", "Quarter", "Month", "Week", "Day",
         "Product Family", "Product Department", "Product Category", "Product Subcategory", "Brand Name", "Product Name",
         "State Province", "City", "Name", "Name (Key)",
         "Gender",
         "Unit Sales"
-      ]
+      ], @drill_through.column_labels
     end
 
     it "should return row values" do
-      @drill_through.rows.size.should == 15 # number of generated test rows
+      assert_equal 15, @drill_through.rows.size # number of generated test rows
     end
 
     it "should return correct row value types" do
@@ -861,13 +865,13 @@ describe "Query" do
         end
 
       @drill_through.rows.first.each_with_index do |value, i|
-        value.should be_a expected_value_types[i]
+        assert_kind_of expected_value_types[i], value
       end
     end
 
     it "should return only specified max rows" do
       drill_through = @result.drill_through(:row => 0, :column => 0, :max_rows => 10)
-      drill_through.rows.size.should == 10
+      assert_equal 10, drill_through.rows.size
     end
   end
 
@@ -887,18 +891,18 @@ describe "Query" do
         '[Product].[Product Family]',
         '[Measures].[Unit Sales]', '[Measures].[Store Sales]'
       ])
-      @drill_through.column_labels.should == [
+      assert_equal [
         "Month (Key)",
         "City (Key)",
         "Product Family (Key)",
         "Unit Sales", "Store Sales"
-      ]
+      ], @drill_through.column_labels
     end
 
     it "should return rows also for field dimension that is not present in the report query" do
       result = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[Canada].[BC].[Burnaby]').execute
       drill_through = result.drill_through(row: 0, column: 0, return: ["[Product].[Product Family]"])
-      drill_through.rows.should == @sql.select_rows(<<-SQL)
+      assert_equal @sql.select_rows(<<-SQL), drill_through.rows
         SELECT
           product_classes.product_family
         FROM
@@ -919,10 +923,10 @@ describe "Query" do
         :return => "[Measures].[Unit Sales], [Measures].[Store Sales]",
         :nonempty => "[Measures].[Unit Sales]"
       )
-      @drill_through.column_labels.should == [
+      assert_equal [
         "Unit Sales", "Store Sales"
-      ]
-      @drill_through.rows.all? { |r| r.any? { |c| c } }.should == true
+      ], @drill_through.column_labels
+      assert_equal true, @drill_through.rows.all? { |r| r.any? { |c| c } }
     end
 
     it "should return member name and property values" do
@@ -934,11 +938,11 @@ describe "Query" do
           "Property([Customers].[Name], 'Non-existing property name')"
         ]
       )
-      @drill_through.column_labels.should == [
+      assert_equal [
         "Name", "Gender", "Description",
         "Non-existing property name"
-      ]
-      @drill_through.rows.should == @sql.select_rows(<<-SQL)
+      ], @drill_through.column_labels
+      assert_equal @sql.select_rows(<<-SQL), @drill_through.rows
         SELECT
           customers.fullname,
           customers.gender,
@@ -974,8 +978,8 @@ describe "Query" do
         ],
         group_by: true
       )
-      @drill_through.column_labels.should == [ "Product Family (Key)", "Unit Sales", "Store Cost" ]
-      @drill_through.rows.should == @sql.select_rows(<<-SQL
+      assert_equal [ "Product Family (Key)", "Unit Sales", "Store Cost" ], @drill_through.column_labels
+      assert_equal @sql.select_rows(<<-SQL
         SELECT
           product_classes.product_family,
           SUM(sales.unit_sales) AS unit_sales,
@@ -995,7 +999,7 @@ describe "Query" do
         GROUP BY
           product_classes.product_family
       SQL
-      )
+      ), @drill_through.rows
     end
   end
 
@@ -1019,11 +1023,11 @@ describe "Query" do
     end
 
     it "should return data according to role restriction" do
-      @drill_through.rows.all? { |r| r.first == "Mexico" }.should == true
+      assert_equal true, @drill_through.rows.all? { |r| r.first == "Mexico" }
     end
 
     it "should return only specified max rows" do
-      @drill_through.rows.size.should == 10
+      assert_equal 10, @drill_through.rows.size
     end
   end
 
@@ -1040,7 +1044,7 @@ describe "Query" do
     end
 
     it "should be virtual cube" do
-      @olap.cube('Sales and Warehouse').should be_virtual
+      assert @olap.cube('Sales and Warehouse').virtual?
     end
 
     it "should return specified fields from other cubes as empty strings" do
@@ -1052,18 +1056,18 @@ describe "Query" do
         '[Measures].[Units Shipped]',
         '[Measures].[Products with units shipped]'
       ])
-      @drill_through.column_labels.should == [
+      assert_equal [
         "Month (Key)",
         "Product Family (Key)",
         "City (Key)",
         "Unit Sales",
         "Units Shipped",
         "Products with units shipped"
-      ]
+      ], @drill_through.column_labels
       # Validate that only City and Unit Sales values are missing
-      @drill_through.rows.map { |r| r.map(&:present?) }.uniq.should == [
+      assert_equal [
         [true, true, false, false, true, true]
-      ]
+      ], @drill_through.rows.map { |r| r.map(&:present?) }.uniq
     end
   end
 
@@ -1077,23 +1081,23 @@ describe "Query" do
 
     it "should return column labels" do
       @drill_through = @query.execute_drill_through
-      @drill_through.column_labels.should == [
+      assert_equal [
         "Year", "Quarter", "Month", "Week", "Day",
         "Product Family", "Product Department", "Product Category", "Product Subcategory", "Brand Name", "Product Name",
         "State Province", "City", "Name", "Name (Key)",
         "Gender",
         "Unit Sales"
-      ]
+      ], @drill_through.column_labels
     end
 
     it "should return row values" do
       @drill_through = @query.execute_drill_through
-      @drill_through.rows.size.should == 15 # number of generated test rows
+      assert_equal 15, @drill_through.rows.size # number of generated test rows
     end
 
     it "should return only specified max rows" do
       drill_through = @query.execute_drill_through(:max_rows => 10)
-      drill_through.rows.size.should == 10
+      assert_equal 10, drill_through.rows.size
     end
 
     it "should return only specified fields" do
@@ -1103,30 +1107,29 @@ describe "Query" do
         '[Customers].[City]',
         '[Measures].[Unit Sales]', '[Measures].[Store Sales]'
       ])
-      @drill_through.column_labels.should == [
+      assert_equal [
         "Month",
         "Product Family",
         "City",
         "Unit Sales", "Store Sales"
-      ]
+      ], @drill_through.column_labels
     end
 
   end
 
   describe "parse expression" do
     it "should parse expression" do
-      @olap.parse_expression("1").should be_kind_of(Java::MondrianOlap::Literal)
+      assert_kind_of Java::MondrianOlap::Literal, @olap.parse_expression("1")
     end
 
     it "should raise error when invalid expression" do
       expression = "1, dummy"
-      expect {
+      error = assert_raises(Mondrian::OLAP::Error) {
         @olap.parse_expression expression
-      }.to raise_error { |e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == "mondrian.olap.MondrianException: Mondrian Error:Failed to parse query '#{expression}'"
-        e.root_cause_message.should == "Syntax error at line 1, column 2, token ','"
       }
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal "mondrian.olap.MondrianException: Mondrian Error:Failed to parse query '#{expression}'", error.message
+      assert_equal "Syntax error at line 1, column 2, token ','", error.root_cause_message
     end
   end
 
@@ -1138,7 +1141,7 @@ describe "Query" do
       @condition = "product_id = #{product_id} AND time_id = #{time_id} AND customer_id = #{customer_id}"
       # check expected initial value
       @first_unit_sales = 1
-      @sql.select_value("SELECT unit_sales FROM sales WHERE #{@condition}").to_i.should == @first_unit_sales
+      assert_equal @first_unit_sales, @sql.select_value("SELECT unit_sales FROM sales WHERE #{@condition}").to_i
     end
 
     before do
@@ -1149,7 +1152,7 @@ describe "Query" do
 
       # should still use previous value from cache
       create_olap_connection
-      query_unit_sales_value.should == @unit_sales
+      assert_equal @unit_sales, query_unit_sales_value
     end
 
     after do
@@ -1173,13 +1176,13 @@ describe "Query" do
     it "should flush schema cache" do
       @olap2.flush_schema
       create_olap_connection
-      query_unit_sales_value.should == @unit_sales + 1
+      assert_equal @unit_sales + 1, query_unit_sales_value
     end
 
     it "should remove schema by key" do
       Mondrian::OLAP::Connection.flush_schema(@olap2.schema_key)
       create_olap_connection
-      query_unit_sales_value.should == @unit_sales + 1
+      assert_equal @unit_sales + 1, query_unit_sales_value
     end
 
   end
@@ -1196,30 +1199,30 @@ describe "Query" do
     end
 
     it "should return query plan" do
-      @result.profiling_plan.strip.should == <<-EOS.strip
-Axis (COLUMNS):
-SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc, type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
-    2(name=2, class=class mondrian.olap.fun.SetFunDef$SetListCalc$2, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE)
-        Literal(name=Literal, class=class mondrian.calc.impl.ConstantCalc, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
+      assert_equal <<~EOS.strip, @result.profiling_plan.strip
+        Axis (COLUMNS):
+        SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc, type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
+            2(name=2, class=class mondrian.olap.fun.SetFunDef$SetListCalc$2, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE)
+                Literal(name=Literal, class=class mondrian.calc.impl.ConstantCalc, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
 
-Axis (ROWS):
-Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
-    CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed, class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl, type=MemberType<hierarchy=[Product]>, resultStyle=VALUE)
+        Axis (ROWS):
+        Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
+            CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed, class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl, type=MemberType<hierarchy=[Product]>, resultStyle=VALUE)
       EOS
     end
 
     it "should return SQL timing string" do
-      @result.profiling_timing_string.strip.should =~
-        %r{^SqlStatement-Segment.load invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$}
+      assert_match %r{^SqlStatement-Segment.load invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$},
+        @result.profiling_timing_string.strip
     end
 
     it "should return custom profiling string" do
-      @result.profiling_timing_string.strip.should =~
-        %r{^MDX query time invoked 1 times for total of 100ms.  \(Avg. 100ms/invocation\)$}
+      assert_match %r{^MDX query time invoked 1 times for total of 100ms.  \(Avg. 100ms/invocation\)$},
+        @result.profiling_timing_string.strip
     end
 
     it "should return total duration" do
-      @result.total_duration.should > 0
+      assert_operator @result.total_duration, :>, 0
     end
   end
 
@@ -1238,12 +1241,12 @@ Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type
     end
 
     it "should return query plan" do
-      @error.profiling_plan.should =~ /^Axis \(COLUMNS\):/
+      assert_match /^Axis \(COLUMNS\):/, @error.profiling_plan
     end
 
     it "should return timing string" do
-      @error.profiling_timing_string.should =~
-        %r{^FilterFunDef invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$}
+      assert_match %r{^FilterFunDef invoked 1 times for total of \d+ms.  \(Avg. \d+ms/invocation\)$},
+        @error.profiling_timing_string
     end
   end
 
@@ -1283,16 +1286,15 @@ Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type
     end
 
     it "should raise timeout error for long queries" do
-      expect do
+      error = assert_raises(Mondrian::OLAP::Error) do
         @olap.from('Sales').columns('[Measures].[Sleep 5]').execute(timeout: 0.1)
-      end.to raise_error do |e|
-        e.should be_kind_of(Mondrian::OLAP::Error)
-        e.message.should == 'org.olap4j.OlapException: Mondrian Error:Query timeout of 0 seconds reached'
       end
+      assert_kind_of Mondrian::OLAP::Error, error
+      assert_equal 'org.olap4j.OlapException: Mondrian Error:Query timeout of 0 seconds reached', error.message
     end
 
     it "should not raise timeout error for short queries" do
-      @olap.from('Sales').columns('[Measures].[Sleep 0]').execute(timeout: 1).values.should == [0]
+      assert_equal [0], @olap.from('Sales').columns('[Measures].[Sleep 0]').execute(timeout: 1).values
     end
   end
 

@@ -36,18 +36,18 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 
 ### Making Changes
 
-1. **Adding new schema features** - Modify `lib/mondrian/olap/schema.rb` and add corresponding specs in
-   `spec/schema_definition_spec.rb`
-2. **Extending query capabilities** - Update `lib/mondrian/olap/query.rb` and test in `spec/query_spec.rb`
-3. **Connection enhancements** - Change `lib/mondrian/olap/connection.rb` with tests in `spec/connection_spec.rb`
-4. **Cube operations** - Modify `lib/mondrian/olap/cube.rb` and add specs in `spec/cube_spec.rb`
+1. **Adding new schema features** - Modify `lib/mondrian/olap/schema.rb` and add corresponding tests in
+   `test/schema_definition_test.rb`
+2. **Extending query capabilities** - Update `lib/mondrian/olap/query.rb` and test in `test/query_test.rb`
+3. **Connection enhancements** - Change `lib/mondrian/olap/connection.rb` with tests in `test/connection_test.rb`
+4. **Cube operations** - Modify `lib/mondrian/olap/cube.rb` and add tests in `test/cube_test.rb`
 
 ### Testing Changes
 
-1. Write or update RSpec tests for the changed functionality.
-2. Run specific test file: `rspec spec/cube_spec.rb`.
-3. Run all tests with default database: `rake spec`.
-4. Test with specific databases: `rake spec:postgresql`, `rake spec:mysql`, etc.
+1. Write or update Minitest tests for the changed functionality.
+2. Run specific test file: `ruby -Itest test/cube_test.rb`.
+3. Run all tests with default database: `rake test` (with the default `mysql` database).
+4. Test with specific databases: `rake test:mysql`, `rake test:postgresql`, `rake test:sqlserver`, `rake test:oracle`.
 5. Ensure tests pass with multiple database backends before finalizing changes.
 
 ## Technology Stack
@@ -56,7 +56,7 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 - **Java** 8 or later LTS version
 - **Mondrian OLAP** Java library from a fork https://github.com/rsim/mondrian-olap-java
 - **Databases**: PostgreSQL, MySQL, Oracle, Microsoft SQL Server, ClickHouse or other JDBC compatible databases
-- **Testing**: RSpec
+- **Testing**: Minitest (with minitest-hooks)
 
 ### JRuby-Specific Considerations
 
@@ -101,16 +101,28 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 ### mise
 
 - mise might be used to manage Ruby and Java versions.
-- If mise is available then prefix ruby, rspec, rake, java calls with `mise exec --` to initialize the correct environment.
+- If mise is available then prefix ruby, rake, java calls with `mise exec --` to initialize the correct environment.
 
 ### Testing
 
-- Use RSpec for Ruby testing.
-- Run individual RSpec test file with e.g. `rspec spec/cube_spec.rb`.
-- Run all RSpec tests with `rake spec` (with the default `mysql` database).
+- Use Minitest for Ruby testing with the minitest-hooks gem for lifecycle hooks.
+- Run individual test file with e.g. `ruby -Itest test/cube_test.rb`.
+- Run all tests with `rake test` (with the default `mysql` database).
 - Run all tests with a specified database:
-  `rake spec:mysql`, `rake spec:postgresql`, `rake spec:sqlserver`, `rake spec:oracle`
-- In most cases use RSpec should syntax and not expect syntax, for example, `result.should == expected`.
-- Use RSpec expect syntax only for block expectations, for example, `expect { action }.to raise_error(SomeError)`.
-- Test data is located in `spec/support/data/` directory.
-- Database-specific schema fixtures are in `spec/fixtures/` directory.
+  `rake test:mysql`, `rake test:postgresql`, `rake test:sqlserver`, `rake test:oracle`.
+- Use Minitest Spec-style syntax with `describe` and `it` blocks. Nest `describe` blocks for logical grouping.
+- Use `before` and `after` hooks for per-test setup and teardown.
+- Use `before(:all)` and `after(:all)` hooks (from minitest-hooks) for expensive setup shared across all tests
+  in a `describe` block, such as establishing database connections or defining schemas.
+- Use standard Minitest assertions: `assert_equal`, `assert_nil`, `assert_empty`, `assert_kind_of`, `assert_match`.
+- Use `assert_raises` with a block for exception testing, for example,
+  `error = assert_raises(Mondrian::OLAP::Error) { action }`.
+- Use `refute` and `refute_nil` for negation assertions.
+- Prefer `assert_equal true, method?` and `assert_equal false, method?` for boolean methods
+  instead of simple `assert` and `refute` assertions.
+- Use the custom `assert_like` matcher for comparing XML strings with normalized whitespace.
+- Use instance variables (`@olap`, `@schema`, `@cube`) for shared state between hooks and tests.
+- Conditionally skip tests for specific database drivers using `unless` guards, for example,
+  `unless %w(vertica snowflake clickhouse).include?(MONDRIAN_DRIVER)`.
+- Test files are located in `test/` directory and follow the naming pattern `*_test.rb`.
+- Test helper and database configuration are in `test/test_helper.rb`.
