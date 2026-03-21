@@ -28,14 +28,14 @@ namespace :test do
 end
 
 namespace :db do
-  task :require_test_helper do
-    require File.expand_path("../test_helper", __FILE__)
+  task :require_database_setup do
+    require_relative "support/database_setup"
   end
 
   import_data_drivers = %w(vertica snowflake clickhouse mariadb)
 
   desc "Create test database tables"
-  task :create_tables => :require_test_helper do
+  task :create_tables => :require_database_setup do
     puts "==> Creating tables for test data"
     ActiveRecord::Schema.instance_eval do
 
@@ -144,7 +144,7 @@ namespace :db do
     end
   end
 
-  task :define_models => :require_test_helper do
+  task :define_models => :require_database_setup do
     class TimeDimension < ActiveRecord::Base
       self.table_name = "time"
       validates_presence_of :the_date
@@ -362,7 +362,7 @@ namespace :db do
     end
   end
 
-  task :import_data => :require_test_helper do
+  task :import_data => :require_database_setup do
     puts "==> Importing data"
     conn = ActiveRecord::Base.connection
 
