@@ -22,6 +22,7 @@ RDoc::Task.new do |rdoc|
 end
 
 require_relative 'spec/rake_tasks'
+require_relative 'test/rake_tasks'
 
 desc "Copy Mondrian JAR from mondrian-olap-java build to lib/mondrian/jars"
 task :copy_mondrian_jar do
