@@ -11,7 +11,7 @@ env:
   JRUBY_OPTS: -W0
 
 jobs:
-  rspec:
+  test:
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -98,15 +98,15 @@ jobs:
       - name: Run Tests
         run: |
           for driver in mysql postgresql oracle sqlserver; do
-            MONDRIAN_DRIVER=$driver bundle exec rake spec
+            MONDRIAN_DRIVER=$driver bundle exec rake test
           done
       - name: Export test data and run ClickHouse tests
         run: |
           MONDRIAN_DRIVER=mysql bundle exec rake db:export_data
           MONDRIAN_DRIVER=clickhouse bundle exec rake db:create_data
-          MONDRIAN_DRIVER=clickhouse bundle exec rake spec
+          MONDRIAN_DRIVER=clickhouse bundle exec rake test
 
-  windows-rspec:
+  windows-test:
     runs-on: windows-2025
     strategy:
       fail-fast: false
@@ -164,4 +164,4 @@ jobs:
       - name: Create Database Data
         run: bundle exec rake db:create_data
       - name: Run Tests
-        run: bundle exec rake spec:sqlserver
+        run: bundle exec rake test:sqlserver
