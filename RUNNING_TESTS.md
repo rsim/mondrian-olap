@@ -10,9 +10,9 @@ If using Vertica then specify environment variables `VERTICA_DATABASE_HOST`, `VE
 
 If using Snowflake then create `MONDRIAN_TEST` user, database and schema and specify environment variables `SNOWFLAKE_DATABASE_HOST` and `SNOWFLAKE_DATABASE_PASSWORD`.
 
-If using ClickHouse then create database user `mondrian_test` with password `mondrian_test`, create database `mondrian_test` and grant full access to this database for `mondrian_test` user. Specify environment variable `CLICKHOUSE_DATABASE_HOST`. Download the latest `clickhouse-jdbc-*-all.jar` and copy to `spec/support/jars`.
+If using ClickHouse then create database user `mondrian_test` with password `mondrian_test`, create database `mondrian_test` and grant full access to this database for `mondrian_test` user. Specify environment variable `CLICKHOUSE_DATABASE_HOST`. Download the latest `clickhouse-jdbc-*-all.jar` and copy to `test/support/jars`.
 
-If using MariaDB ColumnStore then create database user `mondrian_test` with password `mondrian_test`, create database `mondrian_test` and grant full access to this database for `mondrian_test` user. Specify environment variable `MARIADB_DATABASE_HOST`. Download `mariadb-java-client-*.jar` and copy to `spec/support/jars`.
+If using MariaDB ColumnStore then create database user `mondrian_test` with password `mondrian_test`, create database `mondrian_test` and grant full access to this database for `mondrian_test` user. Specify environment variable `MARIADB_DATABASE_HOST`. Download `mariadb-java-client-*.jar` and copy to `test/support/jars`.
 
 See `test/test_helper.rb` for details of default connection parameters and how to override them.
 

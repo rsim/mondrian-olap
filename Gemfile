@@ -5,7 +5,6 @@ ruby RUBY_VERSION, engine: 'jruby', engine_version: JRUBY_VERSION
 gemspec
 
 gem 'rake', '~> 13.3.0'
-gem 'rspec', '~> 3.13.0'
 gem 'minitest', '~> 5.25'
 gem 'minitest-hooks', '~> 1.5'
 gem 'minitest-reporters', '~> 1.7'

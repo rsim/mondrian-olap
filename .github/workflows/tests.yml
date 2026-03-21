@@ -149,7 +149,7 @@ jobs:
         run: |
           Invoke-WebRequest -Uri "https://download.microsoft.com/download/4/D/C/4DCD85FA-0041-4D2E-8DD9-833C1873978C/sqljdbc_7.2.1.0_enu.exe" -OutFile "sqljdbc_7.2.1.0_enu.exe"
           7z x sqljdbc_7.2.1.0_enu.exe -y > nul
-          Copy-Item -Path "sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar" -Destination "spec\support\jars\"
+          Copy-Item -Path "sqljdbc_7.2\enu\mssql-jdbc-7.2.1.jre8.jar" -Destination "test\support\jars\"
       - name: Setup Ruby and install gems
         uses: ruby/setup-ruby@v1
         with:

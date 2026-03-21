@@ -14,10 +14,10 @@ Gem::Specification.new do |gem|
   gem.date          = "2023-06-02"
   gem.license       = 'MIT'
 
-  gem.files         = Dir['Changelog.md', 'LICENSE*', 'README.md', 'VERSION', 'lib/**/*', 'spec/**/*', 'test/**/*'] -
-                      Dir['spec/support/jars/*']
+  gem.files         = Dir['Changelog.md', 'LICENSE*', 'README.md', 'VERSION', 'lib/**/*', 'test/**/*'] -
+                      Dir['test/support/jars/*']
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
-  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
+  gem.test_files    = gem.files.grep(%r{^test/})
   gem.require_paths = ["lib"]
   gem.extra_rdoc_files = Dir["README.md"]
 
