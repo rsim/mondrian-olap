@@ -11,26 +11,25 @@ describe "Query" do
     @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
     @sql = ActiveRecord::Base.connection
 
-    @query_string = <<-SQL
-    SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
-            {[Product].children} ON ROWS
-      FROM  [Sales]
-      WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
-    SQL
+    @query_string = <<~MDX
+      SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
+              {[Product].children} ON ROWS
+        FROM  [Sales]
+        WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
+    MDX
 
-    @sql_select = <<-SQL
-    SELECT SUM(unit_sales) unit_sales_sum, SUM(store_sales) store_sales_sum
-    FROM sales
-      LEFT JOIN products ON sales.product_id = products.id
-      LEFT JOIN product_classes ON products.product_class_id = product_classes.id
-      LEFT JOIN #{qt :time} ON sales.time_id = #{qt :time}.id
-      LEFT JOIN customers ON sales.customer_id = customers.id
-    WHERE #{qt :time}.the_year = 2010 AND #{qt :time}.quarter = 'Q1'
-      AND customers.country = 'USA' AND customers.state_province = 'CA'
-    GROUP BY product_classes.product_family
-    ORDER BY product_classes.product_family
+    @sql_select = <<~SQL
+      SELECT SUM(unit_sales) unit_sales_sum, SUM(store_sales) store_sales_sum
+      FROM sales
+        LEFT JOIN products ON sales.product_id = products.id
+        LEFT JOIN product_classes ON products.product_class_id = product_classes.id
+        LEFT JOIN #{qt :time} ON sales.time_id = #{qt :time}.id
+        LEFT JOIN customers ON sales.customer_id = customers.id
+      WHERE #{qt :time}.the_year = 2010 AND #{qt :time}.quarter = 'Q1'
+        AND customers.country = 'USA' AND customers.state_province = 'CA'
+      GROUP BY product_classes.product_family
+      ORDER BY product_classes.product_family
     SQL
-
   end
 
   def sql_select_numbers(select_string)
@@ -81,13 +80,13 @@ describe "Query" do
     it "should return column members" do
       assert_equal @expected_column_names, @result.column_members.map(&:name)
       assert_equal @expected_column_full_names, @result.column_members.map(&:full_name)
-      assert_equal @expected_drillable_columns, @result.column_members.map(&:"drillable?")
+      assert_equal @expected_drillable_columns, @result.column_members.map(&:drillable?)
     end
 
     it "should return row members" do
       assert_equal @expected_row_names, @result.row_members.map(&:name)
       assert_equal @expected_row_full_names, @result.row_members.map(&:full_name)
-      assert_equal @expected_drillable_rows, @result.row_members.map(&:"drillable?")
+      assert_equal @expected_drillable_rows, @result.row_members.map(&:drillable?)
     end
 
     it "should return cells" do
@@ -242,7 +241,8 @@ describe "Query" do
       end
 
       it "should hierarchize last set of nonempty_crossjoin" do
-        @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize
+        @query.rows('[Product].children').nonempty_crossjoin('[Customers].[Country].Members', '[Customers].[City].Members').
+          hierarchize
         assert_equal [:nonempty_crossjoin, ['[Product].children'],
           [:hierarchize, ['[Customers].[Country].Members', '[Customers].[City].Members']]], @query.rows
       end
@@ -810,7 +810,7 @@ describe "Query" do
         rows('[Product].children').
         where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
         execute
-      @drill_through = @result.drill_through(:row => 0, :column => 0)
+      @drill_through = @result.drill_through(row: 0, column: 0)
       # Ensure that column metadata are loaded before loading rows and closing result set, as tests are executed in random order.
       @drill_through.column_types
       @drill_through.column_names
@@ -871,7 +871,8 @@ describe "Query" do
     end
 
     it "should return correct row value types" do
-      expected_value_types = case MONDRIAN_DRIVER
+      expected_value_types =
+        case MONDRIAN_DRIVER
         when "oracle"
           [
             BigDecimal, String, BigDecimal, BigDecimal, BigDecimal,
@@ -896,7 +897,7 @@ describe "Query" do
     end
 
     it "should return only specified max rows" do
-      drill_through = @result.drill_through(:row => 0, :column => 0, :max_rows => 10)
+      drill_through = @result.drill_through(row: 0, column: 0, max_rows: 10)
       assert_equal 10, drill_through.rows.size
     end
   end
@@ -911,7 +912,7 @@ describe "Query" do
     end
 
     it "should return only specified fields in specified order" do
-      @drill_through = @result.drill_through(:row => 0, :column => 0, :return => [
+      @drill_through = @result.drill_through(row: 0, column: 0, return: [
         '[Time].[Month]',
         '[Customers].[City]',
         '[Product].[Product Family]',
@@ -928,7 +929,7 @@ describe "Query" do
     it "should return rows also for field dimension that is not present in the report query" do
       result = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[Canada].[BC].[Burnaby]').execute
       drill_through = result.drill_through(row: 0, column: 0, return: ["[Product].[Product Family]"])
-      assert_equal @sql.select_rows(<<-SQL), drill_through.rows
+      assert_equal @sql.select_rows(<<~SQL), drill_through.rows
         SELECT
           product_classes.product_family
         FROM
@@ -945,9 +946,9 @@ describe "Query" do
     end
 
     it "should return only nonempty measures" do
-      @drill_through = @result.drill_through(:row => 0, :column => 0,
-        :return => "[Measures].[Unit Sales], [Measures].[Store Sales]",
-        :nonempty => "[Measures].[Unit Sales]"
+      @drill_through = @result.drill_through(row: 0, column: 0,
+        return: "[Measures].[Unit Sales], [Measures].[Store Sales]",
+        nonempty: "[Measures].[Unit Sales]"
       )
       assert_equal [
         "Unit Sales", "Store Sales"
@@ -968,7 +969,7 @@ describe "Query" do
         "Name", "Gender", "Description",
         "Non-existing property name"
       ], @drill_through.column_labels
-      assert_equal @sql.select_rows(<<-SQL), @drill_through.rows
+      assert_equal @sql.select_rows(<<~SQL), @drill_through.rows
         SELECT
           customers.fullname,
           customers.gender,
@@ -1005,7 +1006,7 @@ describe "Query" do
         group_by: true
       )
       assert_equal [ "Product Family (Key)", "Unit Sales", "Store Cost" ], @drill_through.column_labels
-      assert_equal @sql.select_rows(<<-SQL
+      assert_equal @sql.select_rows(<<~SQL), @drill_through.rows
         SELECT
           product_classes.product_family,
           SUM(sales.unit_sales) AS unit_sales,
@@ -1025,7 +1026,6 @@ describe "Query" do
         GROUP BY
           product_classes.product_family
       SQL
-      ), @drill_through.rows
     end
   end
 
@@ -1074,7 +1074,7 @@ describe "Query" do
     end
 
     it "should return specified fields from other cubes as empty strings" do
-      @drill_through = @result.drill_through(:row => 0, :column => 3, :return => [
+      @drill_through = @result.drill_through(row: 0, column: 3, return: [
         '[Time].[Month]',
         '[Product].[Product Family]',
         '[Customers].[City]', # missing in Warehouse cube
@@ -1122,12 +1122,12 @@ describe "Query" do
     end
 
     it "should return only specified max rows" do
-      drill_through = @query.execute_drill_through(:max_rows => 10)
+      drill_through = @query.execute_drill_through(max_rows: 10)
       assert_equal 10, drill_through.rows.size
     end
 
     it "should return only specified fields" do
-      @drill_through = @query.execute_drill_through(:return => [
+      @drill_through = @query.execute_drill_through(return: [
         '[Time].[Month]',
         '[Product].[Product Family]',
         '[Customers].[City]',
@@ -1220,7 +1220,8 @@ describe "Query" do
         @olap.close
       end
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG)
-      @result = @olap.execute "SELECT [Measures].[Unit Sales] ON COLUMNS, [Product].Children ON ROWS FROM [Sales]", profiling: true
+      @result = @olap.execute "SELECT [Measures].[Unit Sales] ON COLUMNS, [Product].Children ON ROWS FROM [Sales]",
+        profiling: true
       @result.profiling_mark_full("MDX query time", 100)
     end
 

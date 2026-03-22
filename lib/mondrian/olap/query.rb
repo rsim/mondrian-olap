@@ -59,6 +59,7 @@ module Mondrian
       def except(*axis_members)
         validate_current_set
         raise ArgumentError, "specify set of members for except method" if axis_members.empty?
+
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
         add_last_set_function :except, members
         self
@@ -100,6 +101,7 @@ module Mondrian
           'ALL'
         end
         raise ArgumentError, "specify set of members for generate method" if axis_members.empty?
+
         members = axis_members.length == 1 && axis_members[0].is_a?(Array) ? axis_members[0] : axis_members
         add_current_set_function :generate, members, all
         self
@@ -140,6 +142,7 @@ module Mondrian
         validate_current_set
         order = order && order.to_s.upcase
         raise ArgumentError, "invalid hierarchize order #{order.inspect}" unless order.nil? || order == 'POST'
+
         if all.nil?
           add_last_set_function :hierarchize, order
         else
@@ -195,6 +198,7 @@ module Mondrian
             raise ArgumentError, "named set cannot be empty"
           else
             raise ArgumentError, "cannot use 'as' method before with_set method" unless @current_set.empty?
+
             if params.length == 1 && params[0].is_a?(Array)
               @current_set.concat(params[0])
             else
@@ -208,7 +212,7 @@ module Mondrian
             options = params.pop
             # If formatter does not include . then it should be ruby formatter name
             if (formatter = options[:cell_formatter]) && !formatter.include?('.')
-              options = options.merge(:cell_formatter => Mondrian::OLAP::Schema::CellFormatter.new(formatter).class_name)
+              options = options.merge(cell_formatter: Mondrian::OLAP::Schema::CellFormatter.new(formatter).class_name)
             end
           else
             options = nil
@@ -216,6 +220,7 @@ module Mondrian
           raise ArgumentError, "cannot use 'as' method before with_member method" unless member_definition &&
             member_definition[0] == :member && member_definition.length == 2
           raise ArgumentError, "calculated member definition should be single expression" unless params.length == 1
+
           member_definition << params[0]
           member_definition << options if options
         end
@@ -247,7 +252,7 @@ module Mondrian
 
       def validate_current_set
         unless @current_set
-          method_name = caller_locations(1,1).first&.label
+          method_name = caller_locations(1, 1).first&.label
           raise ArgumentError, "cannot use #{method_name} method before axis or with_set method"
         end
       end
@@ -372,7 +377,7 @@ module Mondrian
       def where_to_mdx
         # Generate set MDX expression
         if @where[0].is_a?(Symbol) ||
-            @where.length > 1 && @where.map{|full_name| extract_dimension_name(full_name)}.uniq.length == 1
+            @where.length > 1 && @where.map { |full_name| extract_dimension_name(full_name) }.uniq.length == 1
           members_to_mdx(@where)
         # Generate tuple MDX expression
         else

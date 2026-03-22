@@ -148,6 +148,7 @@ module Mondrian
           axes_count.times do |i|
             axis_symbol = AXIS_SYMBOLS[i]
             raise ArgumentError, "missing position #{axis_symbol.inspect}" unless axis_position = params[axis_symbol]
+
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
@@ -398,7 +399,8 @@ module Mondrian
             if left_table_from_part = new_from_parts.detect { |from_part| from_part.include?(left_table_alias) }
               left_table_from_part << outer_join
             else
-              raise ArgumentError, "cannot extract outer join left table #{left_table_alias} in drill through SQL: #{sql_extended}"
+              raise ArgumentError,
+                "cannot extract outer join left table #{left_table_alias} in drill through SQL: #{sql_extended}"
             end
           end
 
@@ -429,13 +431,14 @@ module Mondrian
             if fields = params[:return]
               fields = fields.split(/,\s*/) if fields.is_a? String
               fields.each do |field|
-                return_fields << case field
-                  when /\AName\((.*)\)\z/i then
-                    { member_full_name: $1, type: :name }
-                  when /\AProperty\((.*)\s*,\s*'(.*)'\)\z/i then
-                    { member_full_name: $1, type: :property, name: $2 }
+                return_fields <<
+                  case field
+                  when /\AName\((.*)\)\z/i
+                    {member_full_name: $1, type: :name}
+                  when /\AProperty\((.*)\s*,\s*'(.*)'\)\z/i
+                    {member_full_name: $1, type: :property, name: $2}
                   else
-                    { member_full_name: field }
+                    {member_full_name: field}
                   end
               end
 
@@ -464,7 +467,8 @@ module Mondrian
                 return_fields[i][:member] = level_or_member
 
                 if level_or_member.is_a? Java::MondrianOlap::Member
-                  raise ArgumentError, "cannot use calculated member #{member_full_name} as return field" if level_or_member.isCalculated
+                  raise ArgumentError,
+                    "cannot use calculated member #{member_full_name} as return field" if level_or_member.isCalculated
                 elsif !level_or_member.is_a? Java::MondrianOlap::Level
                   raise ArgumentError, "return field #{member_full_name} should be level or measure"
                 end
@@ -484,6 +488,7 @@ module Mondrian
                 member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
                 if member.is_a? Java::MondrianOlap::Member
                   raise ArgumentError, "cannot use calculated member #{nonempty_field} as nonempty field" if member.isCalculated
+
                   sql_query = member.getStarMeasure.getSqlQuery
                   member.getStarMeasure.generateExprString(sql_query)
                 else
@@ -554,10 +559,11 @@ module Mondrian
           # For each unique level field add a set of fields to be able to build level member full name from database query results
           fields.map { |f| f[:member] }.uniq.each_with_index do |level_or_member, i|
             next if level_or_member.is_a?(Java::MondrianOlap::Member)
+
             current_level = level_or_member
             loop do
               # Create an additional field name using a pattern "_level:<Fieldset ID>:<Level depth>"
-              fields << { member: current_level, type: :name_or_key, name: "_level:#{i}:#{current_level.getDepth}" }
+              fields << {member: current_level, type: :name_or_key, name: "_level:#{i}:#{current_level.getDepth}"}
               add_sql_attributes fields.last, options
               break unless (current_level = current_level.getParentLevel) && !current_level.isAll
             end
@@ -623,11 +629,11 @@ module Mondrian
       end
 
       AXIS_SYMBOL_TO_NUMBER = {
-        :columns => 0,
-        :rows => 1,
-        :pages => 2,
-        :sections => 3,
-        :chapters => 4
+        columns: 0,
+        rows: 1,
+        pages: 2,
+        sections: 3,
+        chapters: 4
       }.freeze
 
       def recursive_values(value_method, axes_sequence, current_index, cell_params = [])

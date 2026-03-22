@@ -22,6 +22,7 @@ if (mondrian_olap_jar_path = ENV['MONDRIAN_OLAP_JAR_PATH'])
 end
 Dir["#{directory}/*.jar"].each do |file|
   next if mondrian_olap_jar_path && File.basename(file) =~ /\Amondrian-/
+
   require file
 end
 require mondrian_olap_jar_path if mondrian_olap_jar_path

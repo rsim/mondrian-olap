@@ -217,6 +217,7 @@ module Mondrian
       def locale=(locale)
         locale_elements = locale.to_s.split('_')
         raise ArgumentError, "invalid locale string #{locale.inspect}" unless [1, 2, 3].include?(locale_elements.length)
+
         java_locale = Java::JavaUtil::Locale.new(*locale_elements)
         @raw_connection.setLocale(java_locale)
       end
@@ -423,6 +424,7 @@ module Mondrian
       def jdbc_uri_clickhouse
         protocol_prefix = if protocol = @params[:protocol]
           raise ArgumentError, "invalid protocol #{protocol}" unless protocol =~ /\A\w+\z/
+
           ":#{protocol}"
         end
         uri_prefix = "jdbc:ch#{protocol_prefix}://"

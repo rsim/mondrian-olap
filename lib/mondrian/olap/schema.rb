@@ -168,7 +168,8 @@ module Mondrian
 
       class Join < SchemaElement
         attributes :left_key, :right_key, :left_alias, :right_alias
-        data_dictionary_names :left_key, :right_key, :left_alias, :right_alias # values in XML will be uppercased when using Oracle driver
+        # Values in XML will be uppercased when using Oracle driver
+        data_dictionary_names :left_key, :right_key, :left_alias, :right_alias
         elements :table, :join
       end
 
@@ -206,7 +207,7 @@ module Mondrian
           # Indicates the Java type that Mondrian uses to store this level's key column.
           # It also determines the JDBC method that Mondrian will call to retrieve the column;
           # for example, if the Java type is 'int', Mondrian will call 'ResultSet.getInt(int)'.
-          # Usually this attribute is not needed, because Mondrian can choose a sensible type based on the type of the database column.
+          # Usually this attribute is not needed, because Mondrian can choose a sensible type based on the type of the column.
           # Allowable values are: 'int', 'long', 'Object', 'String'.
           :internal_type,
           # Whether members are unique across all parents.
@@ -230,8 +231,10 @@ module Mondrian
           # The estimated number of members in this level. Setting this property improves the performance of
           # MDSCHEMA_LEVELS, MDSCHEMA_HIERARCHIES and MDSCHEMA_DIMENSIONS XMLA requests
           :approx_row_count
-        data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column, :caption_column # values in XML will be uppercased when using Oracle driver
-        elements :annotations, :key_expression, :name_expression, :ordinal_expression, :caption_expression, :member_formatter, :property
+        # Values in XML will be uppercased when using Oracle driver
+        data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column, :caption_column
+        elements :annotations, :key_expression, :name_expression, :ordinal_expression, :caption_expression, :member_formatter,
+          :property
 
         def initialize(name = nil, attributes = {}, parent = nil)
           super
@@ -314,7 +317,8 @@ module Mondrian
           :dimension,
           # Full unique name of the hierarchy that this member belongs to.
           :hierarchy,
-          # Fully-qualified name of the parent member. If not specified, the member will be at the lowest level (besides the 'all' level) in the hierarchy.
+          # Fully-qualified name of the parent member. If not specified, the member will be at the lowest level
+          # (besides the 'all' level) in the hierarchy.
           :parent,
           # Format string with which to format cells of this measure. For more details, see the mondrian.util.Format class.
           :format_string,
@@ -329,8 +333,8 @@ module Mondrian
 
       class CalculatedMemberProperty < SchemaElement
         attributes :name, :description, :caption,
-          # MDX expression which defines the value of this property. If the expression is a constant string, you could enclose it in quotes,
-          # or just specify the 'value' attribute instead.
+          # MDX expression which defines the value of this property. If the expression is a constant string,
+          # you could enclose it in quotes, or just specify the 'value' attribute instead.
           :expression,
           # Value of this property. If the value is not constant, specify the 'expression' attribute instead.
           :value

@@ -9,10 +9,10 @@ require 'activerecord-jdbc-adapter'
 # Autoload corresponding JDBC driver during require 'jdbc/...'
 Java::JavaLang::System.setProperty("jdbc.driver.autoload", "true")
 
-MONDRIAN_DRIVER   = ENV['MONDRIAN_DRIVER']   || 'mysql'
+MONDRIAN_DRIVER = ENV['MONDRIAN_DRIVER'] || 'mysql'
 env_prefix = MONDRIAN_DRIVER.upcase
 
-DATABASE_HOST     = ENV["#{env_prefix}_DATABASE_HOST"]     || ENV['DATABASE_HOST']     || 'localhost'
+DATABASE_HOST     = ENV["#{env_prefix}_DATABASE_HOST"]     || ENV['DATABASE_HOST'] || 'localhost'
 DATABASE_PORT     = ENV["#{env_prefix}_DATABASE_PORT"]     || ENV['DATABASE_PORT']
 DATABASE_PROTOCOL = ENV["#{env_prefix}_DATABASE_PROTOCOL"] || ENV['DATABASE_PROTOCOL']
 DATABASE_USER     = ENV["#{env_prefix}_DATABASE_USER"]     || ENV['DATABASE_USER']     || 'mondrian_test'
@@ -45,6 +45,7 @@ when 'oracle'
     require 'active_record/connection_adapters/oracle_enhanced_adapter'
   rescue NameError => e
     raise e unless e.message =~ /undefined field 'map'/
+
     $LOADED_FEATURES <<
       File.expand_path("active_record/connection_adapters/oracle_enhanced_adapter.rb", $:.grep(/oracle_enhanced/).first)
   end
@@ -233,6 +234,7 @@ when 'clickhouse'
       case type.to_sym
       when :integer, :primary_key
         return 'Int32' unless limit
+
         case limit.to_i
         when 1 then 'Int8'
         when 2 then 'Int16'
@@ -289,6 +291,7 @@ when 'mariadb'
       case type.to_sym
       when :integer, :primary_key
         return 'integer' unless limit
+
         case limit.to_i
         when 1 then 'tinyint'
         when 2 then 'smallint'

@@ -915,9 +915,9 @@ describe "Schema definition" do
               hierarchy all_member_name: 'All Customers', primary_key: 'id' do
                 table 'customers'
                 level 'Name', column: 'fullname' do
-                  member_formatter { ruby {|member| member.getName().upcase } }
+                  member_formatter { ruby { |member| member.getName().upcase } }
                   property 'City', column: 'city' do
-                    property_formatter { ruby {|member, property_name, property_value| property_value.upcase} }
+                    property_formatter { ruby { |member, property_name, property_value| property_value.upcase } }
                   end
                 end
               end
@@ -925,7 +925,7 @@ describe "Schema definition" do
             calculated_member 'Factorial' do
               dimension 'Measures'
               formula 'Factorial(6)'
-              cell_formatter { ruby {|value| "%020d" % value} }
+              cell_formatter { ruby { |value| "%020d" % value } }
             end
             calculated_member 'City' do
               dimension 'Measures'
@@ -1037,7 +1037,7 @@ describe "Schema definition" do
 
       it "should execute user defined function" do
         result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
-        value = 1*2*3*4*5*6
+        value = 1 * 2 * 3 * 4 * 5 * 6
         assert_equal [value], result.values
         assert_equal ["%020d" % value], result.formatted_values
       end
@@ -1420,7 +1420,8 @@ describe "Schema definition" do
               columns('[Measures].[Current User]').execute('Default User' => 'test')
         }
         assert_kind_of Mondrian::OLAP::Error, error
-        assert_equal "mondrian.olap.MondrianException: Mondrian Error:Parameter 'Default User' (defined at 'Schema' scope) is not modifiable", error.message
+        assert_equal "mondrian.olap.MondrianException: Mondrian Error:Parameter 'Default User' (defined at 'Schema' scope)" \
+          " is not modifiable", error.message
         assert_equal "Parameter 'Default User' (defined at 'Schema' scope) is not modifiable", error.root_cause_message
       end
     end
@@ -1475,8 +1476,7 @@ describe "Schema definition" do
 
     it "should raise error when invalid schema" do
       @schema.define do
-        cube 'Sales' do
-        end
+        cube 'Sales'
       end
       error = assert_raises(Mondrian::OLAP::Error) {
         Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))

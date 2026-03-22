@@ -117,15 +117,10 @@ describe "Cube" do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
           DELETE FROM sales
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA'
-                                            AND city = 'Berkeley')
+          WHERE time_id IN
+              (SELECT id FROM   #{qt :time} WHERE  the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA' AND city = 'Berkeley')
         SQL
         @cube.flush_region_cache_with_segments(%w(Time 2010 Q1), %w(Customers USA CA))
         assert_equal [6756.4296, 11156.28], @olap.execute(@query).values
@@ -135,14 +130,10 @@ describe "Cube" do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
           DELETE FROM sales
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA')
+          WHERE time_id IN
+              (SELECT id FROM #{qt :time} WHERE the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA')
         SQL
         @cube.flush_region_cache_with_segments(%w(Time 2010 Q1), %w(Customers USA CA))
         assert_equal [nil, nil], @olap.execute(@query).values
@@ -151,18 +142,11 @@ describe "Cube" do
       it 'should clear cache for update data at lower level with segments' do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
-          UPDATE sales SET
-              store_sales = store_sales + 1,
-              store_cost = store_cost + 1
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA'
-                                            AND city = 'Berkeley')
+          UPDATE sales SET store_sales = store_sales + 1, store_cost = store_cost + 1
+          WHERE time_id IN
+              (SELECT id FROM #{qt :time} WHERE the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA' AND city = 'Berkeley')
         SQL
         @cube.flush_region_cache_with_segments(%w(Time 2010 Q1), %w(Customers USA CA))
         assert_equal [6891.553, 11391.4], @olap.execute(@query).values
@@ -171,17 +155,11 @@ describe "Cube" do
       it 'should clear cache for update data at same level with segments' do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
-          UPDATE sales SET
-              store_sales = store_sales + 1,
-              store_cost = store_cost + 1
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA')
+          UPDATE sales SET store_sales = store_sales + 1, store_cost = store_cost + 1
+          WHERE time_id IN
+              (SELECT id FROM #{qt :time} WHERE the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA')
         SQL
         @cube.flush_region_cache_with_segments(%w(Time 2010 Q1), %w(Customers USA CA))
         assert_equal [6935.553, 11435.4], @olap.execute(@query).values
@@ -191,15 +169,10 @@ describe "Cube" do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
           DELETE FROM sales
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA'
-                                            AND city = 'Berkeley')
+          WHERE time_id IN
+              (SELECT id FROM #{qt :time} WHERE the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA' AND city = 'Berkeley')
         SQL
         @cube.flush_region_cache_with_full_names('[Time].[2010].[Q1]', '[Customers].[USA].[CA]')
         assert_equal [6756.4296, 11156.28], @olap.execute(@query).values
@@ -209,14 +182,10 @@ describe "Cube" do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
           DELETE FROM sales
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA')
+          WHERE time_id IN
+              (SELECT id FROM #{qt :time} WHERE the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA')
         SQL
         @cube.flush_region_cache_with_full_names('[Time].[2010].[Q1]', '[Customers].[USA].[CA]')
         assert_equal [nil, nil], @olap.execute(@query).values
@@ -225,18 +194,11 @@ describe "Cube" do
       it 'should clear cache for update data at lower level with members' do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
-          UPDATE sales SET
-              store_sales = store_sales + 1,
-              store_cost = store_cost + 1
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA'
-                                            AND city = 'Berkeley')
+          UPDATE sales SET store_sales = store_sales + 1, store_cost = store_cost + 1
+          WHERE time_id IN
+              (SELECT id FROM #{qt :time} WHERE the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA' AND city = 'Berkeley')
         SQL
         @cube.flush_region_cache_with_full_names('[Time].[2010].[Q1]', '[Customers].[USA].[CA]')
         assert_equal [6891.553, 11391.4], @olap.execute(@query).values
@@ -245,17 +207,11 @@ describe "Cube" do
       it 'should clear cache for update data at same level with members' do
         assert_equal [6890.553, 11390.4], @olap.execute(@query).values
         @connection.execute <<~SQL
-          UPDATE sales SET
-              store_sales = store_sales + 1,
-              store_cost = store_cost + 1
-          WHERE  time_id IN (SELECT id
-                             FROM   #{qt :time}
-                             WHERE  the_year = 2010
-                                    AND quarter = 'Q1')
-                 AND customer_id IN (SELECT id
-                                     FROM   customers
-                                     WHERE  country = 'USA'
-                                            AND state_province = 'CA')
+          UPDATE sales SET store_sales = store_sales + 1, store_cost = store_cost + 1
+          WHERE time_id IN
+              (SELECT id FROM #{qt :time} WHERE the_year = 2010 AND quarter = 'Q1')
+            AND customer_id IN
+              (SELECT id FROM customers WHERE country = 'USA' AND state_province = 'CA')
         SQL
         @cube.flush_region_cache_with_full_names('[Time].[2010].[Q1]', '[Customers].[USA].[CA]')
         assert_equal [6935.553, 11435.4], @olap.execute(@query).values

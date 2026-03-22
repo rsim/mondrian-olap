@@ -54,6 +54,7 @@ module Mondrian
 
       def self.data_dictionary_names(*names)
         return @data_dictionary_names || [] if names.empty?
+
         @data_dictionary_names ||= []
         @data_dictionary_names.concat(names)
       end
@@ -66,6 +67,7 @@ module Mondrian
 
         names.each do |name|
           next if name == :xml
+
           attr_reader pluralize(name).to_sym
           class_eval <<-RUBY, __FILE__, __LINE__ + 1
             def #{name}(name=nil, attributes = {}, &block)
@@ -92,6 +94,7 @@ module Mondrian
 
       def self.content(type = nil)
         return @content if type.nil?
+
         attr_reader :content
         @content = type
       end
@@ -101,6 +104,7 @@ module Mondrian
         string = string.strip
         fragment = Nokogiri::XML::DocumentFragment.parse(string)
         raise ArgumentError, "Invalid XML fragment:\n#{string}" if fragment.children.empty?
+
         @xml_fragments << string
       end
 

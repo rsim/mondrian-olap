@@ -106,6 +106,7 @@ module Mondrian
             if type
               type = stringify(type)
               raise ArgumentError, "invalid user defined function type #{type.inspect}" unless VALID_SYNTAX_TYPES.include? type
+
               @syntax = type
             else
               @syntax || 'Function'
