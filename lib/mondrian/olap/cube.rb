@@ -258,6 +258,7 @@ module Mondrian
         Error.wrap_native_exception do
           parent_member = if parent_member_segment_names.empty?
             return root_member_names unless has_all?
+
             all_member
           else
             @dimension.cube.member_by_segments(*parent_member_segment_names)
@@ -410,6 +411,7 @@ module Mondrian
 
       def drillable?
         return false if calculated?
+
         # @raw_member.getChildMemberCount > 0
         # This hopefully is faster than counting actual child members
         raw_level = @raw_member.getLevel

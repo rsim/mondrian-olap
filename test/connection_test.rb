@@ -47,7 +47,8 @@ describe "Connection" do
       schema_field = @olap.raw_schema.getClass.getDeclaredField("schema")
       schema_field.setAccessible(true)
       private_schema = schema_field.get(@olap.raw_schema)
-      assert_equal case MONDRIAN_DRIVER.split('_').last
+      assert_equal \
+        case MONDRIAN_DRIVER.split('_').last
         when 'mysql' then 'mondrian.spi.impl.MySqlDialect'
         when 'postgresql' then 'mondrian.spi.impl.PostgreSqlDialect'
         when 'oracle' then 'mondrian.spi.impl.OracleDialect'

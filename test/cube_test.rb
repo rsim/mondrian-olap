@@ -238,7 +238,8 @@ describe "Cube" do
     end
 
     it "should get hierarchy levels" do
-      assert_equal ['(All)', 'Country', 'State Province', 'City', 'Name'], @cube.dimension('Customers').hierarchy.levels.map(&:name)
+      assert_equal ['(All)', 'Country', 'State Province', 'City', 'Name'],
+        @cube.dimension('Customers').hierarchy.levels.map(&:name)
     end
 
     it "should get hierarchy level names" do
