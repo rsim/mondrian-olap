@@ -393,277 +393,291 @@ describe "Query" do
 
     describe "to MDX" do
       it "should return MDX query" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').
-          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
+          to_mdx
       end
 
       it "should return query with crossjoin" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-          where('[Time].[2010].[Q1]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1])
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          where('[Time].[2010].[Q1]').
+          to_mdx
       end
 
       it "should return query with several crossjoins" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-          crossjoin('[Time].[2010].[Q1]', '[Time].[2010].[Q2]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     CROSSJOIN(CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}),
                               {[Time].[2010].[Q1], [Time].[2010].[Q2]}) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          crossjoin('[Time].[2010].[Q1]', '[Time].[2010].[Q2]').
+          to_mdx
       end
 
       it "should return query with crossjoin and nonempty" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').nonempty.
-          where('[Time].[2010].[Q1]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     NON EMPTY CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1])
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').nonempty.
+          where('[Time].[2010].[Q1]').
+          to_mdx
       end
 
       it "should return query with nonempty_crossjoin" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-          where('[Time].[2010].[Q1]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     NONEMPTYCROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]}) ON ROWS
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1])
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').nonempty_crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          where('[Time].[2010].[Q1]').
+          to_mdx
       end
 
       it "should return query with where with several same dimension members" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').
-          where('[Customers].[Canada]', '[Customers].[USA]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE {[Customers].[Canada], [Customers].[USA]}
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Customers].[Canada]', '[Customers].[USA]').
+          to_mdx
       end
 
       it "should return query with where with several different dimension members returned by function" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').
-          where('Head([Customers].Members).Item(0)', 'Head([Gender].Members).Item(0)').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE (Head([Customers].Members).Item(0), Head([Gender].Members).Item(0))
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('Head([Customers].Members).Item(0)', 'Head([Gender].Members).Item(0)').
+          to_mdx
       end
 
       it "should return query with where with crossjoin" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').
-          where('[Customers].[USA]').crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE CROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Customers].[USA]').crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
+          to_mdx
       end
 
       it "should return query with where with nonempty_crossjoin" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').
-          where('[Customers].[USA]').nonempty_crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     [Product].children ON ROWS
               FROM  [Sales]
               WHERE NONEMPTYCROSSJOIN({[Customers].[USA]}, {[Time].[2011].[Q1], [Time].[2011].[Q2]})
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Customers].[USA]').nonempty_crossjoin('[Time].[2011].[Q1]', '[Time].[2011].[Q2]').
+          to_mdx
       end
 
       it "should return query with order by one measure" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').order('[Measures].[Unit Sales]', :bdesc).
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     ORDER([Product].children, [Measures].[Unit Sales], BDESC) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').order('[Measures].[Unit Sales]', :bdesc).
+          to_mdx
       end
 
       it "should return query with order by measure and other member" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').order(['[Measures].[Unit Sales]', '[Customers].[USA]'], :asc).
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     ORDER([Product].children, ([Measures].[Unit Sales], [Customers].[USA]), ASC) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').order(['[Measures].[Unit Sales]', '[Customers].[USA]'], :asc).
+          to_mdx
       end
 
       %w(top bottom).each do |extreme|
         it "should return query with #{extreme} count by one measure" do
-          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-            rows('[Product].children').send(:"#{extreme}_count", 5, '[Measures].[Unit Sales]').
-            to_mdx, <<~MDX
+          assert_like <<~MDX,
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}COUNT([Product].children, 5, [Measures].[Unit Sales]) ON ROWS
                 FROM  [Sales]
             MDX
+            @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_count", 5, '[Measures].[Unit Sales]').
+            to_mdx
         end
 
         it "should return query with #{extreme} count without measure" do
-          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-            rows('[Product].children').send(:"#{extreme}_count", 5).
-            to_mdx, <<~MDX
+          assert_like <<~MDX,
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}COUNT([Product].children, 5) ON ROWS
                 FROM  [Sales]
             MDX
+            @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_count", 5).
+            to_mdx
         end
 
         it "should return query with #{extreme} count by measure and other member" do
-          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-            rows('[Product].children').send(:"#{extreme}_count", 5, ['[Measures].[Unit Sales]', '[Customers].[USA]']).
-            to_mdx, <<~MDX
+          assert_like <<~MDX,
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}COUNT([Product].children, 5, ([Measures].[Unit Sales], [Customers].[USA])) ON ROWS
                 FROM  [Sales]
             MDX
+            @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_count", 5, ['[Measures].[Unit Sales]', '[Customers].[USA]']).
+            to_mdx
         end
 
         it "should return query with #{extreme} percent by one measure" do
-          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-            rows('[Product].children').send(:"#{extreme}_percent", 20, '[Measures].[Unit Sales]').
-            to_mdx, <<~MDX
+          assert_like <<~MDX,
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}PERCENT([Product].children, 20, [Measures].[Unit Sales]) ON ROWS
                 FROM  [Sales]
             MDX
+            @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_percent", 20, '[Measures].[Unit Sales]').
+            to_mdx
         end
 
         it "should return query with #{extreme} sum by one measure" do
-          assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-            rows('[Product].children').send(:"#{extreme}_sum", 1000, '[Measures].[Unit Sales]').
-            to_mdx, <<~MDX
+          assert_like <<~MDX,
               SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                       #{extreme.upcase}SUM([Product].children, 1000, [Measures].[Unit Sales]) ON ROWS
                 FROM  [Sales]
             MDX
+            @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+            rows('[Product].children').send(:"#{extreme}_sum", 1000, '[Measures].[Unit Sales]').
+            to_mdx
         end
       end
 
       it "should return query with hierarchize" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize.
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     HIERARCHIZE({[Customers].[Country].Members, [Customers].[City].Members}) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize.
+          to_mdx
       end
 
       it "should return query with hierarchize and order" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize(:post).
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     HIERARCHIZE({[Customers].[Country].Members, [Customers].[City].Members}, POST) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members', '[Customers].[City].Members').hierarchize(:post).
+          to_mdx
       end
 
       it "should return query with except" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members').except('[Customers].[USA]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     EXCEPT([Customers].[Country].Members, {[Customers].[USA]}) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').except('[Customers].[USA]').
+          to_mdx
       end
 
       it "should return query with filter" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members').filter('[Measures].[Unit Sales] > 1000').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members, [Measures].[Unit Sales] > 1000) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').filter('[Measures].[Unit Sales] > 1000').
+          to_mdx
       end
 
       it "should return query with filter and set alias" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', as: 'S').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').filter('NOT ISEMPTY(S.CURRENT)', as: 'S').
+          to_mdx
       end
 
       it "should return query with filter non-empty" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members').filter_nonempty.
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     FILTER([Customers].[Country].Members AS S, NOT ISEMPTY(S.CURRENT)) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').filter_nonempty.
+          to_mdx
       end
 
       it "should return query with generate" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members').generate('[Customers].CurrentMember').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     GENERATE([Customers].[Country].Members, [Customers].CurrentMember) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').generate('[Customers].CurrentMember').
+          to_mdx
       end
 
       it "should return query with generate all" do
-        assert_like @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Customers].[Country].Members').generate('[Customers].CurrentMember', :all).
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             SELECT  {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS,
                     GENERATE([Customers].[Country].Members, [Customers].CurrentMember, ALL) ON ROWS
               FROM  [Sales]
           MDX
+          @query.columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Customers].[Country].Members').generate('[Customers].CurrentMember', :all).
+          to_mdx
       end
 
       it "should return query including WITH MEMBER clause" do
-        assert_like @query.
-          with_member('[Measures].[ProfitPct]').
-            as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
-              solve_order: 1, format_string: 'Percent', caption: 'Profit %').
-          with_member('[Measures].[ProfitValue]').
-            as('[Measures].[Store Sales] * [Measures].[ProfitPct]',
-              solve_order: 2, cell_formatter: 'CurrencyFormatter').
-          columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
-          rows('[Product].children').
-          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             WITH
                MEMBER [Measures].[ProfitPct] AS
                'Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
@@ -676,20 +690,21 @@ describe "Query" do
               FROM  [Sales]
               WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
           MDX
+          @query.
+          with_member('[Measures].[ProfitPct]').
+            as('Val((Measures.[Store Sales] - Measures.[Store Cost]) / Measures.[Store Sales])',
+              solve_order: 1, format_string: 'Percent', caption: 'Profit %').
+          with_member('[Measures].[ProfitValue]').
+            as('[Measures].[Store Sales] * [Measures].[ProfitPct]',
+              solve_order: 2, cell_formatter: 'CurrencyFormatter').
+          columns('[Measures].[Unit Sales]', '[Measures].[Store Sales]').
+          rows('[Product].children').
+          where('[Time].[2010].[Q1]', '[Customers].[USA].[CA]').
+          to_mdx
       end
 
       it "should return query including WITH SET clause" do
-        assert_like @query.with_set('CrossJoinSet').
-            as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
-          with_set('MemberSet').as('[Product].[All Products]').
-          with_set('FunctionSet').as('[Product].AllMembers').
-          with_set('ItemSet').as('[Product].AllMembers.Item(0)').
-          with_set('DefaultMemberSet').as('[Product].DefaultMember').
-          with_member('[Measures].[Profit]').
-            as('[Measures].[Store Sales] - [Measures].[Store Cost]').
-          columns('[Measures].[Profit]').
-          rows('CrossJoinSet').
-          to_mdx, <<~MDX
+        assert_like <<~MDX,
             WITH
                SET CrossJoinSet AS 'CROSSJOIN([Product].children, {[Customers].[Canada], [Customers].[USA]})'
                SET MemberSet AS '{[Product].[All Products]}'
@@ -702,6 +717,17 @@ describe "Query" do
                     CrossJoinSet ON ROWS
               FROM  [Sales]
           MDX
+          @query.with_set('CrossJoinSet').
+            as('[Product].children').crossjoin('[Customers].[Canada]', '[Customers].[USA]').
+          with_set('MemberSet').as('[Product].[All Products]').
+          with_set('FunctionSet').as('[Product].AllMembers').
+          with_set('ItemSet').as('[Product].AllMembers.Item(0)').
+          with_set('DefaultMemberSet').as('[Product].DefaultMember').
+          with_member('[Measures].[Profit]').
+            as('[Measures].[Store Sales] - [Measures].[Store Cost]').
+          columns('[Measures].[Profit]').
+          rows('CrossJoinSet').
+          to_mdx
       end
     end
 
@@ -1199,15 +1225,21 @@ describe "Query" do
     end
 
     it "should return query plan" do
-      assert_equal <<~EOS.strip, @result.profiling_plan.strip
+      assert_like <<~EOS, @result.profiling_plan
         Axis (COLUMNS):
-        SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc, type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
-            2(name=2, class=class mondrian.olap.fun.SetFunDef$SetListCalc$2, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE)
-                Literal(name=Literal, class=class mondrian.calc.impl.ConstantCalc, type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
+        SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc,
+                    type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
+            2(name=2, class=class mondrian.olap.fun.SetFunDef$SetListCalc$2,
+                    type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE)
+                Literal(name=Literal, class=class mondrian.calc.impl.ConstantCalc,
+                    type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
 
         Axis (ROWS):
-        Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1, type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
-            CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed, class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl, type=MemberType<hierarchy=[Product]>, resultStyle=VALUE)
+        Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1,
+                    type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
+            CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed,
+                    class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl,
+                    type=MemberType<hierarchy=[Product]>, resultStyle=VALUE)
       EOS
     end
 

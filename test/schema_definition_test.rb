@@ -11,28 +11,31 @@ describe "Schema definition" do
 
     describe "root element" do
       it "should render to XML" do
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema/>
         XML
+        @schema.to_xml
       end
 
       it "should render to XML with attributes" do
         @schema.define('FoodMart') do
           description 'Demo "FoodMart" schema āčē'
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema description="Demo &quot;FoodMart&quot; schema āčē" name="FoodMart"/>
         XML
+        @schema.to_xml
       end
 
       it "should render to XML using class method" do
         schema = Mondrian::OLAP::Schema.define('FoodMart')
-        assert_like schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="FoodMart"/>
         XML
+        schema.to_xml
       end
     end
 
@@ -46,12 +49,13 @@ describe "Schema definition" do
             enabled true
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render to XML using options hash" do
@@ -59,12 +63,13 @@ describe "Schema definition" do
           cube 'Sales', default_measure: 'Unit Sales',
             description: 'Sales cube', cache: false, enabled: true
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube cache="false" defaultMeasure="Unit Sales" description="Sales cube" enabled="true" name="Sales"/>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -75,7 +80,7 @@ describe "Schema definition" do
             table 'sales_fact', alias: 'sales'
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -83,6 +88,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render table name in uppercase when using Oracle or Snowflake driver" do
@@ -92,7 +98,7 @@ describe "Schema definition" do
           end
         end
         %w(oracle snowflake).each do |driver|
-          assert_like @schema.to_xml(driver: driver), <<~XML
+          assert_like <<~XML,
             <?xml version="1.0" encoding="UTF-8"?>
             <Schema name="default">
               <Cube name="Sales">
@@ -100,6 +106,7 @@ describe "Schema definition" do
               </Cube>
             </Schema>
           XML
+          @schema.to_xml(driver: driver)
         end
       end
 
@@ -109,7 +116,7 @@ describe "Schema definition" do
             table 'sales_fact', alias: 'sales', schema: 'facts'
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -117,6 +124,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render table name in lowercase when using Oracle or Snowflake driver but with :upcase_data_dictionary false" do
@@ -126,7 +134,7 @@ describe "Schema definition" do
           end
         end
         %w(oracle snowflake).each do |driver|
-          assert_like @schema.to_xml(driver: driver), <<~XML
+          assert_like <<~XML,
             <?xml version="1.0" encoding="UTF-8"?>
             <Schema name="default">
               <Cube name="Sales">
@@ -134,6 +142,7 @@ describe "Schema definition" do
               </Cube>
             </Schema>
           XML
+          @schema.to_xml(driver: driver)
         end
       end
 
@@ -145,7 +154,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -155,6 +164,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -167,7 +177,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -177,6 +187,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -198,7 +209,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -211,6 +222,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render time dimension" do
@@ -229,7 +241,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -244,6 +256,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render dimension with hierarchy and level defaults" do
@@ -262,7 +275,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -277,6 +290,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render dimension hierarchy with join" do
@@ -296,7 +310,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -314,6 +328,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render table and column names in uppercase when using Oracle driver" do
@@ -333,7 +348,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml(driver: 'oracle'), <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -351,6 +366,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml(driver: 'oracle')
       end
 
       it "should render dimension hierarchy with nested joins" do
@@ -374,7 +390,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -396,6 +412,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
     end
@@ -416,7 +433,7 @@ describe "Schema definition" do
             dimension_usage 'Gender', foreign_key: 'customer_id' # by default source: 'Gender' will be added
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Dimension name="Gender">
@@ -430,6 +447,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -446,7 +464,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <VirtualCube defaultMeasure="Store Sales" name="Warehouse and Sales">
@@ -459,6 +477,7 @@ describe "Schema definition" do
             </VirtualCube>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -473,7 +492,7 @@ describe "Schema definition" do
             measure 'Store Sales', column: 'store_sales' # by default should use sum aggregator
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -482,6 +501,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render column name in uppercase when using Oracle driver" do
@@ -493,7 +513,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml(driver: 'oracle'), <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -501,6 +521,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml(driver: 'oracle')
       end
 
       it "should render with measure expression" do
@@ -513,7 +534,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -525,6 +546,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -539,7 +561,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -549,6 +571,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render XML with dimension and hierarchy" do
@@ -560,7 +583,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -570,6 +593,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render embedded cube XML defintion before additional calculated member to XML" do
@@ -585,7 +609,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -596,6 +620,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -617,7 +642,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -636,6 +661,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render aggregate pattern to XML" do
@@ -657,7 +683,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -678,6 +704,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should render embedded aggregate XML defintion to XML" do
@@ -711,7 +738,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -742,6 +769,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
 
     end
@@ -765,7 +793,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Cube name="Sales">
@@ -785,6 +813,7 @@ describe "Schema definition" do
             </Cube>
           </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -807,7 +836,7 @@ describe "Schema definition" do
         end
 
         it "should render XML" do
-          assert_like @schema.to_xml, <<~XML
+          assert_like <<~XML,
             <?xml version="1.0" encoding="UTF-8"?>
             <Schema name="default">
               <Cube name="Sales">
@@ -823,6 +852,7 @@ describe "Schema definition" do
               </Cube>
             </Schema>
           XML
+          @schema.to_xml
         end
 
         it "should access annotations from schema definition" do
@@ -841,7 +871,7 @@ describe "Schema definition" do
         end
 
         it "should render XML " do
-          assert_like @schema.to_xml, <<~XML
+          assert_like <<~XML,
             <?xml version="1.0" encoding="UTF-8"?>
             <Schema name="default">
               <Cube name="Sales">
@@ -857,6 +887,7 @@ describe "Schema definition" do
               </Cube>
             </Schema>
           XML
+          @schema.to_xml
         end
 
         it "should access annotations from schema definition" do
@@ -1169,7 +1200,7 @@ describe "Schema definition" do
       end
 
       it "should render XML" do
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Cube name="Sales">
@@ -1191,11 +1222,12 @@ describe "Schema definition" do
           <UserDefinedFunction className="rubyobj.Mondrian.OLAP.Schema.UserDefinedFunction.TouppernameUdf" name="toUpperName"/>
         </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should execute user defined function" do
         result = @olap.from('Sales').columns('[Measures].[Factorial]').execute
-        value = 1*2*3*4*5*6
+        value = 1 * 2 * 3 * 4 * 5 * 6
         assert_equal [value], result.values
         assert_equal ["%020d" % value], result.formatted_values
       end
@@ -1243,7 +1275,7 @@ describe "Schema definition" do
             end
           end
         end
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
         <?xml version="1.0" encoding="UTF-8"?>
         <Schema name="default">
           <Role name="California manager">
@@ -1259,6 +1291,7 @@ describe "Schema definition" do
           </Role>
         </Schema>
         XML
+        @schema.to_xml
       end
     end
 
@@ -1288,7 +1321,7 @@ describe "Schema definition" do
       end
 
       it "should render XML" do
-        assert_like @schema.to_xml, <<~XML
+        assert_like <<~XML,
           <?xml version="1.0" encoding="UTF-8"?>
           <Schema name="default">
             <Parameter defaultValue="'demo'" modifiable="true" name="Current User" type="String"/>
@@ -1302,6 +1335,7 @@ describe "Schema definition" do
               name="ParameterValue"/>
           </Schema>
         XML
+        @schema.to_xml
       end
 
       it "should get parameter definition from connection" do
