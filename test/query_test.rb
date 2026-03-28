@@ -1236,7 +1236,7 @@ describe "Query" do
                     type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
 
         Axis (ROWS):
-        Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$22$1,
+        Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$21$1,
                     type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
             CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed,
                     class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl,
