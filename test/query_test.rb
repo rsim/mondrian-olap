@@ -1226,7 +1226,11 @@ describe "Query" do
     end
 
     it "should return query plan" do
-      assert_like <<~EOS, @result.profiling_plan
+      # Normalize anonymous inner class indices in BuiltinFunTable — javac numbering
+      # shifts across JDK builds (different vendors emit/skip dead-code anonymous
+      # classes differently), and we don't want to rewrite this test on every rebuild.
+      plan = @result.profiling_plan.gsub(/BuiltinFunTable\$\d+\$\d+/, "BuiltinFunTable$N$N")
+      assert_like <<~EOS, plan
         Axis (COLUMNS):
         SetListCalc(name=SetListCalc, class=class mondrian.olap.fun.SetFunDef$SetListCalc,
                     type=SetType<MemberType<member=[Measures].[Unit Sales]>>, resultStyle=MUTABLE_LIST)
@@ -1236,7 +1240,7 @@ describe "Query" do
                     type=MemberType<member=[Measures].[Unit Sales]>, resultStyle=VALUE_NOT_NULL, value=[Measures].[Unit Sales])
 
         Axis (ROWS):
-        Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$21$1,
+        Children(name=Children, class=class mondrian.olap.fun.BuiltinFunTable$N$N,
                     type=SetType<MemberType<hierarchy=[Product]>>, resultStyle=LIST)
             CurrentMemberFixed(hierarchy=[Product], name=CurrentMemberFixed,
                     class=class mondrian.olap.fun.HierarchyCurrentMemberFunDef$FixedCalcImpl,
