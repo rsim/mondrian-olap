@@ -37,7 +37,7 @@ jobs:
       CLICKHOUSE_DATABASE_HOST: localhost
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Edit hosts
         run: |
           echo "127.0.0.1 mssql.vm" | sudo tee -a /etc/hosts
@@ -125,7 +125,7 @@ jobs:
       MONDRIAN_DRIVER: sqlserver
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Edit hosts
         run: |
           echo "127.0.0.1 mssql.vm" | Out-File -Append -FilePath C:\Windows\System32\drivers\etc\hosts
