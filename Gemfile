@@ -16,6 +16,9 @@ gem 'activerecord-jdbc-adapter', '~> 61.3'
 gem 'activerecord-oracle_enhanced-adapter', '~> 6.1.6'
 gem 'pry', '~> 0.14.1'
 
+# i18n 1.15.0 switched to Fiber[] storage (Ruby 3.2+), unsupported on JRuby 9.4
+gem 'i18n', '< 1.15'
+
 if JRUBY_VERSION.to_i >= 10
   gem 'mutex_m'
   gem 'base64'
