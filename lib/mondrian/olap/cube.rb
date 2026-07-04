@@ -219,7 +219,7 @@ module Mondrian
       end
 
       def levels
-        @levels = @raw_hierarchy.getLevels.map { |l| Level.new(self, l) }
+        @levels ||= @raw_hierarchy.getLevels.map { |l| Level.new(self, l) }
       end
 
       def level(name)
