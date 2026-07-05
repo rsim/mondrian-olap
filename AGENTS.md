@@ -126,3 +126,11 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
   `unless %w(vertica snowflake clickhouse).include?(MONDRIAN_DRIVER)`.
 - Test files are located in `test/` directory and follow the naming pattern `*_test.rb`.
 - Test helper and database configuration are in `test/test_helper.rb`.
+
+### git commits and GitHub pull requests
+
+- Use `gh` command line tool if available to check the pull request (PR) information.
+- Use ⚠️ warnings in PR description if PR is not yet ready for merging.
+- Use git commit messages with up to a 50-character subject line and up to 72-character body lines.
+  Use a concise commit message body to describe a summary of what is changed.
+- Do not add Co-Authored-By signature for git commit messages.

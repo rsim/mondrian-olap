@@ -101,6 +101,18 @@ describe "Query" do
       assert_equal @expected_result_values_by_columns, @result.values(:columns, :rows)
     end
 
+    it "should return cells for one axis query" do
+      result = @olap.execute <<~MDX
+        SELECT {[Measures].[Unit Sales], [Measures].[Store Sales]} ON COLUMNS
+          FROM [Sales]
+          WHERE ([Time].[2010].[Q1], [Customers].[USA].[CA])
+      MDX
+      expected_values = @expected_result_values.transpose.map(&:sum)
+      assert_equal expected_values, result.values
+      assert_equal expected_values, result.values(:columns)
+      assert_equal expected_values, result.values(0)
+    end
+
     it "should return formatted cells" do
       assert_equal @expected_result_values, @result.formatted_values.map { |r| r.map { |s| BigDecimal(s.gsub(',', '')) } }
     end
