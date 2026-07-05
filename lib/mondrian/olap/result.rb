@@ -59,7 +59,10 @@ module Mondrian
         elsif axes_sequence.size != axes_count
           raise ArgumentError, "axes sequence size is not equal to result axes count"
         end
-        recursive_values(values_method, axes_sequence, 0)
+        axes_numbers_sequence = axes_sequence.map do |axis_number|
+          axis_number.is_a?(Symbol) ? AXIS_SYMBOL_TO_NUMBER.fetch(axis_number) : axis_number
+        end
+        recursive_values(values_method, axes_numbers_sequence, 0)
       end
 
       # Format results in simple HTML table
@@ -221,16 +224,17 @@ module Mondrian
         end
 
         def fetch
-          if @raw_result_set.next
-            row_values = []
-            column_types.each_with_index do |column_type, i|
-              row_values << Result.java_to_ruby_value(@raw_result_set.getObject(i + 1), column_type)
+          types = column_types
+          # Use loop instead of recursion to avoid deep recursion when many rows are skipped by role restrictions.
+          while @raw_result_set.next
+            row_values = Array.new(types.size)
+            types.each_with_index do |column_type, i|
+              row_values[i] = Result.java_to_ruby_value(@raw_result_set.getObject(i + 1), column_type)
             end
-            can_access_row_values?(row_values) ? row_values : fetch
-          else
-            @raw_result_set.close
-            nil
+            return row_values if can_access_row_values?(row_values)
           end
+          @raw_result_set.close
+          nil
         end
 
         def rows
@@ -573,7 +577,8 @@ module Mondrian
 
       def self.java_to_ruby_value(value, column_type = nil)
         case value
-        when Numeric, String
+        # Check nil value first as it is the most common case for empty cells in large sparse results.
+        when NilClass, Numeric, String
           value
         when Java::JavaMath::BigDecimal
           BigDecimal(value.to_s)
@@ -610,13 +615,12 @@ module Mondrian
       def axis_positions(map_method, join_with = false)
         axes.map do |axis|
           axis.getPositions.map do |position|
-            names = position.getMembers.map do |member|
-              if map_method == :to_member
-                Member.new(member)
-              else
-                member.send(map_method)
+            raw_members = position.getMembers
+            names =
+              case map_method
+              when :to_member then raw_members.map { |member| Member.new(member) }
+              else raw_members.map(&map_method)
               end
-            end
             if names.size == 1
               names[0]
             elsif join_with
@@ -636,16 +640,52 @@ module Mondrian
         chapters: 4
       }.freeze
 
-      def recursive_values(value_method, axes_sequence, current_index, cell_params = [])
-        if axis_number = axes_sequence[current_index]
-          axis_number = AXIS_SYMBOL_TO_NUMBER[axis_number] if axis_number.is_a?(Symbol)
-          positions_size = axes[axis_number].getPositions.size
+      # Use cell ordinal arithmetics instead of passing a list of boxed java.lang.Integer coordinates
+      # to getCell as it avoids creation of many short lived Java objects for large results.
+      def recursive_values(value_method, axes_sequence, current_index, cell_ordinal = 0)
+        axis_number = axes_sequence[current_index]
+        return cell_value(value_method, cell_ordinal) unless axis_number
+
+        axis_ordinal_multiplier = cell_ordinal_multipliers[axis_number]
+        positions_size = axis_positions_sizes[axis_number]
+        if axes_sequence[current_index + 1]
           (0...positions_size).map do |i|
-            cell_params[axis_number] = Java::JavaLang::Integer.new(i)
-            recursive_values(value_method, axes_sequence, current_index + 1, cell_params)
+            recursive_values(value_method, axes_sequence, current_index + 1,
+              cell_ordinal + i * axis_ordinal_multiplier)
           end
         else
-          self.class.java_to_ruby_value(@raw_cell_set.getCell(cell_params).send(value_method))
+          # For the last axis in the sequence map cell values without recursion
+          # to reduce method call overhead for each cell in large results.
+          map_cell_values(positions_size, cell_ordinal, axis_ordinal_multiplier, &value_method)
+        end
+      end
+
+      def map_cell_values(positions_size, first_cell_ordinal, axis_ordinal_multiplier)
+        (0...positions_size).map do |i|
+          value = yield @raw_cell_set.getCell(first_cell_ordinal + i * axis_ordinal_multiplier)
+          # Check the most common value types inline to avoid a method call for each cell.
+          value.nil? || value.is_a?(Numeric) || value.is_a?(String) ? value : self.class.java_to_ruby_value(value)
+        end
+      end
+
+      def cell_value(value_method, cell_ordinal)
+        self.class.java_to_ruby_value(@raw_cell_set.getCell(cell_ordinal).send(value_method))
+      end
+
+      def axis_positions_sizes
+        @axis_positions_sizes ||= axes.map { |axis| axis.getPositions.size }
+      end
+
+      # Cell ordinal is a sum of cell coordinates on each axis multiplied by a corresponding axis multiplier
+      # which is a product of positions sizes of all lower number axes.
+      def cell_ordinal_multipliers
+        @cell_ordinal_multipliers ||= begin
+          multiplier = 1
+          axis_positions_sizes.map do |positions_size|
+            axis_multiplier = multiplier
+            multiplier *= positions_size
+            axis_multiplier
+          end
         end
       end
 
