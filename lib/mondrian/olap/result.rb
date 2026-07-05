@@ -60,7 +60,14 @@ module Mondrian
           raise ArgumentError, "axes sequence size is not equal to result axes count"
         end
         axes_numbers_sequence = axes_sequence.map do |axis_number|
-          axis_number.is_a?(Symbol) ? AXIS_SYMBOL_TO_NUMBER.fetch(axis_number) : axis_number
+          if axis_number.is_a?(Symbol)
+            AXIS_SYMBOL_TO_NUMBER.fetch(axis_number) do
+              raise ArgumentError, "invalid axis name #{axis_number.inspect}, " \
+                "valid axis names are #{AXIS_SYMBOL_TO_NUMBER.keys.map(&:inspect).join(', ')}"
+            end
+          else
+            axis_number
+          end
         end
         recursive_values(values_method, axes_numbers_sequence, 0)
       end
