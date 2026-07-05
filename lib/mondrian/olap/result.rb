@@ -54,6 +54,8 @@ module Mondrian
       end
 
       def values_using(values_method, axes_sequence = [])
+        # Convert a string method name to a symbol as later it is used as a block for mapping cell values.
+        values_method = values_method.to_sym
         if axes_sequence.empty?
           axes_sequence = (0...axes_count).to_a.reverse
         elsif axes_sequence.size != axes_count
