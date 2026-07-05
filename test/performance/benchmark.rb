@@ -4,6 +4,9 @@
 # It executes complex queries which create many OLAP elements (axis positions, members, cells)
 # and measures the time spent in the Ruby wrapper methods which process them.
 #
+# This script is used only for local development benchmarks and is not part of the automated test suite,
+# therefore it should not be reviewed as production code.
+#
 # Usage:
 #   mise exec -- ruby test/performance/benchmark.rb
 #
