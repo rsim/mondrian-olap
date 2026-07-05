@@ -252,6 +252,10 @@ module Mondrian
               break if rows_values.size == @max_rows
             end
             rows_values
+          ensure
+            # Close the result set also when fetching was stopped by max_rows or by an exception
+            # (closing an already closed JDBC result set is a no-op).
+            @raw_result_set.close
           end
         end
 
