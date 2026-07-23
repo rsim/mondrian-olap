@@ -182,5 +182,64 @@ describe "Connection role" do
       refute cube.member('[Customers].[All Customers].[USA].[CA]').drillable?
     end
 
+    describe "dynamic role" do
+      def build_measure_role(olap)
+        olap.build_role do |role|
+          role.allow_cube 'Sales', measures: ['[Measures].[Unit Sales]']
+        end
+      end
+
+      it "should build an immutable role and expose it as custom_role" do
+        role = build_measure_role(@olap)
+        refute role.isMutable
+        @olap.role = role
+        assert_equal role, @olap.custom_role
+      end
+
+      it "should restrict measures to the allowed members" do
+        @olap.role = build_measure_role(@olap)
+        cube = @olap.cube('Sales')
+        assert cube.member('[Measures].[Unit Sales]')
+        assert_nil cube.member('[Measures].[Store Sales]')
+      end
+
+      it "should leave measures unrestricted when no measures are given" do
+        @olap.role = @olap.build_role { |role| role.allow_cube 'Sales' }
+        cube = @olap.cube('Sales')
+        assert cube.member('[Measures].[Unit Sales]')
+        assert cube.member('[Measures].[Store Sales]')
+      end
+
+      it "should deny dimensions outside the allowed list" do
+        @olap.role = @olap.build_role do |role|
+          role.allow_cube 'Sales', dimensions: ['Customers']
+        end
+        result = @olap.from('Sales').columns('[Measures].[Unit Sales]').execute
+        assert_equal 1, result.values.length
+        assert_raises(Mondrian::OLAP::Error) do
+          @olap.from('Sales').columns('[Gender].Members').rows('[Measures].[Unit Sales]').execute
+        end
+      end
+
+      it "should not see cubes that were not allowed" do
+        @olap.role = build_measure_role(@olap)
+        assert_equal ['Sales'], @olap.cube_names
+      end
+
+      it "should reset to default role and clear custom_role when set to nil" do
+        @olap.role = build_measure_role(@olap)
+        refute_nil @olap.custom_role
+        @olap.role = nil
+        assert_nil @olap.custom_role
+        assert @olap.cube('Sales').member('[Measures].[Store Sales]')
+      end
+
+      it "should clear custom_role when a named role is set" do
+        @olap.role = build_measure_role(@olap)
+        @olap.role_name = @role_name
+        assert_nil @olap.custom_role
+      end
+    end
+
   end
 end

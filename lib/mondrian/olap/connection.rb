@@ -17,6 +17,7 @@ module Mondrian
         @driver = params[:driver]
         @connected = false
         @raw_connection = nil
+        @custom_role = nil
       end
 
       def connect
@@ -66,6 +67,7 @@ module Mondrian
       def close
         @raw_jdbc_connection = @raw_catalog = @raw_schema = @raw_mondrian_connection = nil
         @raw_schema_reader = @raw_cache_control = nil
+        @custom_role = nil
         @raw_connection.close
         @raw_connection = nil
         @connected = false
@@ -198,6 +200,7 @@ module Mondrian
         Error.wrap_native_exception do
           @raw_connection.setRoleName(name)
         end
+        @custom_role = nil
       end
 
       def role_names=(names)
@@ -206,7 +209,39 @@ module Mondrian
           # @raw_connection.setRoleNames(Array(names))
           names = Array(names)
           @raw_connection.java_method(:setRoleNames, [Java::JavaUtil::List.java_class]).call(names)
-          names
+        end
+        @custom_role = nil
+        names
+      end
+
+      # Returns the dynamic Role set with #role=, or nil when the connection
+      # uses a named or default role. Use it to propagate the role to another
+      # connection of the same schema (e.g. a worker thread connection).
+      def custom_role
+        @custom_role
+      end
+
+      # Activates a Mondrian Role built with #build_role. Passing nil resets the
+      # connection to the schema default role (same as role_name = nil).
+      def role=(role)
+        if role.nil?
+          self.role_name = nil
+        else
+          Error.wrap_native_exception do
+            raw_mondrian_connection.setRole(role)
+          end
+          @custom_role = role
+        end
+      end
+
+      # Builds an immutable Mondrian Role for this connection's schema from
+      # dynamic grants. See RoleBuilder. Does not activate it; assign the
+      # returned role to #role= to use it.
+      def build_role
+        Error.wrap_native_exception do
+          builder = RoleBuilder.new(raw_mondrian_connection.getSchema)
+          yield builder
+          builder.build
         end
       end
 
