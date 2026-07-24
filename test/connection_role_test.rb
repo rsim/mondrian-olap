@@ -211,8 +211,11 @@ describe "Connection role" do
       end
 
       it "should deny dimensions outside the allowed list" do
+        # Restrict among the dimensions that have an All member: Time is has_all: false,
+        # and a fully denied hierarchy without an All member has no default member for
+        # Mondrian to load into the query evaluation context.
         @olap.role = @olap.build_role do |role|
-          role.allow_cube 'Sales', dimensions: ['Customers']
+          role.allow_cube 'Sales', dimensions: ['Customers', 'Time']
         end
         result = @olap.from('Sales').columns('[Measures].[Unit Sales]').execute
         assert_equal 1, result.values.length
