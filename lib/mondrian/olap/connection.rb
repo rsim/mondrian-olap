@@ -214,7 +214,7 @@ module Mondrian
         names
       end
 
-      # Returns the dynamic Role set with #role=, or nil when the connection
+      # Returns the dynamic Role set with #custom_role=, or nil when the connection
       # uses a named or default role. Use it to propagate the role to another
       # connection of the same schema (e.g. a worker thread connection).
       def custom_role
@@ -223,7 +223,7 @@ module Mondrian
 
       # Activates a Mondrian Role built with #build_role. Passing nil resets the
       # connection to the schema default role (same as role_name = nil).
-      def role=(role)
+      def custom_role=(role)
         if role.nil?
           self.role_name = nil
         else
@@ -236,7 +236,7 @@ module Mondrian
 
       # Builds an immutable Mondrian Role for this connection's schema from
       # dynamic grants. See RoleBuilder. Does not activate it; assign the
-      # returned role to #role= to use it.
+      # returned role to #custom_role= to use it.
       def build_role
         Error.wrap_native_exception do
           builder = RoleBuilder.new(raw_mondrian_connection.getSchema)

@@ -16,7 +16,7 @@ module Mondrian
     #       measures: ['[Measures].[Unit Sales]'], # empty => all measures of the cube
     #       dimensions: ['Time', 'Store']          # empty => all dimensions of the cube
     #   end
-    #   connection.role = role
+    #   connection.custom_role = role
     class RoleBuilder
       MEASURES_DIMENSION = 'Measures'
       MEASURES_HIERARCHY = '[Measures]'
