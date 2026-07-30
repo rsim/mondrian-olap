@@ -399,6 +399,35 @@ end
 
 See more examples of data access roles in `test/connection_role_test.rb`.
 
+### Dynamic data access roles
+
+A data access role can also be built dynamically for an existing connection, without defining it in the schema,
+using the same DSL elements as in schema role definitions:
+
+```ruby
+role = olap.build_role do
+  schema_grant access: 'none' do
+    cube_grant cube: 'Sales', access: 'all' do
+      dimension_grant dimension: '[Gender]', access: 'none'
+      hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+        member_grant member: '[Measures].[Unit Sales]', access: 'all'
+      end
+      hierarchy_grant hierarchy: '[Customers]', access: 'custom',
+                      top_level: '[Customers].[State Province]', bottom_level: '[Customers].[City]' do
+        member_grant member: '[Customers].[USA].[CA]', access: 'all'
+        member_grant member: '[Customers].[USA].[CA].[Los Angeles]', access: 'none'
+      end
+    end
+  end
+end
+olap.custom_role = role
+```
+
+The built role is immutable and can be shared between connections that use the same schema.
+Assign `olap.custom_role = nil` to reset the connection to the schema default role.
+
+See more examples of dynamic data access roles in `test/connection_role_test.rb`.
+
 ### Drill through
 
 Drill through to underlying fact table data from aggregated cell results:
