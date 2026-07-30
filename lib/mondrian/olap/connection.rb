@@ -234,13 +234,24 @@ module Mondrian
         end
       end
 
-      # Builds an immutable Mondrian Role for this connection's schema from
-      # dynamic grants. See RoleBuilder. Does not activate it; assign the
+      # Builds an immutable Mondrian Role for this connection's schema from dynamic
+      # grants. The block is evaluated with the same DSL as schema data access role
+      # definitions, see RoleBuilder. Does not activate the role; assign the
       # returned role to #custom_role= to use it.
-      def build_role
+      #
+      #   role = connection.build_role do
+      #     schema_grant access: 'none' do
+      #       cube_grant cube: 'Sales', access: 'all' do
+      #         hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+      #           member_grant member: '[Measures].[Unit Sales]', access: 'all'
+      #         end
+      #       end
+      #     end
+      #   end
+      def build_role(&block)
         Error.wrap_native_exception do
           builder = RoleBuilder.new(raw_mondrian_connection.getSchema)
-          yield builder
+          builder.instance_eval(&block) if block
           builder.build
         end
       end
