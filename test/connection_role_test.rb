@@ -240,6 +240,18 @@ describe "Connection role" do
         end
       end
 
+      it "should wrap the native error for a member lookup in a denied dimension" do
+        @olap.custom_role = @olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              dimension_grant dimension: '[Gender]', access: 'none'
+            end
+          end
+        end
+        error = assert_raises(Mondrian::OLAP::Error) { @olap.cube('Sales').member('[Gender].[F]') }
+        assert_match(/Illegal access to members of hierarchy \[Gender\]/, error.root_cause_message)
+      end
+
       it "should restrict hierarchy members to the granted members" do
         @olap.custom_role = @olap.build_role do
           schema_grant access: 'none' do
