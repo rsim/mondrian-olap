@@ -164,7 +164,8 @@ module Mondrian
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell, params.merge(role_name: @connection.role_name))
+          DrillThrough.from_raw_cell(raw_cell,
+            params.merge(role_name: @connection.role_name, custom_role: @connection.custom_role))
         end
       end
 
@@ -177,9 +178,9 @@ module Mondrian
 
           if params[:return] || rolap_cell.canDrillThrough
             max_rows = params[:max_rows]
-            if role_name = params[:role_name]
-              # Remove max rows limitation for the drill through SQL statement when the data access roles are used.
-              # As the data restrictions validation later may reduce returned rows count.
+            if params[:role_name] || params[:custom_role]
+              # Remove max rows limitation for the drill through SQL statement when a data access role
+              # or a dynamic role is used, as the row restrictions validation later may reduce the returned rows count.
               max_rows = nil
             end
             sql_statement, return_fields = drill_through_internal(rolap_cell, params.merge(max_rows: max_rows))
@@ -188,7 +189,8 @@ module Mondrian
             new(raw_result_set,
               return_fields: return_fields,
               raw_cube: raw_cube,
-              role_name: role_name,
+              role_name: params[:role_name],
+              custom_role: params[:custom_role],
               max_rows: params[:max_rows]
             )
           end
@@ -199,6 +201,7 @@ module Mondrian
           @return_fields = options[:return_fields]
           @raw_cube = options[:raw_cube]
           @role_name = options[:role_name]
+          @custom_role = options[:custom_role]
           @max_rows = options[:max_rows]
         end
 
@@ -264,7 +267,7 @@ module Mondrian
         private
 
         def can_access_row_values?(row_values)
-          return true unless @role_name
+          return true unless @role_name || @custom_role
 
           member_full_name_columns_indexes.each do |column_indexes|
             segment_names = [@return_fields[column_indexes.first][:member].getHierarchy.getName]
@@ -515,7 +518,7 @@ module Mondrian
             end
           end
 
-          if params[:role_name].present?
+          if params[:role_name].present? || params[:custom_role]
             add_role_restriction_fields return_fields, sql_options
           end
 

@@ -1069,6 +1069,37 @@ describe "Query" do
     end
   end
 
+  describe "drill through cell with return and custom role restrictions" do
+    before(:all) do
+      # A dynamic role is set with custom_role= (no role name), like an embed token role.
+      # Reuse the named role object so it restricts members the same way.
+      @olap.role_name = "Mexico manager"
+      custom_role = @olap.raw_mondrian_connection.getRole
+      @olap.role_name = nil
+      @olap.custom_role = custom_role
+      @query = @olap.from('Sales')
+      @result = @query.columns('[Measures].[Unit Sales]').
+        rows('[Customers].[All Customers]').
+        execute
+      @drill_through = @result.drill_through(
+        row: 0,
+        column: 0,
+        return: ['[Customers].[Country]', '[Measures].[Unit Sales]'],
+        max_rows: 10
+      )
+    end
+
+    after(:all) do
+      @olap.custom_role = nil
+    end
+
+    it "should filter drill through rows by the custom role even when no role name is set" do
+      assert_nil @olap.role_name
+      refute_empty @drill_through.rows
+      assert_equal true, @drill_through.rows.all? { |r| r.first == "Mexico" }
+    end
+  end
+
   describe "drill through virtual cube cell with return" do
     before(:all) do
       @query = @olap.from('Sales and Warehouse')
