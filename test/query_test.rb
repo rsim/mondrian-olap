@@ -1069,6 +1069,86 @@ describe "Query" do
     end
   end
 
+  describe "drill through cell with return and custom role restrictions" do
+    before(:all) do
+      # A dynamic role is set with custom_role= (no role name), like an embed token role.
+      # Reuse the named role object so it restricts members the same way.
+      @olap.role_name = "Mexico manager"
+      custom_role = @olap.raw_mondrian_connection.getRole
+      @olap.role_name = nil
+      @olap.custom_role = custom_role
+      @query = @olap.from('Sales')
+      @result = @query.columns('[Measures].[Unit Sales]').
+        rows('[Customers].[All Customers]').
+        execute
+      @drill_through = @result.drill_through(
+        row: 0,
+        column: 0,
+        return: ['[Customers].[Country]', '[Measures].[Unit Sales]'],
+        max_rows: 10
+      )
+    end
+
+    after(:all) do
+      @olap.custom_role = nil
+    end
+
+    it "should filter drill through rows by the custom role even when no role name is set" do
+      assert_nil @olap.role_name
+      refute_empty @drill_through.rows
+      assert_equal true, @drill_through.rows.all? { |r| r.first == "Mexico" }
+    end
+  end
+
+  describe "drill through cell with a custom role restriction omitted from the return fields" do
+    before(:all) do
+      @olap.role_name = "Mexico manager"
+      @custom_role = @olap.raw_mondrian_connection.getRole
+      @olap.role_name = nil
+    end
+
+    after(:all) do
+      @olap.custom_role = nil
+    end
+
+    # The restricted [Customers] hierarchy is deliberately not among the return fields,
+    # so the role can only be enforced by the added restriction fields.
+    def product_family_rows(role)
+      @olap.custom_role = role
+      result = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[All Customers]').execute
+      result.drill_through(row: 0, column: 0, return: ['[Product].[Product Family]', '[Measures].[Unit Sales]']).rows
+    end
+
+    it "should still filter rows by a custom role restriction that is not in the return fields" do
+      restricted_rows = product_family_rows(@custom_role).size
+      unrestricted_rows = product_family_rows(nil).size
+      assert restricted_rows > 0
+      assert restricted_rows < unrestricted_rows,
+        "expected role to filter rows (#{restricted_rows}) below unrestricted (#{unrestricted_rows})"
+    end
+  end
+
+  describe "drill through cell with a named role restriction omitted from the return fields" do
+    after(:all) do
+      @olap.role_name = nil
+    end
+
+    # The restricted [Customers] hierarchy is deliberately not among the return fields.
+    def product_family_rows(role_name)
+      @olap.role_name = role_name
+      result = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[All Customers]').execute
+      result.drill_through(row: 0, column: 0, return: ['[Product].[Product Family]', '[Measures].[Unit Sales]']).rows
+    end
+
+    it "should still filter rows by a named role restriction that is not in the return fields" do
+      restricted_rows = product_family_rows("Mexico manager").size
+      unrestricted_rows = product_family_rows(nil).size
+      assert restricted_rows > 0
+      assert restricted_rows < unrestricted_rows,
+        "expected role to filter rows (#{restricted_rows}) below unrestricted (#{unrestricted_rows})"
+    end
+  end
+
   describe "drill through virtual cube cell with return" do
     before(:all) do
       @query = @olap.from('Sales and Warehouse')

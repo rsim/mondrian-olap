@@ -164,7 +164,9 @@ module Mondrian
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell, params.merge(role_name: @connection.role_name))
+          DrillThrough.from_raw_cell(raw_cell,
+            params.merge(role_name: @connection.role_name, custom_role: @connection.custom_role,
+              role: @connection.raw_mondrian_connection.getRole))
         end
       end
 
@@ -177,9 +179,9 @@ module Mondrian
 
           if params[:return] || rolap_cell.canDrillThrough
             max_rows = params[:max_rows]
-            if role_name = params[:role_name]
-              # Remove max rows limitation for the drill through SQL statement when the data access roles are used.
-              # As the data restrictions validation later may reduce returned rows count.
+            if params[:role_name] || params[:custom_role]
+              # Remove max rows limitation for the drill through SQL statement when a data access role
+              # or a dynamic role is used, as the row restrictions validation later may reduce the returned rows count.
               max_rows = nil
             end
             sql_statement, return_fields = drill_through_internal(rolap_cell, params.merge(max_rows: max_rows))
@@ -188,7 +190,8 @@ module Mondrian
             new(raw_result_set,
               return_fields: return_fields,
               raw_cube: raw_cube,
-              role_name: role_name,
+              role_name: params[:role_name],
+              custom_role: params[:custom_role],
               max_rows: params[:max_rows]
             )
           end
@@ -199,6 +202,7 @@ module Mondrian
           @return_fields = options[:return_fields]
           @raw_cube = options[:raw_cube]
           @role_name = options[:role_name]
+          @custom_role = options[:custom_role]
           @max_rows = options[:max_rows]
         end
 
@@ -264,7 +268,7 @@ module Mondrian
         private
 
         def can_access_row_values?(row_values)
-          return true unless @role_name
+          return true unless @role_name || @custom_role
 
           member_full_name_columns_indexes.each do |column_indexes|
             segment_names = [@return_fields[column_indexes.first][:member].getHierarchy.getName]
@@ -438,6 +442,7 @@ module Mondrian
         def self.parse_return_fields(result, params)
           nonempty_columns = []
           return_fields = []
+          sql_options = nil
 
           if params[:return] || params[:nonempty]
             rolap_cube = result.getCube
@@ -515,8 +520,8 @@ module Mondrian
             end
           end
 
-          if params[:role_name].present?
-            add_role_restriction_fields return_fields, sql_options
+          if sql_options && (params[:role_name].present? || params[:custom_role])
+            add_role_restriction_fields return_fields, sql_options, params[:role], result.getCube
           end
 
           [nonempty_columns, return_fields]
@@ -572,18 +577,46 @@ module Mondrian
           field[:column_alias] = dialect.quoteIdentifier(max_alias_length ? column_alias[0, max_alias_length] : column_alias)
         end
 
-        def self.add_role_restriction_fields(fields, options = {})
-          # For each unique level field add a set of fields to be able to build level member full name from database query results
-          fields.map { |f| f[:member] }.uniq.each_with_index do |level_or_member, i|
+        CUSTOM_ACCESS = Java::MondrianOlap::Access::CUSTOM
+
+        def self.add_role_restriction_fields(fields, options = {}, role = nil, cube = nil)
+          fieldset_id = 0
+          checked_hierarchies = []
+
+          # For each returned level field add a set of fields to be able to build the level member
+          # full name from database query results, so its accessibility can be validated per row.
+          fields.map { |f| f[:member] }.uniq.each do |level_or_member|
             next if level_or_member.is_a?(Java::MondrianOlap::Member)
 
-            current_level = level_or_member
-            loop do
-              # Create an additional field name using a pattern "_level:<Fieldset ID>:<Level depth>"
-              fields << {member: current_level, type: :name_or_key, name: "_level:#{i}:#{current_level.getDepth}"}
-              add_sql_attributes fields.last, options
-              break unless (current_level = current_level.getParentLevel) && !current_level.isAll
-            end
+            checked_hierarchies << level_or_member.getHierarchy
+            add_level_full_name_fields fields, level_or_member, fieldset_id, options
+            fieldset_id += 1
+          end
+
+          return unless role && cube
+
+          # Also validate every hierarchy the role limits to specific members (for example an embed
+          # token page filter), even when it is not among the return fields. Otherwise the role could
+          # be bypassed by omitting the restricted hierarchy from the return fields.
+          cube.getHierarchies.each do |hierarchy|
+            next if hierarchy.getDimension.isMeasures
+            next if checked_hierarchies.include?(hierarchy)
+            next unless role.getAccess(hierarchy) == CUSTOM_ACCESS
+
+            add_level_full_name_fields fields, hierarchy.getLevels.to_a.last, fieldset_id, options
+            fieldset_id += 1
+          end
+        end
+
+        # Add the level and its ancestor levels as query fields under one fieldset id, so their
+        # database values can be joined into a member full name and looked up under the role.
+        def self.add_level_full_name_fields(fields, level, fieldset_id, options)
+          current_level = level
+          loop do
+            # Create an additional field name using a pattern "_level:<Fieldset ID>:<Level depth>"
+            fields << {member: current_level, type: :name_or_key, name: "_level:#{fieldset_id}:#{current_level.getDepth}"}
+            add_sql_attributes fields.last, options
+            break unless (current_level = current_level.getParentLevel) && !current_level.isAll
           end
         end
       end

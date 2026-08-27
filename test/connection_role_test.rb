@@ -43,6 +43,11 @@ describe "Connection role" do
           measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
           measure 'Store Sales', column: 'store_sales', aggregator: 'sum'
         end
+        # Second cube to test that dynamic roles hide cubes that were not granted
+        cube 'Sales 2' do
+          table 'sales'
+          measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
+        end
         role role_name do
           schema_grant access: 'none' do
             cube_grant cube: 'Sales', access: 'all' do
@@ -180,6 +185,228 @@ describe "Connection role" do
       assert cube.member('[Customers].[All Customers]').drillable?
       assert cube.member('[Customers].[All Customers].[USA]').drillable?
       refute cube.member('[Customers].[All Customers].[USA].[CA]').drillable?
+    end
+
+    describe "dynamic role" do
+      def build_measure_role(olap)
+        olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+                member_grant member: '[Measures].[Unit Sales]', access: 'all'
+              end
+            end
+          end
+        end
+      end
+
+      it "should build an immutable role and expose it as custom_role" do
+        role = build_measure_role(@olap)
+        refute role.isMutable
+        @olap.custom_role = role
+        assert_equal role, @olap.custom_role
+      end
+
+      it "should restrict measures to the granted members" do
+        @olap.custom_role = build_measure_role(@olap)
+        cube = @olap.cube('Sales')
+        assert cube.member('[Measures].[Unit Sales]')
+        assert_nil cube.member('[Measures].[Store Sales]')
+      end
+
+      it "should leave measures unrestricted when only the cube is granted" do
+        @olap.custom_role = @olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all'
+          end
+        end
+        cube = @olap.cube('Sales')
+        assert cube.member('[Measures].[Unit Sales]')
+        assert cube.member('[Measures].[Store Sales]')
+      end
+
+      it "should deny a dimension with a dimension grant" do
+        @olap.custom_role = @olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              dimension_grant dimension: '[Gender]', access: 'none'
+            end
+          end
+        end
+        result = @olap.from('Sales').columns('[Measures].[Unit Sales]').execute
+        assert_equal 1, result.values.length
+        assert_raises(Mondrian::OLAP::Error) do
+          @olap.from('Sales').columns('[Gender].Members').rows('[Measures].[Unit Sales]').execute
+        end
+      end
+
+      it "should wrap the native error for a member lookup in a denied dimension" do
+        @olap.custom_role = @olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              dimension_grant dimension: '[Gender]', access: 'none'
+            end
+          end
+        end
+        error = assert_raises(Mondrian::OLAP::Error) { @olap.cube('Sales').member('[Gender].[F]') }
+        assert_match(/Illegal access to members of hierarchy \[Gender\]/, error.root_cause_message)
+      end
+
+      it "should restrict hierarchy members to the granted members" do
+        @olap.custom_role = @olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+                member_grant member: '[Customers].[USA].[CA]', access: 'all'
+                member_grant member: '[Customers].[USA].[CA].[Los Angeles]', access: 'none'
+              end
+            end
+          end
+        end
+        cube = @olap.cube('Sales')
+        assert cube.member('[Customers].[USA].[CA]')
+        assert_nil cube.member('[Customers].[USA].[OR]')
+        assert_nil cube.member('[Customers].[USA].[CA].[Los Angeles]')
+      end
+
+      it "should restrict visible levels with top_level and bottom_level" do
+        @olap.custom_role = @olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              hierarchy_grant hierarchy: '[Customers]', access: 'custom',
+                              top_level: '[Customers].[Country]', bottom_level: '[Customers].[State Province]' do
+                member_grant member: '[Customers].[USA]', access: 'all'
+              end
+            end
+          end
+        end
+        cube = @olap.cube('Sales')
+        assert_nil cube.member('[Customers].[All Customers]')
+        assert cube.member('[Customers].[USA]').drillable?
+        refute cube.member('[Customers].[USA].[CA]').drillable?
+      end
+
+      it "should apply the rollup policy to members with not visible children" do
+        @olap.custom_role = @olap.build_role do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              hierarchy_grant hierarchy: '[Customers]', access: 'custom', rollup_policy: 'partial' do
+                member_grant member: '[Customers].[USA].[CA]', access: 'all'
+              end
+            end
+          end
+        end
+        result = @olap.from('Sales').columns('[Measures].[Unit Sales]').
+          rows('[Customers].[USA]', '[Customers].[USA].[CA]').execute
+        assert_equal result.values[1], result.values[0]
+      end
+
+      it "should not see cubes that were not granted" do
+        assert_equal ['Sales', 'Sales 2'], @olap.cube_names.sort
+        @olap.custom_role = build_measure_role(@olap)
+        assert_equal ['Sales'], @olap.cube_names
+      end
+
+      it "should wrap a native error as Mondrian::OLAP::Error when a cube does not exist" do
+        assert_raises(Mondrian::OLAP::Error) do
+          @olap.build_role do
+            schema_grant access: 'none' do
+              cube_grant cube: 'Does Not Exist', access: 'all'
+            end
+          end
+        end
+      end
+
+      it "should wrap a native error as Mondrian::OLAP::Error when a measure does not exist" do
+        assert_raises(Mondrian::OLAP::Error) do
+          @olap.build_role do
+            schema_grant access: 'none' do
+              cube_grant cube: 'Sales', access: 'all' do
+                hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+                  member_grant member: '[Measures].[Does Not Exist]', access: 'all'
+                end
+              end
+            end
+          end
+        end
+      end
+
+      it "should raise error for an invalid access value" do
+        error = assert_raises(ArgumentError) do
+          @olap.build_role { schema_grant access: 'invalid' }
+        end
+        assert_match(/Bad value access='invalid' for schema_grant/, error.message)
+      end
+
+      it "should raise error for a member grant when hierarchy access is not custom" do
+        error = assert_raises(ArgumentError) do
+          @olap.build_role do
+            schema_grant access: 'none' do
+              cube_grant cube: 'Sales', access: 'all' do
+                hierarchy_grant hierarchy: '[Customers]', access: 'all' do
+                  member_grant member: '[Customers].[USA].[CA]', access: 'all'
+                end
+              end
+            end
+          end
+        end
+        assert_match(/member_grant may only be specified when hierarchy_grant access='custom'/, error.message)
+      end
+
+      it "should raise error for a member grant with a member from another hierarchy" do
+        error = assert_raises(ArgumentError) do
+          @olap.build_role do
+            schema_grant access: 'none' do
+              cube_grant cube: 'Sales', access: 'all' do
+                hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+                  member_grant member: '[Gender].[F]', access: 'all'
+                end
+              end
+            end
+          end
+        end
+        assert_match(/is not in hierarchy/, error.message)
+      end
+
+      it "should raise error for top_level when hierarchy access is not custom" do
+        error = assert_raises(ArgumentError) do
+          @olap.build_role do
+            schema_grant access: 'none' do
+              cube_grant cube: 'Sales', access: 'all' do
+                hierarchy_grant hierarchy: '[Customers]', access: 'all', top_level: '[Customers].[State Province]'
+              end
+            end
+          end
+        end
+        assert_match(/top_level and bottom_level may only be specified when hierarchy_grant access='custom'/, error.message)
+      end
+
+      it "should raise error for an invalid rollup_policy value" do
+        error = assert_raises(ArgumentError) do
+          @olap.build_role do
+            schema_grant access: 'none' do
+              cube_grant cube: 'Sales', access: 'all' do
+                hierarchy_grant hierarchy: '[Customers]', access: 'custom', rollup_policy: 'invalid'
+              end
+            end
+          end
+        end
+        assert_match(/Illegal rollup_policy value 'invalid'/, error.message)
+      end
+
+      it "should reset to default role and clear custom_role when set to nil" do
+        @olap.custom_role = build_measure_role(@olap)
+        refute_nil @olap.custom_role
+        @olap.custom_role = nil
+        assert_nil @olap.custom_role
+        assert @olap.cube('Sales').member('[Measures].[Store Sales]')
+      end
+
+      it "should clear custom_role when a named role is set" do
+        @olap.custom_role = build_measure_role(@olap)
+        @olap.role_name = @role_name
+        assert_nil @olap.custom_role
+      end
     end
 
   end
