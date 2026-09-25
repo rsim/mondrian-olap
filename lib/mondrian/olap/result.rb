@@ -338,6 +338,9 @@ module Mondrian
         end
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
+          if role_restricted?(params) && params[:return].blank?
+            params = params.merge(return: accessible_return_fields(rolap_cell, params[:role]))
+          end
           nonempty_columns, return_fields = parse_return_fields(result, params)
           return_expressions = return_fields.map { |field| field[:member] }
 
@@ -445,6 +448,34 @@ module Mondrian
 
         NONE_ACCESS = Java::MondrianOlap::Access::NONE
 
+        # The fields Mondrian selects without a return clause (every level of every cube hierarchy
+        # and the cell measure), limited to the levels and measures the role grants. Mondrian adds
+        # these columns without consulting the role, so a denied hierarchy would be returned.
+        def self.accessible_return_fields(rolap_cell, role)
+          members_method = rolap_cell.java_class.declared_method('getMembersForDrillThrough')
+          members_method.accessible = true
+          measure, *members = members_method.invoke(rolap_cell).to_a
+
+          fields = members.flat_map do |member|
+            hierarchy = member.getHierarchy
+            next [] if closure_hierarchy?(hierarchy) || role.getAccess(hierarchy) == NONE_ACCESS
+
+            hierarchy.getLevels.to_a.flat_map do |level|
+              next [] if level.isAll || !level_accessible?(level, role)
+
+              level_fields = []
+              level_fields << "Name(#{level.getUniqueName})" if level.getNameExp
+              level_fields << level.getUniqueName
+            end
+          end
+          if measure.is_a?(Java::MondrianRolap::RolapStoredMeasure) && role.canAccess(measure)
+            fields << measure.getUniqueName
+          end
+          raise ArgumentError, "no accessible drill through fields" if fields.empty?
+
+          fields
+        end
+
         # Role getAccess of a level below the bottom level of a hierarchy grant falls back to the
         # dimension access, so the level depth is checked against the grant explicitly.
         def self.level_accessible?(level, role)
@@ -453,6 +484,15 @@ module Mondrian
           return true unless access_details = role.getAccessDetails(hierarchy)
 
           level.getDepth.between?(access_details.getTopLevelDepth, access_details.getBottomLevelDepth)
+        end
+
+        # Mondrian keeps the closure table of a parent child hierarchy as a hidden hierarchy.
+        def self.closure_hierarchy?(hierarchy)
+          return false unless hierarchy.respond_to?(:getRolapHierarchy)
+
+          closure_for_field = hierarchy.getRolapHierarchy.java_class.declared_field('closureFor')
+          closure_for_field.accessible = true
+          !closure_for_field.value(hierarchy.getRolapHierarchy).nil?
         end
 
         def self.parse_return_fields(result, params)

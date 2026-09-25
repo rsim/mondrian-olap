@@ -1181,6 +1181,26 @@ describe "Query" do
         result.drill_through(row: 0, column: 0, return: ['[Measures].[Unit Sales]'], nonempty: ['[Measures].[Store Sales]'])
       end
     end
+
+    it "should return only the accessible levels and measures without return fields" do
+      unrestricted_labels = sales_result.drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      refute_empty unrestricted_labels.grep(/Gender/)
+
+      @olap.custom_role = build_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[Mexico]', access: 'all'
+        end
+      end
+      drill_through = sales_result.drill_through(row: 0, column: 0, max_rows: 5)
+      labels = drill_through.column_labels
+      assert_empty labels.grep(/Gender/)
+      assert_includes labels, 'Country (Key)'
+      assert_includes labels, 'Unit Sales'
+      rows = drill_through.rows
+      assert_equal 5, rows.size
+      assert rows.all? { |row| row[labels.index('Country (Key)')] == 'Mexico' }
+    end
   end
 
   describe "drill through virtual cube cell with return" do
