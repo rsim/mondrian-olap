@@ -1201,6 +1201,19 @@ describe "Query" do
       assert_equal 5, rows.size
       assert rows.all? { |row| row[labels.index('Country (Key)')] == 'Mexico' }
     end
+
+    it "should filter rows by a hierarchy grant with a bottom level" do
+      @olap.custom_role = build_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom', bottom_level: '[Customers].[State Province]' do
+          member_grant member: '[Customers].[USA]', access: 'all'
+        end
+      end
+      # The restricted hierarchy is not among the return fields, so its rows are filtered by the
+      # added restriction fields, which must stop at the bottom level.
+      rows = sales_result.drill_through(row: 0, column: 0, max_rows: 5,
+        return: ['[Product].[Product Family]', '[Measures].[Unit Sales]']).rows
+      assert_equal 5, rows.size
+    end
   end
 
   describe "drill through virtual cube cell with return" do

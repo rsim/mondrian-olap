@@ -672,10 +672,17 @@ module Mondrian
             next if hierarchy.getDimension.isMeasures
             next if checked_hierarchies.include?(hierarchy)
             next unless role.getAccess(hierarchy) == CUSTOM_ACCESS
+            next unless bottom_level = deepest_accessible_level(hierarchy, role)
 
-            add_level_full_name_fields fields, hierarchy.getLevels.to_a.last, fieldset_id, options
+            add_level_full_name_fields fields, bottom_level, fieldset_id, options
             fieldset_id += 1
           end
+        end
+
+        # The levels below the bottom level of a hierarchy grant are not accessible, so a member
+        # full name built down to the leaf level would never be found under the role.
+        def self.deepest_accessible_level(hierarchy, role)
+          hierarchy.getLevels.to_a.reverse.detect { |level| level_accessible?(level, role) }
         end
 
         # Add the level and its ancestor levels as query fields under one fieldset id, so their
