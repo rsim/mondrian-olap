@@ -439,10 +439,27 @@ module Mondrian
           [sql, return_fields]
         end
 
+        def self.role_restricted?(params)
+          params[:role_name].present? || !params[:custom_role].nil?
+        end
+
+        NONE_ACCESS = Java::MondrianOlap::Access::NONE
+
+        # Role getAccess of a level below the bottom level of a hierarchy grant falls back to the
+        # dimension access, so the level depth is checked against the grant explicitly.
+        def self.level_accessible?(level, role)
+          hierarchy = level.getHierarchy
+          return false if role.getAccess(hierarchy) == NONE_ACCESS
+          return true unless access_details = role.getAccessDetails(hierarchy)
+
+          level.getDepth.between?(access_details.getTopLevelDepth, access_details.getBottomLevelDepth)
+        end
+
         def self.parse_return_fields(result, params)
           nonempty_columns = []
           return_fields = []
           sql_options = nil
+          role = params[:role] if role_restricted?(params)
 
           if params[:return] || params[:nonempty]
             rolap_cube = result.getCube
@@ -488,6 +505,10 @@ module Mondrian
                 level_or_member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
                 return_fields[i][:member] = level_or_member
 
+                # The cube schema reader resolves every level and measure regardless of the role.
+                if role && level_or_member && !return_field_accessible?(level_or_member, role)
+                  raise ArgumentError, "return field #{member_full_name} is not accessible"
+                end
                 if level_or_member.is_a? Java::MondrianOlap::Member
                   raise ArgumentError,
                     "cannot use calculated member #{member_full_name} as return field" if level_or_member.isCalculated
@@ -510,6 +531,7 @@ module Mondrian
                 member = schema_reader.lookupCompound rolap_cube, segment_list, false, 0
                 if member.is_a? Java::MondrianOlap::Member
                   raise ArgumentError, "cannot use calculated member #{nonempty_field} as nonempty field" if member.isCalculated
+                  raise ArgumentError, "nonempty field #{nonempty_field} is not accessible" if role && !role.canAccess(member)
 
                   sql_query = member.getStarMeasure.getSqlQuery
                   member.getStarMeasure.generateExprString(sql_query)
@@ -520,11 +542,19 @@ module Mondrian
             end
           end
 
-          if sql_options && (params[:role_name].present? || params[:custom_role])
-            add_role_restriction_fields return_fields, sql_options, params[:role], result.getCube
+          if sql_options && role
+            add_role_restriction_fields return_fields, sql_options, role, result.getCube
           end
 
           [nonempty_columns, return_fields]
+        end
+
+        def self.return_field_accessible?(level_or_member, role)
+          if level_or_member.is_a?(Java::MondrianOlap::Level)
+            level_accessible?(level_or_member, role)
+          else
+            role.canAccess(level_or_member)
+          end
         end
 
         def self.add_sql_attributes(field, options = {})

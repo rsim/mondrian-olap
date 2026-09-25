@@ -1149,6 +1149,40 @@ describe "Query" do
     end
   end
 
+  describe "drill through cell with a dynamic role" do
+    after(:each) do
+      @olap.custom_role = nil
+    end
+
+    def build_sales_role(&block)
+      @olap.build_role do
+        schema_grant access: 'none' do
+          cube_grant cube: 'Sales', access: 'all', &block
+        end
+      end
+    end
+
+    def sales_result
+      @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[All Customers]').execute
+    end
+
+    it "should refuse return and nonempty fields the role denies" do
+      @olap.custom_role = build_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+        hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+          member_grant member: '[Measures].[Unit Sales]', access: 'all'
+        end
+      end
+      result = sales_result
+      error = assert_raises(ArgumentError) { result.drill_through(row: 0, column: 0, return: ['[Gender].[Gender]']) }
+      assert_match(/not accessible/, error.message)
+      assert_raises(ArgumentError) { result.drill_through(row: 0, column: 0, return: ['[measures].[Store Sales]']) }
+      assert_raises(ArgumentError) do
+        result.drill_through(row: 0, column: 0, return: ['[Measures].[Unit Sales]'], nonempty: ['[Measures].[Store Sales]'])
+      end
+    end
+  end
+
   describe "drill through virtual cube cell with return" do
     before(:all) do
       @query = @olap.from('Sales and Warehouse')
