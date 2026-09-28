@@ -272,12 +272,21 @@ module Mondrian
 
           member_full_name_columns_indexes.each do |column_indexes|
             segment_names = [@return_fields[column_indexes.first][:member].getHierarchy.getName]
-            column_indexes.each { |i| segment_names << row_values[i].to_s }
+            column_indexes.each { |i| segment_names << member_name(row_values[i]) }
             segment_list = Java::OrgOlap4jMdx::IdentifierNode.ofNames(*segment_names).getSegmentList
             return false unless @raw_cube.lookupMember(segment_list)
           end
 
           true
+        end
+
+        # Oracle returns numeric key columns as BigDecimal, whose to_s is not the member name.
+        def member_name(value)
+          if value.is_a?(BigDecimal)
+            value == value.to_i ? value.to_i.to_s : value.to_s('F')
+          else
+            value.to_s
+          end
         end
 
         def member_full_name_columns_indexes
@@ -655,10 +664,12 @@ module Mondrian
           fieldset_id = 0
           checked_hierarchies = []
 
-          # For each returned level field add a set of fields to be able to build the level member
-          # full name from database query results, so its accessibility can be validated per row.
+          # For each returned level field of a hierarchy the role limits to specific members add a set
+          # of fields to be able to build the level member full name from database query results, so
+          # its accessibility can be validated per row.
           fields.map { |f| f[:member] }.uniq.each do |level_or_member|
             next if level_or_member.is_a?(Java::MondrianOlap::Member)
+            next if role && role.getAccess(level_or_member.getHierarchy) != CUSTOM_ACCESS
 
             checked_hierarchies << level_or_member.getHierarchy
             add_level_full_name_fields fields, level_or_member, fieldset_id, options
