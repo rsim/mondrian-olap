@@ -1202,6 +1202,20 @@ describe "Query" do
       assert rows.all? { |row| row[labels.index('Country (Key)')] == 'Mexico' }
     end
 
+    it "should fill the requested rows when the role rejects the first statement batches" do
+      @olap.custom_role = build_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA]', access: 'all'
+        end
+      end
+      # The rows are ordered by country, so the Canada and Mexico rows come before the accessible USA rows
+      # and the first statement limited to the requested rows returns none of them.
+      rows = sales_result.drill_through(row: 0, column: 0, max_rows: 10,
+        return: ['[Customers].[Country]', '[Measures].[Unit Sales]']).rows
+      assert_equal 10, rows.size
+      assert rows.all? { |row| row.first == 'USA' }
+    end
+
     it "should filter rows by a hierarchy grant with a bottom level" do
       @olap.custom_role = build_sales_role do
         hierarchy_grant hierarchy: '[Customers]', access: 'custom', bottom_level: '[Customers].[State Province]' do

@@ -178,25 +178,30 @@ module Mondrian
           rolap_cell = cell_field.value(raw_cell)
 
           if params[:return] || rolap_cell.canDrillThrough
-            max_rows = params[:max_rows]
-            if params[:role_name] || params[:custom_role]
-              # Remove max rows limitation for the drill through SQL statement when a data access role
-              # or a dynamic role is used, as the row restrictions validation later may reduce the returned rows count.
-              max_rows = nil
+            result = rolap_result(rolap_cell)
+            sql, return_fields = generate_drill_through_sql(rolap_cell, result, params)
+            statement_executor = lambda do |statement_max_rows|
+              execute_drill_through_sql(result, sql, statement_max_rows).getWrappedResultSet
             end
-            sql_statement, return_fields = drill_through_internal(rolap_cell, params.merge(max_rows: max_rows))
-            raw_result_set = sql_statement.getWrappedResultSet
-            raw_cube = raw_cell.getCellSet.getMetaData.getCube
-            new(raw_result_set,
+            new(statement_executor.call(params[:max_rows]),
               return_fields: return_fields,
-              raw_cube: raw_cube,
+              raw_cube: raw_cell.getCellSet.getMetaData.getCube,
               role_name: params[:role_name],
               custom_role: params[:custom_role],
-              max_rows: params[:max_rows]
+              max_rows: params[:max_rows],
+              statement_executor: statement_executor
             )
           end
         end
 
+        def self.rolap_result(rolap_cell)
+          result_field = rolap_cell.java_class.declared_field('result')
+          result_field.accessible = true
+          result_field.value(rolap_cell)
+        end
+
+        # statement_executor runs the drill through statement again with another max rows limit,
+        # see rows.
         def initialize(raw_result_set, options = {})
           @raw_result_set = raw_result_set
           @return_fields = options[:return_fields]
@@ -204,6 +209,9 @@ module Mondrian
           @role_name = options[:role_name]
           @custom_role = options[:custom_role]
           @max_rows = options[:max_rows]
+          @statement_executor = options[:statement_executor]
+          @statement_max_rows = @max_rows
+          @scanned_rows = 0
         end
 
         def column_types
@@ -240,6 +248,7 @@ module Mondrian
           types = column_types
           # Use loop instead of recursion to avoid deep recursion when many rows are skipped by role restrictions.
           while @raw_result_set.next
+            @scanned_rows += 1
             row_values = Array.new(types.size)
             types.each_with_index do |column_type, i|
               row_values[i] = Result.java_to_ruby_value(@raw_result_set.getObject(i + 1), column_type)
@@ -250,12 +259,20 @@ module Mondrian
           nil
         end
 
+        # A role restricted drill through rejects rows the role denies, so the statement limited to
+        # the requested max rows may not fill them. The rows are then read again with a ten times
+        # larger limit, up to ROLE_SCAN_MAX_ROWS. An unlimited statement would load every candidate
+        # row into memory, because the PostgreSQL and MySQL JDBC drivers buffer the whole result set.
+        # A result may hold fewer rows than requested when the maximum is reached.
+        ROLE_SCAN_FACTOR = 10
+        ROLE_SCAN_MAX_ROWS = 100_000
+
         def rows
           @rows ||= begin
-            rows_values = []
-            while row_values = fetch
-              rows_values << row_values
-              break if rows_values.size == @max_rows
+            rows_values = fetch_rows
+            while rows_values.size < @max_rows.to_i && more_rows_to_scan?
+              execute_statement([@statement_max_rows * ROLE_SCAN_FACTOR, ROLE_SCAN_MAX_ROWS].min)
+              rows_values = fetch_rows
             end
             rows_values
           ensure
@@ -266,6 +283,29 @@ module Mondrian
         end
 
         private
+
+        def fetch_rows
+          rows_values = []
+          while row_values = fetch
+            rows_values << row_values
+            break if rows_values.size == @max_rows
+          end
+          rows_values
+        end
+
+        # The statement limit was reached, so the database may hold more candidate rows.
+        def more_rows_to_scan?
+          return false unless @statement_executor && (@role_name || @custom_role) && @statement_max_rows
+
+          @scanned_rows >= @statement_max_rows && @statement_max_rows < ROLE_SCAN_MAX_ROWS
+        end
+
+        def execute_statement(statement_max_rows)
+          @raw_result_set.close
+          @statement_max_rows = statement_max_rows
+          @scanned_rows = 0
+          @raw_result_set = @statement_executor.call(statement_max_rows)
+        end
 
         def can_access_row_values?(row_values)
           return true unless @role_name || @custom_role
@@ -310,15 +350,7 @@ module Mondrian
         end
 
         # Modified RolapCell drillThroughInternal method
-        def self.drill_through_internal(rolap_cell, params)
-          max_rows = params[:max_rows] || -1
-
-          result_field = rolap_cell.java_class.declared_field('result')
-          result_field.accessible = true
-          result = result_field.value(rolap_cell)
-
-          sql, return_fields = generate_drill_through_sql(rolap_cell, result, params)
-
+        def self.execute_drill_through_sql(result, sql, max_rows)
           # Choose the appropriate scrollability. If we need to start from an
           # Offset row, it is useful that the cursor is scrollable, but not essential.
           statement = result.getExecution.getMondrianStatement
@@ -327,11 +359,11 @@ module Mondrian
           result_set_type = Java::JavaSql::ResultSet::TYPE_FORWARD_ONLY
           result_set_concurrency = Java::JavaSql::ResultSet::CONCUR_READ_ONLY
 
-          sql_statement = Java::MondrianRolap::RolapUtil.executeQuery(
+          Java::MondrianRolap::RolapUtil.executeQuery(
             connection.getDataSource,
             sql,
             nil,
-            max_rows,
+            max_rows || -1,
             -1, # firstRowOrdinal
             Java::MondrianRolap::SqlStatement::StatementLocus.new(
               execution,
@@ -343,7 +375,6 @@ module Mondrian
             result_set_concurrency,
             nil
           )
-          [sql_statement, return_fields]
         end
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
