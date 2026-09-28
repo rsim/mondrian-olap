@@ -147,8 +147,8 @@ module Mondrian
           end
 
           raw_role.grant(raw_hierarchy, raw_access,
-            top_level && lookup(CATEGORY_LEVEL, top_level),
-            bottom_level && lookup(CATEGORY_LEVEL, bottom_level),
+            top_level && lookup_hierarchy_level(raw_hierarchy, top_level),
+            bottom_level && lookup_hierarchy_level(raw_hierarchy, bottom_level),
             rollup_policy_value(rollup_policy))
           HierarchyGrant.new(raw_role, @raw_schema_reader, raw_hierarchy, custom_access).instance_eval(&block) if block
           nil
@@ -158,6 +158,16 @@ module Mondrian
 
         def lookup(category, unique_name)
           @raw_schema_reader.lookupCompound(@raw_cube, parse_identifier(unique_name), true, category)
+        end
+
+        # Mondrian only asserts that a level bound belongs to the granted hierarchy.
+        def lookup_hierarchy_level(raw_hierarchy, unique_name)
+          raw_level = lookup(CATEGORY_LEVEL, unique_name)
+          unless raw_level.getHierarchy == raw_hierarchy
+            raise ArgumentError, "Level '#{unique_name}' is not in hierarchy '#{raw_hierarchy.getUniqueName}'"
+          end
+
+          raw_level
         end
 
         def rollup_policy_value(rollup_policy)
