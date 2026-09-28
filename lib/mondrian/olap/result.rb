@@ -398,7 +398,9 @@ module Mondrian
             end
 
             new_select = new_select_columns.join(', ')
-            new_order_by = new_order_by_columns.join(', ')
+            # Fields of different hierarchies may share a column (e.g. the year of two time hierarchies),
+            # and SQL Server rejects a column listed twice in ORDER BY.
+            new_order_by = new_order_by_columns.uniq.join(', ')
             new_group_by = new_group_by_columns.join(', ')
           else
             new_select = extended_select
