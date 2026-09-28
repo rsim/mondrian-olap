@@ -381,8 +381,11 @@ module Mondrian
           if role_restricted?(params) && Array(params[:return]).empty?
             params = params.merge(return: accessible_return_fields(rolap_cell, params[:role]))
           end
-          nonempty_columns, return_fields = parse_return_fields(result, params)
-          return_expressions = return_fields.map { |field| field[:member] }
+          nonempty_columns, return_fields, role_conditions = parse_return_fields(result, params)
+          # Mondrian joins the tables of the return expressions, so the levels of the role conditions
+          # are passed too. The select list is built from the return fields below.
+          return_expressions = return_fields.map { |field| field[:member] } +
+            role_conditions.flat_map { |condition| condition[:levels] }
 
           sql_non_extended = rolap_cell.getDrillThroughSQL(return_expressions, false)
           sql_extended = rolap_cell.getDrillThroughSQL(return_expressions, true)
@@ -476,6 +479,12 @@ module Mondrian
           if nonempty_columns && !nonempty_columns.empty?
             not_null_condition = nonempty_columns.map { |c| "(#{c}) IS NOT NULL" }.join(' OR ')
             new_where += " AND (#{not_null_condition})"
+          end
+          role_conditions.each do |condition|
+            # A hierarchy of another cube of a virtual cube has no table in the query, so its rows are not limited.
+            next unless condition[:quoted_table_names].all? { |table_name| extended_from.include?(table_name) }
+
+            new_where += " AND (#{condition[:sql]})"
           end
 
           sql = "select #{new_select} from #{new_from} where #{new_where}"
@@ -624,11 +633,14 @@ module Mondrian
             end
           end
 
+          role_conditions = []
           if sql_options && role
-            add_role_restriction_fields return_fields, sql_options, role, result.getCube
+            add_role_restriction_fields return_fields, sql_options, role
+            role_conditions = role_restriction_conditions(return_fields, sql_options, role, result.getCube,
+              schema_reader.withLocus)
           end
 
-          [nonempty_columns, return_fields]
+          [nonempty_columns, return_fields, role_conditions]
         end
 
         def self.return_field_accessible?(level_or_member, role)
@@ -646,11 +658,7 @@ module Mondrian
           max_alias_length = options[:max_alias_length]
           params = options[:params]
 
-          if table_name = (member.respond_to?(:getTableName) && member.getTableName ||
-              member.respond_to?(:getMondrianDefExpression) && (expr = member.getMondrianDefExpression) &&
-              expr.respond_to?(:table) && expr.table)
-            field[:quoted_table_name] = dialect.quoteIdentifier(table_name)
-          end
+          field[:quoted_table_name] = quoted_table_name(member, dialect)
 
           field[:column_expression] =
             case field[:type]
@@ -689,44 +697,27 @@ module Mondrian
           field[:column_alias] = dialect.quoteIdentifier(max_alias_length ? column_alias[0, max_alias_length] : column_alias)
         end
 
+        def self.quoted_table_name(member, dialect)
+          table_name = member.respond_to?(:getTableName) && member.getTableName ||
+            member.respond_to?(:getMondrianDefExpression) && (expr = member.getMondrianDefExpression) &&
+            expr.respond_to?(:table) && expr.table
+          dialect.quoteIdentifier(table_name) if table_name
+        end
+
         CUSTOM_ACCESS = Java::MondrianOlap::Access::CUSTOM
 
-        def self.add_role_restriction_fields(fields, options = {}, role = nil, cube = nil)
+        # For each returned level field of a hierarchy the role limits to specific members add a set
+        # of fields to be able to build the level member full name from database query results, so
+        # its accessibility can be validated per row.
+        def self.add_role_restriction_fields(fields, options = {}, role = nil)
           fieldset_id = 0
-          checked_hierarchies = []
-
-          # For each returned level field of a hierarchy the role limits to specific members add a set
-          # of fields to be able to build the level member full name from database query results, so
-          # its accessibility can be validated per row.
           fields.map { |f| f[:member] }.uniq.each do |level_or_member|
             next if level_or_member.is_a?(Java::MondrianOlap::Member)
             next if role && role.getAccess(level_or_member.getHierarchy) != CUSTOM_ACCESS
 
-            checked_hierarchies << level_or_member.getHierarchy
             add_level_full_name_fields fields, level_or_member, fieldset_id, options
             fieldset_id += 1
           end
-
-          return unless role && cube
-
-          # Also validate every hierarchy the role limits to specific members (for example an embed
-          # token page filter), even when it is not among the return fields. Otherwise the role could
-          # be bypassed by omitting the restricted hierarchy from the return fields.
-          cube.getHierarchies.each do |hierarchy|
-            next if hierarchy.getDimension.isMeasures
-            next if checked_hierarchies.include?(hierarchy)
-            next unless role.getAccess(hierarchy) == CUSTOM_ACCESS
-            next unless bottom_level = deepest_accessible_level(hierarchy, role)
-
-            add_level_full_name_fields fields, bottom_level, fieldset_id, options
-            fieldset_id += 1
-          end
-        end
-
-        # The levels below the bottom level of a hierarchy grant are not accessible, so a member
-        # full name built down to the leaf level would never be found under the role.
-        def self.deepest_accessible_level(hierarchy, role)
-          hierarchy.getLevels.to_a.reverse.detect { |level| level_accessible?(level, role) }
         end
 
         # Add the level and its ancestor levels as query fields under one fieldset id, so their
@@ -739,6 +730,86 @@ module Mondrian
             add_sql_attributes fields.last, options
             break unless (current_level = current_level.getParentLevel) && !current_level.isAll
           end
+        end
+
+        # SQL conditions limiting the rows to the granted members of every hierarchy the role limits
+        # to specific members (for example an embed token page filter) and the request does not
+        # return. Otherwise the role could be bypassed by omitting the restricted hierarchy from the
+        # return fields. Limiting these rows in SQL keeps a grouped drill through grouped by the
+        # returned fields only.
+        def self.role_restriction_conditions(return_fields, options, role, cube, schema_reader)
+          returned_hierarchies = return_fields.map { |field| field[:member] }.
+            select { |member| member.is_a?(Java::MondrianOlap::Level) }.map(&:getHierarchy)
+          cube.getHierarchies.to_a.filter_map do |hierarchy|
+            next if hierarchy.getDimension.isMeasures || returned_hierarchies.include?(hierarchy)
+            next unless role.getAccess(hierarchy) == CUSTOM_ACCESS
+
+            member_roots = accessible_member_roots(hierarchy, role, schema_reader)
+            # Every row is accessible when the role grants the all member completely.
+            next if member_roots.any?(&:isAll)
+
+            member_roots_condition(member_roots, options)
+          end
+        end
+
+        ALL_ACCESS = Java::MondrianOlap::Access::ALL
+
+        # The members whose descendants the role grants completely, found from the root members down.
+        def self.accessible_member_roots(hierarchy, role, schema_reader)
+          access_details = role.getAccessDetails(hierarchy)
+          member_roots = []
+          members = schema_reader.getHierarchyRootMembers(hierarchy).to_a
+          while member = members.shift
+            access = role.getAccess(member)
+            if expand_member?(member, access, access_details)
+              members.concat(schema_reader.getMemberChildren(member).to_a)
+            elsif access != NONE_ACCESS
+              member_roots << member
+            end
+          end
+          member_roots
+        end
+
+        # A member above the top level of the hierarchy grant, or one the role grants partly above the
+        # bottom level, is replaced by its children. The levels below the bottom level are not
+        # accessible and their rows belong to the bottom level member.
+        def self.expand_member?(member, access, access_details)
+          depth = member.getLevel.getDepth
+          return true if depth < access_details.getTopLevelDepth
+          return false unless depth < access_details.getBottomLevelDepth
+
+          access == CUSTOM_ACCESS || access == ALL_ACCESS && access_details.hasInaccessibleDescendants(member)
+        end
+
+        # A root member is matched by the key columns of its level and its ancestor levels, because
+        # a level key may be unique only within the parent member.
+        def self.member_roots_condition(member_roots, options)
+          dialect = options[:dialect]
+          levels = []
+          root_conditions = member_roots.map do |member_root|
+            member_conditions = []
+            member = member_root
+            until member.nil? || member.isAll
+              level = member.getLevel
+              levels << level
+              member_conditions << "#{level.getKeyExp.getExpression(options[:sql_query])} = #{quoted_key(member, dialect)}"
+              member = member.getParentMember
+            end
+            "(#{member_conditions.join(' AND ')})"
+          end
+          levels.uniq!
+          {
+            # No row is accessible when the role grants no member.
+            sql: root_conditions.empty? ? '1 = 0' : root_conditions.join(' OR '),
+            levels: levels,
+            quoted_table_names: levels.map { |level| quoted_table_name(level, dialect) }.compact.uniq
+          }
+        end
+
+        def self.quoted_key(member, dialect)
+          buffer = Java::JavaLang::StringBuilder.new
+          dialect.quote(buffer, member.getKey, member.getLevel.getDatatype)
+          buffer.toString
         end
       end
 

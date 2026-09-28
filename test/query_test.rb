@@ -1222,11 +1222,42 @@ describe "Query" do
           member_grant member: '[Customers].[USA]', access: 'all'
         end
       end
-      # The restricted hierarchy is not among the return fields, so its rows are filtered by the
-      # added restriction fields, which must stop at the bottom level.
+      # The restricted hierarchy is not among the return fields, so its rows are limited in SQL
+      # to the granted members down to the bottom level.
       rows = sales_result.drill_through(row: 0, column: 0, max_rows: 5,
         return: ['[Product].[Product Family]', '[Measures].[Unit Sales]']).rows
       assert_equal 5, rows.size
+    end
+
+    it "should group rows by the return fields when the role limits a hierarchy not returned" do
+      @olap.custom_role = build_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA]', access: 'all'
+          member_grant member: '[Customers].[USA].[CA]', access: 'none'
+        end
+      end
+      drill_through = sales_result.drill_through(row: 0, column: 0,
+        return: ['[Product].[Product Family]', '[Measures].[Unit Sales]'], group_by: true)
+      assert_equal @sql.select_rows(<<~SQL), drill_through.rows
+        SELECT
+          product_classes.product_family,
+          SUM(sales.unit_sales) AS unit_sales
+        FROM
+          sales,
+          products,
+          product_classes,
+          customers
+        WHERE
+          products.product_class_id = product_classes.id AND
+          sales.product_id = products.id AND
+          customers.id = sales.customer_id AND
+          customers.country = 'USA' AND
+          customers.state_province <> 'CA'
+        GROUP BY
+          product_classes.product_family
+        ORDER BY
+          product_classes.product_family
+      SQL
     end
   end
 
