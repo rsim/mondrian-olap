@@ -378,7 +378,7 @@ module Mondrian
         end
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
-          if role_restricted?(params) && params[:return].blank?
+          if role_restricted?(params) && Array(params[:return]).empty?
             params = params.merge(return: accessible_return_fields(rolap_cell, params[:role]))
           end
           nonempty_columns, return_fields = parse_return_fields(result, params)
@@ -417,7 +417,7 @@ module Mondrian
             raise ArgumentError, "cannot parse drill through SQL: #{sql_extended}"
           end
 
-          if return_fields.present?
+          unless return_fields.empty?
             new_select_columns = []
             new_order_by_columns = []
             new_group_by_columns = []
@@ -485,7 +485,7 @@ module Mondrian
         end
 
         def self.role_restricted?(params)
-          params[:role_name].present? || !params[:custom_role].nil?
+          !!(params[:role_name] || params[:custom_role])
         end
 
         NONE_ACCESS = Java::MondrianOlap::Access::NONE
