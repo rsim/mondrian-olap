@@ -105,13 +105,17 @@ module Mondrian
 
       def member(full_name)
         segment_list = Java::OrgOlap4jMdx::IdentifierNode.parseIdentifier(full_name).getSegmentList
-        raw_member = @raw_cube.lookupMember(segment_list)
+        raw_member = Error.wrap_native_exception do
+          @raw_cube.lookupMember(segment_list)
+        end
         raw_member && Member.new(raw_member)
       end
 
       def member_by_segments(*segment_names)
         segment_list = Java::OrgOlap4jMdx::IdentifierNode.ofNames(*segment_names).getSegmentList
-        raw_member = @raw_cube.lookupMember(segment_list)
+        raw_member = Error.wrap_native_exception do
+          @raw_cube.lookupMember(segment_list)
+        end
         raw_member && Member.new(raw_member)
       end
 

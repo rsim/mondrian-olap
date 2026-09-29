@@ -17,6 +17,7 @@ module Mondrian
         @driver = params[:driver]
         @connected = false
         @raw_connection = nil
+        @custom_role = nil
       end
 
       def connect
@@ -66,6 +67,7 @@ module Mondrian
       def close
         @raw_jdbc_connection = @raw_catalog = @raw_schema = @raw_mondrian_connection = nil
         @raw_schema_reader = @raw_cache_control = nil
+        @custom_role = nil
         @raw_connection.close
         @raw_connection = nil
         @connected = false
@@ -76,12 +78,14 @@ module Mondrian
         options = {}
         Error.wrap_native_exception(options) do
           start_time = Time.now
+          role = raw_mondrian_connection.getRole
           statement = @raw_connection.prepareOlapStatement(query_string)
           options[:profiling_statement] = statement if parameters[:profiling]
           set_statement_parameters(statement, parameters)
           raw_cell_set = statement.executeQuery()
           total_duration = ((Time.now - start_time) * 1000).to_i
-          Result.new(self, raw_cell_set, profiling_handler: statement.getProfileHandler, total_duration: total_duration)
+          Result.new(self, raw_cell_set,
+            role: role, profiling_handler: statement.getProfileHandler, total_duration: total_duration)
         end
       end
 
@@ -94,8 +98,14 @@ module Mondrian
 
       def execute_drill_through(query_string)
         Error.wrap_native_exception do
-          statement = @raw_connection.createStatement
-          Result::DrillThrough.new(statement.executeQuery(query_string))
+          parsed_statement = raw_mondrian_connection.parseStatement(query_string)
+          # Mondrian executes a DRILLTHROUGH statement without the row and field restrictions of the role.
+          if role_restricts_drill_through?(parsed_statement)
+            drill_through_with_role(parsed_statement)
+          else
+            statement = @raw_connection.createStatement
+            Result::DrillThrough.new(statement.executeQuery(query_string))
+          end
         end
       end
 
@@ -198,6 +208,7 @@ module Mondrian
         Error.wrap_native_exception do
           @raw_connection.setRoleName(name)
         end
+        @custom_role = nil
       end
 
       def role_names=(names)
@@ -206,7 +217,52 @@ module Mondrian
           # @raw_connection.setRoleNames(Array(names))
           names = Array(names)
           @raw_connection.java_method(:setRoleNames, [Java::JavaUtil::List.java_class]).call(names)
-          names
+        end
+        @custom_role = nil
+        names
+      end
+
+      # Returns the dynamic Role set with #custom_role=, or nil when the connection
+      # uses a named or default role. Use it to propagate the role to another
+      # connection of the same schema (e.g. a worker thread connection).
+      def custom_role
+        @custom_role
+      end
+
+      # Activates a Mondrian Role built with #build_role. Passing nil resets the
+      # connection to the schema default role (same as role_name = nil).
+      def custom_role=(role)
+        if role.nil?
+          self.role_name = nil
+        else
+          Error.wrap_native_exception do
+            # Mondrian setRole does not reset the role name of the olap4j connection.
+            @raw_connection.setRoleName(nil)
+            raw_mondrian_connection.setRole(role)
+          end
+          @custom_role = role
+        end
+      end
+
+      # Builds an immutable Mondrian Role for this connection's schema from dynamic
+      # grants. The block is evaluated with the same DSL as schema data access role
+      # definitions, see RoleBuilder. Does not activate the role; assign the
+      # returned role to #custom_role= to use it.
+      #
+      #   role = connection.build_role do
+      #     schema_grant access: 'none' do
+      #       cube_grant cube: 'Sales', access: 'all' do
+      #         hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+      #           member_grant member: '[Measures].[Unit Sales]', access: 'all'
+      #         end
+      #       end
+      #     end
+      #   end
+      def build_role(&block)
+        Error.wrap_native_exception do
+          builder = RoleBuilder.new(raw_mondrian_connection.getSchema)
+          builder.instance_eval(&block) if block
+          builder.build
         end
       end
 
@@ -493,6 +549,31 @@ module Mondrian
       # ClickHouse JDBC driver requires JdbcPassword to be set
       def set_clickhouse_properties(props)
         props.setProperty('JdbcPassword', '') unless @params[:password]
+      end
+
+      def role_restricts_drill_through?(parsed_statement)
+        parsed_statement.is_a?(Java::MondrianOlap::DrillThrough) &&
+        Result::DrillThrough.role_restricts_cube?(raw_mondrian_connection.getRole, parsed_statement.getQuery.getCube)
+      end
+
+      # Mondrian raises this error message when the first cell of a DRILLTHROUGH statement cannot be drilled through.
+      CANNOT_DRILL_THROUGH_MESSAGE = "Cannot do DrillThrough operation on the cell"
+
+      # Drills through the first cell of the statement query, as Mondrian does, with the role
+      # restrictions of Result drill_through.
+      def drill_through_with_role(parsed_statement)
+        if parsed_statement.getFirstRowOrdinal > 0
+          raise ArgumentError, "FIRSTROWSET is not supported when the role restricts the cube"
+        end
+
+        result = execute(parsed_statement.getQuery.toString)
+        first_cell_position = Result::AXIS_SYMBOLS.first(result.axes_count).map { |axis| [axis, 0] }.to_h
+        max_rows = parsed_statement.getMaxRowCount
+        return_elements = parsed_statement.getReturnList.to_a
+        result.drill_through(first_cell_position.merge(
+          max_rows: (max_rows if max_rows > 0),
+          return_elements: (return_elements unless return_elements.empty?)
+        )) || raise(Java::OrgOlap4j::OlapException.new(CANNOT_DRILL_THROUGH_MESSAGE))
       end
 
       def set_statement_parameters(statement, parameters)
