@@ -689,38 +689,42 @@ module Mondrian
           cube.getHierarchies.to_a.filter_map do |hierarchy|
             next if hierarchy.getDimension.isMeasures
             next unless role.getAccess(hierarchy) == CUSTOM_ACCESS
+            # A hierarchy grant with only level bounds denies no member, so every row is accessible
+            # and the members are not read.
+            next unless member_grants?(role.getAccessDetails(hierarchy))
 
             if parent_child_level = hierarchy.getLevels.to_a.detect(&:isParentChild)
               parent_child_condition(parent_child_level, role, schema_reader, options)
             else
-              member_roots, member_denied = accessible_member_roots(hierarchy, role, schema_reader)
-              # Every row belongs to a member root when the role denies no member, for example when
-              # a hierarchy grant has only a top level.
-              next unless member_denied
-
-              member_roots_condition(member_roots, options)
+              member_roots_condition(accessible_member_roots(hierarchy, role, schema_reader), options)
             end
           end
         end
 
-        # The members whose descendants the role grants completely, found from the root members down,
-        # and whether the role denies any member.
+        # Mondrian keeps the member grants of a hierarchy access in a private map without a public
+        # method telling whether there are any. A hierarchy access of another class is walked.
+        def self.member_grants?(access_details)
+          member_grants_field = access_details.java_class.declared_field('memberGrants')
+          member_grants_field.accessible = true
+          !member_grants_field.value(access_details).isEmpty
+        rescue Java::JavaLang::NoSuchFieldException
+          true
+        end
+
+        # The members whose descendants the role grants completely, found from the root members down.
         def self.accessible_member_roots(hierarchy, role, schema_reader)
           access_details = role.getAccessDetails(hierarchy)
           member_roots = []
-          member_denied = false
           members = schema_reader.getHierarchyRootMembers(hierarchy).to_a
           while member = members.shift
             access = role.getAccess(member)
             if expand_member?(member, access, access_details)
               members.concat(schema_reader.getMemberChildren(member).to_a)
-            elsif access == NONE_ACCESS || hidden_by_rollup_policy?(member, access, access_details)
-              member_denied = true
-            else
+            elsif access != NONE_ACCESS && !hidden_by_rollup_policy?(member, access, access_details)
               member_roots << member
             end
           end
-          [member_roots, member_denied]
+          member_roots
         end
 
         # A member above the top level of the hierarchy grant, or one the role grants partly above the
