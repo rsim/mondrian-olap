@@ -291,8 +291,11 @@ module Mondrian
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
           params = params.merge(role: nil) unless role_restricts_cube?(params[:role], result.getCube)
+          if (role = params[:role]) && (return_elements = params[:return_elements])
+            params = params.merge(return: statement_return_fields(rolap_cell, result, return_elements),
+              default_column_aliases: true)
           # An empty return string also selects the default fields.
-          if (role = params[:role]) && Array(params[:return]).all?(&:empty?)
+          elsif role && Array(params[:return]).all?(&:empty?)
             params = params.merge(return: accessible_return_fields(rolap_cell, result, role), default_column_aliases: true)
           end
           nonempty_columns, return_fields, role_conditions = parse_return_fields(result, params)
@@ -420,10 +423,8 @@ module Mondrian
         # and the cell measure), limited to the levels and measures the role grants. Mondrian adds
         # these columns without consulting the role, so a denied hierarchy would be returned.
         def self.accessible_return_fields(rolap_cell, result, role)
-          members_method = rolap_cell.java_class.declared_method('getMembersForDrillThrough')
-          members_method.accessible = true
-          cell_members = members_method.invoke(rolap_cell)
-          base_cube = Java::MondrianRolap::RolapCell.chooseDrillThroughCube(cell_members, result.getCube)
+          cell_members = drill_through_members(rolap_cell)
+          base_cube = drill_through_cube(cell_members, result)
           measure, *members = cell_members.to_a
 
           levels = members.flat_map do |member|
@@ -432,22 +433,54 @@ module Mondrian
 
             hierarchy.getLevels.to_a.select { |level| !level.isAll && level_accessible?(level, role) }
           end
-          # A level of another cube of a virtual cube has no star column. Mondrian selects a column
-          # shared by several hierarchies once, in the order of the star columns.
-          level_columns = levels.filter_map do |level|
-            column = level.getBaseStarKeyColumn(base_cube)
-            [level, column] if column
-          end.uniq(&:last).sort_by { |_level, column| column.getBitPosition }
-
-          fields = level_columns.flat_map do |level, _column|
-            level.getNameExp ? ["Name(#{level.getUniqueName})", level.getUniqueName] : [level.getUniqueName]
-          end
+          # A level of another cube of a virtual cube has no star column.
+          fields = level_fields(levels.select { |level| level.getBaseStarKeyColumn(base_cube) }, base_cube)
           if measure.is_a?(Java::MondrianRolap::RolapStoredMeasure) && role.canAccess(measure)
             fields << measure.getUniqueName
           end
           raise ArgumentError, "no accessible drill through fields" if fields.empty?
 
           fields
+        end
+
+        # The fields of a DRILLTHROUGH statement return clause in the order Mondrian selects them: the
+        # levels of the drill through cube, the measures and then the levels of another cube of a virtual
+        # cube. A hierarchy or a dimension in the return clause stands for its first level.
+        def self.statement_return_fields(rolap_cell, result, return_elements)
+          base_cube = drill_through_cube(drill_through_members(rolap_cell), result)
+          measures, hierarchy_elements = return_elements.partition do |element|
+            element.is_a?(Java::MondrianOlap::Member)
+          end
+          levels = hierarchy_elements.map do |element|
+            element.is_a?(Java::MondrianOlap::Level) ? element : first_level(element.getHierarchy)
+          end
+          cube_levels, other_cube_levels = levels.partition { |level| level.getBaseStarKeyColumn(base_cube) }
+          level_fields(cube_levels, base_cube) + measures.map(&:getUniqueName) +
+            other_cube_levels.map { |level| level.getNameExp ? "Name(#{level.getUniqueName})" : level.getUniqueName }
+        end
+
+        def self.drill_through_members(rolap_cell)
+          members_method = rolap_cell.java_class.declared_method('getMembersForDrillThrough')
+          members_method.accessible = true
+          members_method.invoke(rolap_cell)
+        end
+
+        def self.drill_through_cube(cell_members, result)
+          Java::MondrianRolap::RolapCell.chooseDrillThroughCube(cell_members, result.getCube)
+        end
+
+        def self.first_level(hierarchy)
+          level = hierarchy.getLevels.first
+          level.isAll ? level.getChildLevel : level
+        end
+
+        # Mondrian selects a column shared by several hierarchies once, in the order of the star columns,
+        # and selects the name column of a level before its key column.
+        def self.level_fields(levels, base_cube)
+          level_columns = levels.map { |level| [level, level.getBaseStarKeyColumn(base_cube)] }.uniq(&:last)
+          level_columns.sort_by { |_level, column| column.getBitPosition }.flat_map do |level, _column|
+            level.getNameExp ? ["Name(#{level.getUniqueName})", level.getUniqueName] : [level.getUniqueName]
+          end
         end
 
         # Role getAccess of a level below the bottom level of a hierarchy grant falls back to the

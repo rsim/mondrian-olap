@@ -98,8 +98,14 @@ module Mondrian
 
       def execute_drill_through(query_string)
         Error.wrap_native_exception do
-          statement = @raw_connection.createStatement
-          Result::DrillThrough.new(statement.executeQuery(query_string))
+          parsed_statement = raw_mondrian_connection.parseStatement(query_string)
+          # Mondrian executes a DRILLTHROUGH statement without the row and field restrictions of the role.
+          if role_restricts_drill_through?(parsed_statement)
+            drill_through_with_role(parsed_statement)
+          else
+            statement = @raw_connection.createStatement
+            Result::DrillThrough.new(statement.executeQuery(query_string))
+          end
         end
       end
 
@@ -543,6 +549,28 @@ module Mondrian
       # ClickHouse JDBC driver requires JdbcPassword to be set
       def set_clickhouse_properties(props)
         props.setProperty('JdbcPassword', '') unless @params[:password]
+      end
+
+      def role_restricts_drill_through?(parsed_statement)
+        parsed_statement.is_a?(Java::MondrianOlap::DrillThrough) &&
+        Result::DrillThrough.role_restricts_cube?(raw_mondrian_connection.getRole, parsed_statement.getQuery.getCube)
+      end
+
+      # Drills through the first cell of the statement query, as Mondrian does, with the role
+      # restrictions of Result drill_through.
+      def drill_through_with_role(parsed_statement)
+        if parsed_statement.getFirstRowOrdinal > 0
+          raise ArgumentError, "FIRSTROWSET is not supported when the role restricts the cube"
+        end
+
+        result = execute(parsed_statement.getQuery.toString)
+        first_cell_position = Result::AXIS_SYMBOLS.first(result.axes_count).map { |axis| [axis, 0] }.to_h
+        max_rows = parsed_statement.getMaxRowCount
+        return_elements = parsed_statement.getReturnList.to_a
+        result.drill_through(first_cell_position.merge(
+          max_rows: (max_rows if max_rows > 0),
+          return_elements: (return_elements unless return_elements.empty?)
+        )) || raise(ArgumentError, "cannot drill through the first cell of the query")
       end
 
       def set_statement_parameters(statement, parameters)

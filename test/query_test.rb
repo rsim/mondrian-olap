@@ -1350,6 +1350,33 @@ describe "Query" do
       assert_equal [['CA']], rows
     end
 
+    it "should apply the role to a drill through statement" do
+      query = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Product].children')
+      return_fields = ['[Measures].[Unit Sales]', '[Customers].[Name]', '[Customers].[State Province]']
+      unrestricted_labels = query.execute_drill_through(max_rows: 1, return: return_fields).column_labels
+      unrestricted_default_labels = query.execute_drill_through(max_rows: 1).column_labels
+
+      @olap.custom_role = build_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
+        end
+      end
+      drill_through = query.execute_drill_through(return: return_fields)
+      assert_equal unrestricted_labels, drill_through.column_labels
+      rows = drill_through.rows
+      refute_empty rows
+      state_index = unrestricted_labels.index('State Province')
+      assert rows.all? { |row| row[state_index] == 'CA' }
+
+      default_drill_through = query.execute_drill_through(max_rows: 5)
+      assert_equal unrestricted_default_labels - ['Gender'], default_drill_through.column_labels
+      assert_equal 5, default_drill_through.rows.size
+
+      error = assert_raises(ArgumentError) { query.execute_drill_through(return: ['[Gender].[Gender]']) }
+      assert_match(/not accessible/, error.message)
+    end
+
     it "should return the default fields of the drill through cube of a virtual cube" do
       warehouse_result = lambda do
         @olap.from('Sales and Warehouse').columns('[Measures].[Units Shipped]').rows('[Product].[All Products]').execute
