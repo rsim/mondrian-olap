@@ -78,12 +78,14 @@ module Mondrian
         options = {}
         Error.wrap_native_exception(options) do
           start_time = Time.now
+          role = raw_mondrian_connection.getRole
           statement = @raw_connection.prepareOlapStatement(query_string)
           options[:profiling_statement] = statement if parameters[:profiling]
           set_statement_parameters(statement, parameters)
           raw_cell_set = statement.executeQuery()
           total_duration = ((Time.now - start_time) * 1000).to_i
-          Result.new(self, raw_cell_set, profiling_handler: statement.getProfileHandler, total_duration: total_duration)
+          Result.new(self, raw_cell_set,
+            role: role, profiling_handler: statement.getProfileHandler, total_duration: total_duration)
         end
       end
 

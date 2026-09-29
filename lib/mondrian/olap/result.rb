@@ -8,6 +8,8 @@ module Mondrian
       def initialize(connection, raw_cell_set, options = {})
         @connection = connection
         @raw_cell_set = raw_cell_set
+        # Drill through uses the role of the query execution, because the connection role may change later.
+        @role = options[:role] || connection.raw_mondrian_connection.getRole
         @profiling_handler = options[:profiling_handler]
         @total_duration = options[:total_duration]
       end
@@ -164,7 +166,7 @@ module Mondrian
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell, params.merge(role: @connection.raw_mondrian_connection.getRole))
+          DrillThrough.from_raw_cell(raw_cell, params.merge(role: @role))
         end
       end
 
@@ -291,7 +293,7 @@ module Mondrian
           params = params.merge(role: nil) unless role_restricts_cube?(params[:role], result.getCube)
           # An empty return string also selects the default fields.
           if (role = params[:role]) && Array(params[:return]).all?(&:empty?)
-            params = params.merge(return: accessible_return_fields(rolap_cell, role))
+            params = params.merge(return: accessible_return_fields(rolap_cell, result, role), default_column_aliases: true)
           end
           nonempty_columns, return_fields, role_conditions = parse_return_fields(result, params)
           # Mondrian joins the tables of the return expressions, so the levels of the role conditions
@@ -414,25 +416,31 @@ module Mondrian
           !role.nil? && cube.getHierarchies.any? { |hierarchy| role.getAccess(hierarchy) != ALL_ACCESS }
         end
 
-        # The fields Mondrian selects without a return clause (every level of every cube hierarchy
+        # The fields Mondrian selects without a return clause (every level of the drill through cube
         # and the cell measure), limited to the levels and measures the role grants. Mondrian adds
         # these columns without consulting the role, so a denied hierarchy would be returned.
-        def self.accessible_return_fields(rolap_cell, role)
+        def self.accessible_return_fields(rolap_cell, result, role)
           members_method = rolap_cell.java_class.declared_method('getMembersForDrillThrough')
           members_method.accessible = true
-          measure, *members = members_method.invoke(rolap_cell).to_a
+          cell_members = members_method.invoke(rolap_cell)
+          base_cube = Java::MondrianRolap::RolapCell.chooseDrillThroughCube(cell_members, result.getCube)
+          measure, *members = cell_members.to_a
 
-          fields = members.flat_map do |member|
+          levels = members.flat_map do |member|
             hierarchy = member.getHierarchy
-            next [] if closure_hierarchy?(hierarchy) || role.getAccess(hierarchy) == NONE_ACCESS
+            next [] if closure_hierarchy?(hierarchy)
 
-            hierarchy.getLevels.to_a.flat_map do |level|
-              next [] if level.isAll || !level_accessible?(level, role)
+            hierarchy.getLevels.to_a.select { |level| !level.isAll && level_accessible?(level, role) }
+          end
+          # A level of another cube of a virtual cube has no star column. Mondrian selects a column
+          # shared by several hierarchies once, in the order of the star columns.
+          level_columns = levels.filter_map do |level|
+            column = level.getBaseStarKeyColumn(base_cube)
+            [level, column] if column
+          end.uniq(&:last).sort_by { |_level, column| column.getBitPosition }
 
-              level_fields = []
-              level_fields << "Name(#{level.getUniqueName})" if level.getNameExp
-              level_fields << level.getUniqueName
-            end
+          fields = level_columns.flat_map do |level, _column|
+            level.getNameExp ? ["Name(#{level.getUniqueName})", level.getUniqueName] : [level.getUniqueName]
           end
           if measure.is_a?(Java::MondrianRolap::RolapStoredMeasure) && role.canAccess(measure)
             fields << measure.getUniqueName
@@ -606,7 +614,9 @@ module Mondrian
               end
             end
 
-          column_alias = field[:type] == :key ? "#{field[:name]} (Key)" : field[:name]
+          # Mondrian default drill through adds the key suffix only to a level with a name column.
+          key_suffix = field[:type] == :key && (!params[:default_column_aliases] || member.getNameExp)
+          column_alias = key_suffix ? "#{field[:name]} (Key)" : field[:name]
           field[:column_alias] = dialect.quoteIdentifier(max_alias_length ? column_alias[0, max_alias_length] : column_alias)
         end
 
@@ -651,7 +661,7 @@ module Mondrian
             access = role.getAccess(member)
             if expand_member?(member, access, access_details)
               members.concat(schema_reader.getMemberChildren(member).to_a)
-            elsif access == NONE_ACCESS
+            elsif access == NONE_ACCESS || hidden_by_rollup_policy?(member, access, access_details)
               member_denied = true
             else
               member_roots << member
@@ -665,27 +675,41 @@ module Mondrian
         # accessible and their rows belong to the bottom level member.
         def self.expand_member?(member, access, access_details)
           depth = member.getLevel.getDepth
-          return true if depth < access_details.getTopLevelDepth
-          return false unless depth < access_details.getBottomLevelDepth
+          depth < access_details.getTopLevelDepth ||
+          depth < access_details.getBottomLevelDepth && partly_accessible?(member, access, access_details)
+        end
 
-          access == CUSTOM_ACCESS || access == ALL_ACCESS && access_details.hasInaccessibleDescendants(member)
+        FULL_ROLLUP = Java::MondrianOlap::Role::RollupPolicy::FULL
+
+        # Only the full rollup policy includes the inaccessible descendants of a bottom level member
+        # in its cell value. With the partial or hidden policy the cell value of the member is empty,
+        # so its rows are not returned either.
+        def self.hidden_by_rollup_policy?(member, access, access_details)
+          access_details.getRollupPolicy != FULL_ROLLUP && partly_accessible?(member, access, access_details)
+        end
+
+        def self.partly_accessible?(member, access, access_details)
+          access == CUSTOM_ACCESS || (access == ALL_ACCESS && access_details.hasInaccessibleDescendants(member))
         end
 
         # A root member is matched by the key columns of its level and its ancestor levels, because
-        # a level key may be unique only within the parent member.
+        # a level key may be unique only within the parent member. The roots with the same parent
+        # share the ancestor conditions and are matched by one key list.
         def self.member_roots_condition(member_roots, options)
           levels = []
-          root_conditions = member_roots.map do |member_root|
-            member_conditions = []
-            member = member_root
-            until member.nil? || member.isAll
-              levels << member.getLevel
-              member_conditions << member_key_condition(member, options)
-              member = member.getParentMember
+          siblings_by_parent = member_roots.group_by { |member| [member.getParentMember, member.getLevel] }
+          sibling_conditions = siblings_by_parent.map do |(parent_member, level), siblings|
+            levels << level
+            member_conditions = [members_key_condition(siblings, options)]
+            ancestor = parent_member
+            until ancestor.nil? || ancestor.isAll
+              levels << ancestor.getLevel
+              member_conditions << members_key_condition([ancestor], options)
+              ancestor = ancestor.getParentMember
             end
             "(#{member_conditions.join(' AND ')})"
           end
-          restriction_condition(levels.uniq, root_conditions, options[:dialect])
+          restriction_condition(levels.uniq, sibling_conditions, options[:dialect])
         end
 
         # The members of a parent child level have unique keys. The parent member is on the same level
@@ -697,7 +721,7 @@ module Mondrian
           members = schema_reader.getLevelMembers(level, false).to_a.select do |member|
             role.getAccess(member) == ALL_ACCESS
           end
-          member_conditions = members.map { |member| member_key_condition(member, options) }
+          member_conditions = members.empty? ? [] : [members_key_condition(members, options)]
           restriction_condition([level], member_conditions, options[:dialect])
         end
 
@@ -712,14 +736,23 @@ module Mondrian
 
         SQL_NULL_KEY = Java::MondrianRolap::RolapUtil.sqlNullValue
 
-        # Mondrian stores a NULL key as the sqlNullValue marker object.
-        def self.member_key_condition(member, options)
-          key_expression = member.getLevel.getKeyExp.getExpression(options[:sql_query])
-          if member.getKey == SQL_NULL_KEY
-            "#{key_expression} IS NULL"
-          else
-            "#{key_expression} = #{quoted_key(member, options[:dialect])}"
+        # Oracle rejects an IN list with more than 1000 expressions.
+        MAX_IN_LIST_SIZE = 1000
+
+        # The members are of the same level. Mondrian stores a NULL key as the sqlNullValue marker object.
+        def self.members_key_condition(members, options)
+          key_expression = members.first.getLevel.getKeyExp.getExpression(options[:sql_query])
+          null_key_members, key_members = members.partition { |member| member.getKey == SQL_NULL_KEY }
+          key_conditions = key_members.each_slice(MAX_IN_LIST_SIZE).map do |members_slice|
+            quoted_keys = members_slice.map { |member| quoted_key(member, options[:dialect]) }
+            if quoted_keys.size == 1
+              "#{key_expression} = #{quoted_keys.first}"
+            else
+              "#{key_expression} IN (#{quoted_keys.join(', ')})"
+            end
           end
+          key_conditions << "#{key_expression} IS NULL" unless null_key_members.empty?
+          key_conditions.size == 1 ? key_conditions.first : "(#{key_conditions.join(' OR ')})"
         end
 
         def self.quoted_key(member, dialect)
