@@ -1377,6 +1377,23 @@ describe "Query" do
       assert_match(/not accessible/, error.message)
     end
 
+    it "should raise the Mondrian error when the drill through statement cell cannot be drilled through" do
+      mdx = <<~MDX
+        DRILLTHROUGH
+        WITH MEMBER [Time].[H1] AS 'Aggregate({[Time].[2010].[Q1], [Time].[2010].[Q2]})'
+        SELECT {[Measures].[Unit Sales]} ON COLUMNS FROM [Sales] WHERE ([Time].[H1])
+      MDX
+      unrestricted_error = assert_raises(Mondrian::OLAP::Error) { @olap.execute_drill_through(mdx) }
+
+      @olap.custom_role = build_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
+        end
+      end
+      error = assert_raises(Mondrian::OLAP::Error) { @olap.execute_drill_through(mdx) }
+      assert_equal unrestricted_error.message, error.message
+    end
+
     it "should return the default fields of the drill through cube of a virtual cube" do
       warehouse_result = lambda do
         @olap.from('Sales and Warehouse').columns('[Measures].[Units Shipped]').rows('[Product].[All Products]').execute

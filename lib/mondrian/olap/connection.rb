@@ -556,6 +556,9 @@ module Mondrian
         Result::DrillThrough.role_restricts_cube?(raw_mondrian_connection.getRole, parsed_statement.getQuery.getCube)
       end
 
+      # Mondrian raises this error message when the first cell of a DRILLTHROUGH statement cannot be drilled through.
+      CANNOT_DRILL_THROUGH_MESSAGE = "Cannot do DrillThrough operation on the cell"
+
       # Drills through the first cell of the statement query, as Mondrian does, with the role
       # restrictions of Result drill_through.
       def drill_through_with_role(parsed_statement)
@@ -570,7 +573,7 @@ module Mondrian
         result.drill_through(first_cell_position.merge(
           max_rows: (max_rows if max_rows > 0),
           return_elements: (return_elements unless return_elements.empty?)
-        )) || raise(ArgumentError, "cannot drill through the first cell of the query")
+        )) || raise(Java::OrgOlap4j::OlapException.new(CANNOT_DRILL_THROUGH_MESSAGE))
       end
 
       def set_statement_parameters(statement, parameters)

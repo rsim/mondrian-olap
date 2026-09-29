@@ -426,6 +426,11 @@ olap.custom_role = role
 The built role is immutable and can be shared between connections that use the same schema.
 Assign `olap.custom_role = nil` to reset the connection to the schema default role.
 
+Drill through applies the data access role of the query execution, also a dynamic role.
+It returns only the rows of the granted members and raises an error for a return field that the role denies.
+A drill through statement (`execute_drill_through`) applies the role as well,
+but does not support the `FIRSTROWSET` clause when the role restricts the cube.
+
 See more examples of dynamic data access roles in `test/connection_role_test.rb`.
 
 ### Drill through
