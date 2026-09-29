@@ -630,29 +630,34 @@ module Mondrian
             if parent_child_level = hierarchy.getLevels.to_a.detect(&:isParentChild)
               parent_child_condition(parent_child_level, role, schema_reader, options)
             else
-              member_roots = accessible_member_roots(hierarchy, role, schema_reader)
-              # Every row is accessible when the role grants the all member completely.
-              next if member_roots.any?(&:isAll)
+              member_roots, member_denied = accessible_member_roots(hierarchy, role, schema_reader)
+              # Every row belongs to a member root when the role denies no member, for example when
+              # a hierarchy grant has only a top level.
+              next unless member_denied
 
               member_roots_condition(member_roots, options)
             end
           end
         end
 
-        # The members whose descendants the role grants completely, found from the root members down.
+        # The members whose descendants the role grants completely, found from the root members down,
+        # and whether the role denies any member.
         def self.accessible_member_roots(hierarchy, role, schema_reader)
           access_details = role.getAccessDetails(hierarchy)
           member_roots = []
+          member_denied = false
           members = schema_reader.getHierarchyRootMembers(hierarchy).to_a
           while member = members.shift
             access = role.getAccess(member)
             if expand_member?(member, access, access_details)
               members.concat(schema_reader.getMemberChildren(member).to_a)
-            elsif access != NONE_ACCESS
+            elsif access == NONE_ACCESS
+              member_denied = true
+            else
               member_roots << member
             end
           end
-          member_roots
+          [member_roots, member_denied]
         end
 
         # A member above the top level of the hierarchy grant, or one the role grants partly above the

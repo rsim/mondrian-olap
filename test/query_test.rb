@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "test_helper"
+require 'minitest/mock'
 
 describe "Query" do
   def qt(name)
@@ -1225,6 +1226,24 @@ describe "Query" do
       rows = sales_result.drill_through(row: 0, column: 0, max_rows: 5,
         return: ['[Product].[Product Family]', '[Measures].[Unit Sales]']).rows
       assert_equal 5, rows.size
+    end
+
+    it "should not limit rows in SQL when the hierarchy grant denies no member" do
+      @olap.custom_role = build_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom', top_level: '[Customers].[City]'
+      end
+      result = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[USA].[CA].[Altadena]').execute
+      execute_sql = Mondrian::OLAP::Result::DrillThrough.method(:execute_drill_through_sql)
+      drill_through_sql = nil
+      capture_sql = lambda do |rolap_result, sql, max_rows|
+        drill_through_sql = sql
+        execute_sql.call(rolap_result, sql, max_rows)
+      end
+      rows = Mondrian::OLAP::Result::DrillThrough.stub(:execute_drill_through_sql, capture_sql) do
+        result.drill_through(row: 0, column: 0, return: ['[Customers].[City]', '[Measures].[Unit Sales]']).rows
+      end
+      refute_empty rows
+      refute_match(/ OR /, drill_through_sql)
     end
 
     it "should group rows by the return fields when the role limits a hierarchy not returned" do
