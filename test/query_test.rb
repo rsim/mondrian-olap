@@ -1075,7 +1075,6 @@ describe "Query" do
       # Reuse the named role object so it restricts members the same way.
       @olap.role_name = "Mexico manager"
       custom_role = @olap.raw_mondrian_connection.getRole
-      @olap.role_name = nil
       @olap.custom_role = custom_role
       @query = @olap.from('Sales')
       @result = @query.columns('[Measures].[Unit Sales]').
@@ -1200,6 +1199,7 @@ describe "Query" do
       rows = drill_through.rows
       assert_equal 5, rows.size
       assert rows.all? { |row| row[labels.index('Country (Key)')] == 'Mexico' }
+      assert_equal labels, sales_result.drill_through(row: 0, column: 0, max_rows: 1, return: '').column_labels
     end
 
     it "should limit the rows of a returned level to the granted descendants" do
@@ -1256,6 +1256,101 @@ describe "Query" do
         ORDER BY
           product_classes.product_family
       SQL
+    end
+  end
+
+  describe "drill through cell with a role on parent child and nullable hierarchies" do
+    before(:all) do
+      @schema = Mondrian::OLAP::Schema.define do
+        cube 'Sales' do
+          table 'sales'
+          # Each customer after the first ten reports to the customer with an ID smaller by ten.
+          # The customer with a large ID is excluded, because its ID overflows the Oracle integer key.
+          dimension 'Employees', foreign_key: 'customer_id' do
+            hierarchy has_all: true, primary_key: 'id' do
+              table 'customers' do
+                sql 'customers.id < 1000'
+              end
+              level 'Employee', column: 'id', name_column: 'fullname', unique_members: true, type: 'Numeric' do
+                parent_expression do
+                  sql 'CASE WHEN customers.id > 10 THEN customers.id - 10 END'
+                end
+              end
+            end
+          end
+          # Customers from Mexico have a NULL country key.
+          dimension 'Country', foreign_key: 'customer_id' do
+            hierarchy has_all: true, primary_key: 'id' do
+              table 'customers', alias: 'countries'
+              level 'Country', unique_members: true do
+                key_expression do
+                  sql "CASE WHEN countries.country <> 'Mexico' THEN countries.country END"
+                end
+              end
+            end
+          end
+          measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
+        end
+        role 'First11 manager' do
+          schema_grant access: 'all' do
+            cube_grant cube: 'Sales', access: 'all' do
+              hierarchy_grant hierarchy: '[Employees]', access: 'custom' do
+                member_grant member: '[Employees].[First1 Last1].[First11 Last11]', access: 'all'
+              end
+            end
+          end
+        end
+      end
+      # Customer 11 and its descendants have one sales row each, customer 1 is visible only as their supervisor.
+      @first11_subtree_ids = (11..91).step(10).to_a
+    end
+
+    after(:each) do
+      @olap&.close
+    end
+
+    def employee_ids(olap)
+      result = olap.from('Sales').columns('[Measures].[Unit Sales]').execute
+      result.drill_through(row: 0, column: 0, return: ['[Employees].[Employee]', '[Measures].[Unit Sales]']).
+        rows.map { |row| row.first.to_i }
+    end
+
+    it "should return the rows of the granted parent child subtree" do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
+      @olap.custom_role = @olap.build_role do
+        schema_grant access: 'all' do
+          cube_grant cube: 'Sales', access: 'all' do
+            hierarchy_grant hierarchy: '[Employees]', access: 'custom' do
+              member_grant member: '[Employees].[First1 Last1].[First11 Last11]', access: 'all'
+            end
+          end
+        end
+      end
+      assert_equal @first11_subtree_ids, employee_ids(@olap).sort
+    end
+
+    it "should apply the role from the connection string" do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema, role: 'First11 manager'))
+      assert_nil @olap.role_name
+      assert_equal @first11_subtree_ids, employee_ids(@olap).sort
+    end
+
+    it "should return the rows of a granted member with a NULL key" do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
+      @olap.custom_role = @olap.build_role do
+        schema_grant access: 'all' do
+          cube_grant cube: 'Sales', access: 'all' do
+            hierarchy_grant hierarchy: '[Country]', access: 'custom' do
+              member_grant member: '[Country].[#null]', access: 'all'
+            end
+          end
+        end
+      end
+      mexico_ids = @sql.select_values(<<~SQL).map(&:to_i)
+        SELECT customers.id FROM sales, customers WHERE sales.customer_id = customers.id AND customers.country = 'Mexico'
+      SQL
+      refute_empty mexico_ids
+      assert_equal mexico_ids.sort, employee_ids(@olap).sort
     end
   end
 

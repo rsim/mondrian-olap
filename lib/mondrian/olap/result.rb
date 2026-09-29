@@ -164,9 +164,7 @@ module Mondrian
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell,
-            params.merge(role_name: @connection.role_name, custom_role: @connection.custom_role,
-              role: @connection.raw_mondrian_connection.getRole))
+          DrillThrough.from_raw_cell(raw_cell, params.merge(role: @connection.raw_mondrian_connection.getRole))
         end
       end
 
@@ -290,8 +288,10 @@ module Mondrian
         end
 
         def self.generate_drill_through_sql(rolap_cell, result, params)
-          if role_restricted?(params) && Array(params[:return]).empty?
-            params = params.merge(return: accessible_return_fields(rolap_cell, params[:role]))
+          params = params.merge(role: nil) unless role_restricts_cube?(params[:role], result.getCube)
+          # An empty return string also selects the default fields.
+          if (role = params[:role]) && Array(params[:return]).all?(&:empty?)
+            params = params.merge(return: accessible_return_fields(rolap_cell, role))
           end
           nonempty_columns, return_fields, role_conditions = parse_return_fields(result, params)
           # Mondrian joins the tables of the return expressions, so the levels of the role conditions
@@ -405,11 +405,14 @@ module Mondrian
           sql
         end
 
-        def self.role_restricted?(params)
-          !!(params[:role_name] || params[:custom_role])
-        end
-
         NONE_ACCESS = Java::MondrianOlap::Access::NONE
+        ALL_ACCESS = Java::MondrianOlap::Access::ALL
+
+        # The role is checked by its grants and not by the olap4j role name, because a role from the
+        # connection string or from Connection custom_role= has no role name.
+        def self.role_restricts_cube?(role, cube)
+          !role.nil? && cube.getHierarchies.any? { |hierarchy| role.getAccess(hierarchy) != ALL_ACCESS }
+        end
 
         # The fields Mondrian selects without a return clause (every level of every cube hierarchy
         # and the cell measure), limited to the levels and measures the role grants. Mondrian adds
@@ -462,7 +465,7 @@ module Mondrian
           nonempty_columns = []
           return_fields = []
           sql_options = nil
-          role = params[:role] if role_restricted?(params)
+          role = params[:role]
 
           if params[:return] || params[:nonempty]
             rolap_cube = result.getCube
@@ -624,15 +627,17 @@ module Mondrian
             next if hierarchy.getDimension.isMeasures
             next unless role.getAccess(hierarchy) == CUSTOM_ACCESS
 
-            member_roots = accessible_member_roots(hierarchy, role, schema_reader)
-            # Every row is accessible when the role grants the all member completely.
-            next if member_roots.any?(&:isAll)
+            if parent_child_level = hierarchy.getLevels.to_a.detect(&:isParentChild)
+              parent_child_condition(parent_child_level, role, schema_reader, options)
+            else
+              member_roots = accessible_member_roots(hierarchy, role, schema_reader)
+              # Every row is accessible when the role grants the all member completely.
+              next if member_roots.any?(&:isAll)
 
-            member_roots_condition(member_roots, options)
+              member_roots_condition(member_roots, options)
+            end
           end
         end
-
-        ALL_ACCESS = Java::MondrianOlap::Access::ALL
 
         # The members whose descendants the role grants completely, found from the root members down.
         def self.accessible_member_roots(hierarchy, role, schema_reader)
@@ -664,26 +669,52 @@ module Mondrian
         # A root member is matched by the key columns of its level and its ancestor levels, because
         # a level key may be unique only within the parent member.
         def self.member_roots_condition(member_roots, options)
-          dialect = options[:dialect]
           levels = []
           root_conditions = member_roots.map do |member_root|
             member_conditions = []
             member = member_root
             until member.nil? || member.isAll
-              level = member.getLevel
-              levels << level
-              member_conditions << "#{level.getKeyExp.getExpression(options[:sql_query])} = #{quoted_key(member, dialect)}"
+              levels << member.getLevel
+              member_conditions << member_key_condition(member, options)
               member = member.getParentMember
             end
             "(#{member_conditions.join(' AND ')})"
           end
-          levels.uniq!
+          restriction_condition(levels.uniq, root_conditions, options[:dialect])
+        end
+
+        # The members of a parent child level have unique keys. The parent member is on the same level
+        # and its key does not match the rows of its descendants, so each member is matched by its own key.
+        # Role getAccess returns custom both for an ancestor that is visible only because of a granted
+        # descendant and for a granted member with a denied descendant. Only the rows of fully granted
+        # members are returned, so the rows of such an ancestor stay hidden.
+        def self.parent_child_condition(level, role, schema_reader, options)
+          members = schema_reader.getLevelMembers(level, false).to_a.select do |member|
+            role.getAccess(member) == ALL_ACCESS
+          end
+          member_conditions = members.map { |member| member_key_condition(member, options) }
+          restriction_condition([level], member_conditions, options[:dialect])
+        end
+
+        def self.restriction_condition(levels, member_conditions, dialect)
           {
             # No row is accessible when the role grants no member.
-            sql: root_conditions.empty? ? '1 = 0' : root_conditions.join(' OR '),
+            sql: member_conditions.empty? ? '1 = 0' : member_conditions.join(' OR '),
             levels: levels,
             quoted_table_names: levels.map { |level| quoted_table_name(level, dialect) }.compact.uniq
           }
+        end
+
+        SQL_NULL_KEY = Java::MondrianRolap::RolapUtil.sqlNullValue
+
+        # Mondrian stores a NULL key as the sqlNullValue marker object.
+        def self.member_key_condition(member, options)
+          key_expression = member.getLevel.getKeyExp.getExpression(options[:sql_query])
+          if member.getKey == SQL_NULL_KEY
+            "#{key_expression} IS NULL"
+          else
+            "#{key_expression} = #{quoted_key(member, options[:dialect])}"
+          end
         end
 
         def self.quoted_key(member, dialect)

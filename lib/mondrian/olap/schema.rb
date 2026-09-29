@@ -233,8 +233,8 @@ module Mondrian
           :approx_row_count
         # Values in XML will be uppercased when using Oracle driver
         data_dictionary_names :table, :column, :name_column, :ordinal_column, :parent_column, :caption_column
-        elements :annotations, :key_expression, :name_expression, :ordinal_expression, :caption_expression, :member_formatter,
-          :property
+        elements :annotations, :key_expression, :name_expression, :ordinal_expression, :caption_expression,
+          :parent_expression, :member_formatter, :property
 
         def initialize(name = nil, attributes = {}, parent = nil)
           super
@@ -258,6 +258,10 @@ module Mondrian
       end
 
       class CaptionExpression < SchemaElement
+        elements :sql
+      end
+
+      class ParentExpression < SchemaElement
         elements :sql
       end
 

@@ -228,6 +228,8 @@ module Mondrian
           self.role_name = nil
         else
           Error.wrap_native_exception do
+            # Mondrian setRole does not reset the role name of the olap4j connection.
+            @raw_connection.setRoleName(nil)
             raw_mondrian_connection.setRole(role)
           end
           @custom_role = role
