@@ -1375,6 +1375,8 @@ describe "Query" do
 
       error = assert_raises(ArgumentError) { query.execute_drill_through(return: ['[Gender].[Gender]']) }
       assert_match(/not accessible/, error.message)
+      error = assert_raises(ArgumentError) { query.execute_drill_through(return: ['[Customers].[USA].[CA]']) }
+      assert_match(/should be level or measure/, error.message)
     end
 
     it "should raise the Mondrian error when the drill through statement cell cannot be drilled through" do
@@ -1392,6 +1394,32 @@ describe "Query" do
       end
       error = assert_raises(Mondrian::OLAP::Error) { @olap.execute_drill_through(mdx) }
       assert_equal unrestricted_error.message, error.message
+    end
+
+    it "should return the fields of another cube of a virtual cube like Mondrian in a drill through statement" do
+      query = @olap.from('Sales and Warehouse').columns('[Measures].[Units Shipped]')
+      return_fields = [
+        '[Customers].[City]', '[Product].[Product Family]', '[Measures].[Unit Sales]', '[Measures].[Units Shipped]',
+        '[Time].[Month]'
+      ]
+      unrestricted_labels = query.execute_drill_through(max_rows: 1, return: return_fields).column_labels
+      @olap.custom_role = @olap.build_role do
+        schema_grant access: 'none' do
+          cube_grant cube: 'Warehouse', access: 'all'
+          cube_grant cube: 'Sales and Warehouse', access: 'all' do
+            hierarchy_grant hierarchy: '[Product]', access: 'custom' do
+              member_grant member: '[Product].[Drink]', access: 'all'
+            end
+          end
+        end
+      end
+      drill_through = query.execute_drill_through(max_rows: 5, return: return_fields)
+      # Mondrian returns the fields of the Sales cube last and without values.
+      assert_equal unrestricted_labels, drill_through.column_labels
+      assert_equal ['Month', 'Product Family', 'Units Shipped', 'City', 'Unit Sales'], unrestricted_labels
+      rows = drill_through.rows
+      assert_equal 5, rows.size
+      assert_equal [['Drink', nil, nil]], rows.map { |row| [row[1], row[3], row[4]] }.uniq
     end
 
     it "should return the default fields of the drill through cube of a virtual cube" do

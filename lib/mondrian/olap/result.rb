@@ -292,11 +292,10 @@ module Mondrian
         def self.generate_drill_through_sql(rolap_cell, result, params)
           params = params.merge(role: nil) unless role_restricts_cube?(params[:role], result.getCube)
           if (role = params[:role]) && (return_elements = params[:return_elements])
-            params = params.merge(return: statement_return_fields(rolap_cell, result, return_elements),
-              default_column_aliases: true)
+            params = params.merge(return: statement_return_fields(rolap_cell, result, return_elements), native_columns: true)
           # An empty return string also selects the default fields.
           elsif role && Array(params[:return]).all?(&:empty?)
-            params = params.merge(return: accessible_return_fields(rolap_cell, result, role), default_column_aliases: true)
+            params = params.merge(return: accessible_return_fields(rolap_cell, result, role), native_columns: true)
           end
           nonempty_columns, return_fields, role_conditions = parse_return_fields(result, params)
           # Mondrian joins the tables of the return expressions, so the levels of the role conditions
@@ -353,7 +352,8 @@ module Mondrian
                   new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
                   "#{column_expression} AS #{column_alias}"
                 else
-                  "'' AS #{column_alias}"
+                  # Mondrian native drill through returns NULL for a field of another cube of a virtual cube.
+                  "#{params[:native_columns] ? 'NULL' : "''"} AS #{column_alias}"
                 end
             end
 
@@ -433,8 +433,7 @@ module Mondrian
 
             hierarchy.getLevels.to_a.select { |level| !level.isAll && level_accessible?(level, role) }
           end
-          # A level of another cube of a virtual cube has no star column.
-          fields = level_fields(levels.select { |level| level.getBaseStarKeyColumn(base_cube) }, base_cube)
+          fields = level_fields(levels.select { |level| drill_through_cube_element?(level, base_cube) }, base_cube)
           if measure.is_a?(Java::MondrianRolap::RolapStoredMeasure) && role.canAccess(measure)
             fields << measure.getUniqueName
           end
@@ -444,19 +443,37 @@ module Mondrian
         end
 
         # The fields of a DRILLTHROUGH statement return clause in the order Mondrian selects them: the
-        # levels of the drill through cube, the measures and then the levels of another cube of a virtual
-        # cube. A hierarchy or a dimension in the return clause stands for its first level.
+        # levels and then the measures of the drill through cube, followed by the fields of another cube
+        # of a virtual cube in the return clause order. A hierarchy or a dimension stands for its first level.
         def self.statement_return_fields(rolap_cell, result, return_elements)
           base_cube = drill_through_cube(drill_through_members(rolap_cell), result)
-          measures, hierarchy_elements = return_elements.partition do |element|
-            element.is_a?(Java::MondrianOlap::Member)
+          elements = return_elements.map do |element|
+            if element.is_a?(Java::MondrianOlap::Hierarchy) || element.is_a?(Java::MondrianOlap::Dimension)
+              first_level(element.getHierarchy)
+            else
+              element
+            end
           end
-          levels = hierarchy_elements.map do |element|
-            element.is_a?(Java::MondrianOlap::Level) ? element : first_level(element.getHierarchy)
+          cube_elements, other_cube_elements = elements.partition do |element|
+            drill_through_cube_element?(element, base_cube)
           end
-          cube_levels, other_cube_levels = levels.partition { |level| level.getBaseStarKeyColumn(base_cube) }
-          level_fields(cube_levels, base_cube) + measures.map(&:getUniqueName) +
-            other_cube_levels.map { |level| level.getNameExp ? "Name(#{level.getUniqueName})" : level.getUniqueName }
+          cube_levels, cube_members = cube_elements.partition { |element| element.is_a?(Java::MondrianOlap::Level) }
+          other_cube_fields = other_cube_elements.map do |element|
+            use_name_field = element.is_a?(Java::MondrianOlap::Level) && element.getNameExp
+            use_name_field ? "Name(#{element.getUniqueName})" : element.getUniqueName
+          end
+          level_fields(cube_levels, base_cube) + cube_members.map(&:getUniqueName) + other_cube_fields
+        end
+
+        # A level or a stored measure of another cube of a virtual cube does not belong to the drill through cube.
+        def self.drill_through_cube_element?(element, base_cube)
+          if element.is_a?(Java::MondrianOlap::Level)
+            !element.getBaseStarKeyColumn(base_cube).nil?
+          elsif element.is_a?(Java::MondrianRolap::RolapStoredMeasure)
+            element.getCube == base_cube
+          else
+            true
+          end
         end
 
         def self.drill_through_members(rolap_cell)
@@ -556,10 +573,9 @@ module Mondrian
                 if role && level_or_member && !return_field_accessible?(level_or_member, role)
                   raise ArgumentError, "return field #{member_full_name} is not accessible"
                 end
-                if level_or_member.is_a? Java::MondrianOlap::Member
-                  raise ArgumentError,
-                    "cannot use calculated member #{member_full_name} as return field" if level_or_member.isCalculated
-                elsif !level_or_member.is_a? Java::MondrianOlap::Level
+                if level_or_member.is_a?(Java::MondrianOlap::Member) && level_or_member.isCalculated
+                  raise ArgumentError, "cannot use calculated member #{member_full_name} as return field"
+                elsif !level_or_measure?(level_or_member)
                   raise ArgumentError, "return field #{member_full_name} should be level or measure"
                 end
 
@@ -595,6 +611,10 @@ module Mondrian
           end
 
           [nonempty_columns, return_fields, role_conditions]
+        end
+
+        def self.level_or_measure?(element)
+          element.is_a?(Java::MondrianOlap::Level) || (element.is_a?(Java::MondrianOlap::Member) && element.isMeasure)
         end
 
         def self.return_field_accessible?(level_or_member, role)
@@ -647,8 +667,8 @@ module Mondrian
               end
             end
 
-          # Mondrian default drill through adds the key suffix only to a level with a name column.
-          key_suffix = field[:type] == :key && (!params[:default_column_aliases] || member.getNameExp)
+          # Mondrian native drill through adds the key suffix only to a level with a name column.
+          key_suffix = field[:type] == :key && (!params[:native_columns] || member.getNameExp)
           column_alias = key_suffix ? "#{field[:name]} (Key)" : field[:name]
           field[:column_alias] = dialect.quoteIdentifier(max_alias_length ? column_alias[0, max_alias_length] : column_alias)
         end
