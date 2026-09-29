@@ -179,18 +179,9 @@ module Mondrian
 
           if params[:return] || rolap_cell.canDrillThrough
             result = rolap_result(rolap_cell)
-            sql, return_fields = generate_drill_through_sql(rolap_cell, result, params)
-            statement_executor = lambda do |statement_max_rows|
-              execute_drill_through_sql(result, sql, statement_max_rows).getWrappedResultSet
-            end
-            new(statement_executor.call(params[:max_rows]),
-              return_fields: return_fields,
-              raw_cube: raw_cell.getCellSet.getMetaData.getCube,
-              role_name: params[:role_name],
-              custom_role: params[:custom_role],
-              max_rows: params[:max_rows],
-              statement_executor: statement_executor
-            )
+            sql = generate_drill_through_sql(rolap_cell, result, params)
+            sql_statement = execute_drill_through_sql(result, sql, params[:max_rows])
+            new(sql_statement.getWrappedResultSet, max_rows: params[:max_rows])
           end
         end
 
@@ -200,18 +191,9 @@ module Mondrian
           result_field.value(rolap_cell)
         end
 
-        # statement_executor runs the drill through statement again with another max rows limit,
-        # see rows.
         def initialize(raw_result_set, options = {})
           @raw_result_set = raw_result_set
-          @return_fields = options[:return_fields]
-          @raw_cube = options[:raw_cube]
-          @role_name = options[:role_name]
-          @custom_role = options[:custom_role]
           @max_rows = options[:max_rows]
-          @statement_executor = options[:statement_executor]
-          @statement_max_rows = @max_rows
-          @scanned_rows = 0
         end
 
         def column_types
@@ -246,33 +228,24 @@ module Mondrian
 
         def fetch
           types = column_types
-          # Use loop instead of recursion to avoid deep recursion when many rows are skipped by role restrictions.
-          while @raw_result_set.next
-            @scanned_rows += 1
+          if @raw_result_set.next
             row_values = Array.new(types.size)
             types.each_with_index do |column_type, i|
               row_values[i] = Result.java_to_ruby_value(@raw_result_set.getObject(i + 1), column_type)
             end
-            return row_values if can_access_row_values?(row_values)
+            row_values
+          else
+            @raw_result_set.close
+            nil
           end
-          @raw_result_set.close
-          nil
         end
-
-        # A role restricted drill through rejects rows the role denies, so the statement limited to
-        # the requested max rows may not fill them. The rows are then read again with a ten times
-        # larger limit, up to ROLE_SCAN_MAX_ROWS. An unlimited statement would load every candidate
-        # row into memory, because the PostgreSQL and MySQL JDBC drivers buffer the whole result set.
-        # A result may hold fewer rows than requested when the maximum is reached.
-        ROLE_SCAN_FACTOR = 10
-        ROLE_SCAN_MAX_ROWS = 100_000
 
         def rows
           @rows ||= begin
-            rows_values = fetch_rows
-            while rows_values.size < @max_rows.to_i && more_rows_to_scan?
-              execute_statement([@statement_max_rows * ROLE_SCAN_FACTOR, ROLE_SCAN_MAX_ROWS].min)
-              rows_values = fetch_rows
+            rows_values = []
+            while row_values = fetch
+              rows_values << row_values
+              break if rows_values.size == @max_rows
             end
             rows_values
           ensure
@@ -283,67 +256,6 @@ module Mondrian
         end
 
         private
-
-        def fetch_rows
-          rows_values = []
-          while row_values = fetch
-            rows_values << row_values
-            break if rows_values.size == @max_rows
-          end
-          rows_values
-        end
-
-        # The statement limit was reached, so the database may hold more candidate rows.
-        def more_rows_to_scan?
-          return false unless @statement_executor && (@role_name || @custom_role) && @statement_max_rows
-
-          @scanned_rows >= @statement_max_rows && @statement_max_rows < ROLE_SCAN_MAX_ROWS
-        end
-
-        def execute_statement(statement_max_rows)
-          @raw_result_set.close
-          @statement_max_rows = statement_max_rows
-          @scanned_rows = 0
-          @raw_result_set = @statement_executor.call(statement_max_rows)
-        end
-
-        def can_access_row_values?(row_values)
-          return true unless @role_name || @custom_role
-
-          member_full_name_columns_indexes.each do |column_indexes|
-            segment_names = [@return_fields[column_indexes.first][:member].getHierarchy.getName]
-            column_indexes.each { |i| segment_names << member_name(row_values[i]) }
-            segment_list = Java::OrgOlap4jMdx::IdentifierNode.ofNames(*segment_names).getSegmentList
-            return false unless @raw_cube.lookupMember(segment_list)
-          end
-
-          true
-        end
-
-        # Oracle returns numeric key columns as BigDecimal, whose to_s is not the member name.
-        def member_name(value)
-          if value.is_a?(BigDecimal)
-            value == value.to_i ? value.to_i.to_s : value.to_s('F')
-          else
-            value.to_s
-          end
-        end
-
-        def member_full_name_columns_indexes
-          @member_full_name_columns_indexes ||= begin
-            fieldset_columns = Hash.new { |h, k| h[k] = Array.new }
-            column_labels.each_with_index do |label, i|
-              # Find all role restriction columns with a label pattern "_level:<Fieldset ID>:<Level depth>"
-              if label =~ /\A_level:(\d+):(\d+)\z/
-                # Group by fieldset ID with a compound value of level depth and column index
-                fieldset_columns[$1] << [$2.to_i, i]
-              end
-            end
-            # For each fieldset create an array with columns indexes sorted by level depth
-            fieldset_columns.each { |k, v| fieldset_columns[k] = v.sort_by(&:first).map(&:last) }
-            fieldset_columns.values
-          end
-        end
 
         def metadata
           @metadata ||= @raw_result_set.getMetaData
@@ -432,7 +344,7 @@ module Mondrian
               quoted_table_name = return_fields[i][:quoted_table_name]
               new_select_columns <<
                 if column_expression && (!quoted_table_name || extended_from.include?(quoted_table_name))
-                  new_order_by_columns << column_expression unless return_fields[i][:name].start_with?('_level:')
+                  new_order_by_columns << column_expression
                   new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
                   "#{column_expression} AS #{column_alias}"
                 else
@@ -490,7 +402,7 @@ module Mondrian
           sql = "select #{new_select} from #{new_from} where #{new_where}"
           sql << " group by #{new_group_by}" unless new_group_by.empty?
           sql << " order by #{new_order_by}" unless new_order_by.empty?
-          [sql, return_fields]
+          sql
         end
 
         def self.role_restricted?(params)
@@ -635,9 +547,7 @@ module Mondrian
 
           role_conditions = []
           if sql_options && role
-            add_role_restriction_fields return_fields, sql_options, role
-            role_conditions = role_restriction_conditions(return_fields, sql_options, role, result.getCube,
-              schema_reader.withLocus)
+            role_conditions = role_restriction_conditions(sql_options, role, result.getCube, schema_reader.withLocus)
           end
 
           [nonempty_columns, return_fields, role_conditions]
@@ -706,42 +616,12 @@ module Mondrian
 
         CUSTOM_ACCESS = Java::MondrianOlap::Access::CUSTOM
 
-        # For each returned level field of a hierarchy the role limits to specific members add a set
-        # of fields to be able to build the level member full name from database query results, so
-        # its accessibility can be validated per row.
-        def self.add_role_restriction_fields(fields, options = {}, role = nil)
-          fieldset_id = 0
-          fields.map { |f| f[:member] }.uniq.each do |level_or_member|
-            next if level_or_member.is_a?(Java::MondrianOlap::Member)
-            next if role && role.getAccess(level_or_member.getHierarchy) != CUSTOM_ACCESS
-
-            add_level_full_name_fields fields, level_or_member, fieldset_id, options
-            fieldset_id += 1
-          end
-        end
-
-        # Add the level and its ancestor levels as query fields under one fieldset id, so their
-        # database values can be joined into a member full name and looked up under the role.
-        def self.add_level_full_name_fields(fields, level, fieldset_id, options)
-          current_level = level
-          loop do
-            # Create an additional field name using a pattern "_level:<Fieldset ID>:<Level depth>"
-            fields << {member: current_level, type: :name_or_key, name: "_level:#{fieldset_id}:#{current_level.getDepth}"}
-            add_sql_attributes fields.last, options
-            break unless (current_level = current_level.getParentLevel) && !current_level.isAll
-          end
-        end
-
         # SQL conditions limiting the rows to the granted members of every hierarchy the role limits
-        # to specific members (for example an embed token page filter) and the request does not
-        # return. Otherwise the role could be bypassed by omitting the restricted hierarchy from the
-        # return fields. Limiting these rows in SQL keeps a grouped drill through grouped by the
-        # returned fields only.
-        def self.role_restriction_conditions(return_fields, options, role, cube, schema_reader)
-          returned_hierarchies = return_fields.map { |field| field[:member] }.
-            select { |member| member.is_a?(Java::MondrianOlap::Level) }.map(&:getHierarchy)
+        # to specific members (for example an embed token page filter). Mondrian generates the drill
+        # through SQL without the role, so the statement would return the rows of denied members.
+        def self.role_restriction_conditions(options, role, cube, schema_reader)
           cube.getHierarchies.to_a.filter_map do |hierarchy|
-            next if hierarchy.getDimension.isMeasures || returned_hierarchies.include?(hierarchy)
+            next if hierarchy.getDimension.isMeasures
             next unless role.getAccess(hierarchy) == CUSTOM_ACCESS
 
             member_roots = accessible_member_roots(hierarchy, role, schema_reader)

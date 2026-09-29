@@ -1202,18 +1202,17 @@ describe "Query" do
       assert rows.all? { |row| row[labels.index('Country (Key)')] == 'Mexico' }
     end
 
-    it "should fill the requested rows when the role rejects the first statement batches" do
+    it "should limit the rows of a returned level to the granted descendants" do
       @olap.custom_role = build_sales_role do
         hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
-          member_grant member: '[Customers].[USA]', access: 'all'
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
         end
       end
-      # The rows are ordered by country, so the Canada and Mexico rows come before the accessible USA rows
-      # and the first statement limited to the requested rows returns none of them.
+      # The returned country USA is visible under the role, but only its California rows are granted.
       rows = sales_result.drill_through(row: 0, column: 0, max_rows: 10,
-        return: ['[Customers].[Country]', '[Measures].[Unit Sales]']).rows
+        return: ['[Customers].[Country]', '[Customers].[State Province]', '[Measures].[Unit Sales]']).rows
       assert_equal 10, rows.size
-      assert rows.all? { |row| row.first == 'USA' }
+      assert rows.all? { |row| row[0, 2] == ['USA', 'CA'] }
     end
 
     it "should filter rows by a hierarchy grant with a bottom level" do
@@ -1222,8 +1221,7 @@ describe "Query" do
           member_grant member: '[Customers].[USA]', access: 'all'
         end
       end
-      # The restricted hierarchy is not among the return fields, so its rows are limited in SQL
-      # to the granted members down to the bottom level.
+      # The rows are limited in SQL to the granted members down to the bottom level.
       rows = sales_result.drill_through(row: 0, column: 0, max_rows: 5,
         return: ['[Product].[Product Family]', '[Measures].[Unit Sales]']).rows
       assert_equal 5, rows.size
