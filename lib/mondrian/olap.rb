@@ -27,6 +27,6 @@ Dir["#{directory}/*.jar"].each do |file|
 end
 require mondrian_olap_jar_path if mondrian_olap_jar_path
 
-%w(error connection query result schema schema_udf cube).each do |file|
+%w(error connection role_builder query result schema schema_udf cube).each do |file|
   require "mondrian/olap/#{file}"
 end
