@@ -696,7 +696,11 @@ module Mondrian
             if parent_child_level = hierarchy.getLevels.to_a.detect(&:isParentChild)
               parent_child_condition(parent_child_level, role, schema_reader, options)
             else
-              member_roots_condition(accessible_member_roots(hierarchy, role, schema_reader), options)
+              member_roots = accessible_member_roots(hierarchy, role, schema_reader)
+              # A grant of the all member makes every row accessible, and the all level has no key column.
+              next if member_roots.any?(&:isAll)
+
+              member_roots_condition(member_roots, options)
             end
           end
         end

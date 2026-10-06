@@ -1251,6 +1251,18 @@ describe "Query" do
       refute_match(/ OR /, drill_through_sql)
     end
 
+    it "should not limit rows in SQL when the hierarchy grant grants the all member" do
+      @olap.custom_role = build_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom', bottom_level: '[Customers].[State Province]' do
+          member_grant member: '[Customers].[All Customers]', access: 'all'
+        end
+      end
+      rows, drill_through_sql = drill_through_rows_and_sql(sales_result,
+        row: 0, column: 0, max_rows: 5, return: ['[Product].[Product Family]', '[Measures].[Unit Sales]'])
+      assert_equal 5, rows.size
+      refute_match(/customers/, drill_through_sql)
+    end
+
     it "should group rows by the return fields when the role limits a hierarchy not returned" do
       @olap.custom_role = build_sales_role do
         hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
