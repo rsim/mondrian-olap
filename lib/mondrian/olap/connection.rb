@@ -488,6 +488,11 @@ module Mondrian
       def set_oracle_properties(props)
         prefetch_rows = @params[:prefetch_rows] || 100
         props.setProperty("jdbc.defaultRowPrefetch", prefetch_rows.to_s)
+        # Pass properties to the JDBC driver and not in the URL, so that the URL does not show passwords,
+        # for example, javax.net.ssl.keyStorePassword
+        @params[:properties]&.each do |key, value|
+          props.setProperty("jdbc.#{key}", value.to_s)
+        end
       end
 
       # ClickHouse JDBC driver requires JdbcPassword to be set

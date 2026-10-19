@@ -133,4 +133,24 @@ describe "Connection" do
       end
     end
   end
+
+  describe "driver properties" do
+    describe "Oracle" do
+      it "should pass properties as JDBC driver properties" do
+        props = java.util.Properties.new
+        Mondrian::OLAP::Connection.new(
+          driver: 'oracle',
+          properties: {'javax.net.ssl.keyStore' => '/keystore.jks', 'oracle.jdbc.ReadTimeout' => 60000}
+        ).send(:set_driver_properties, props)
+        assert_equal(
+          {
+            'jdbc.defaultRowPrefetch' => '100',
+            'jdbc.javax.net.ssl.keyStore' => '/keystore.jks',
+            'jdbc.oracle.jdbc.ReadTimeout' => '60000'
+          },
+          props.to_h
+        )
+      end
+    end
+  end
 end
