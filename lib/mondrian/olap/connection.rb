@@ -28,11 +28,7 @@ module Mondrian
           cons.accessible = true
           driver = cons.new_instance.to_java
 
-          props = java.util.Properties.new
-          props.setProperty('JdbcUser', @params[:username]) if @params[:username]
-          props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
-          set_driver_properties(props)
-
+          props = jdbc_properties
           conn_string = connection_string
 
           # Latest Mondrian version added ClassResolver which uses current thread class loader to load some classes
@@ -316,6 +312,14 @@ module Mondrian
         else
           raise ArgumentError, 'unknown JDBC driver'
         end
+      end
+
+      def jdbc_properties
+        props = java.util.Properties.new
+        props.setProperty('JdbcUser', @params[:username]) if @params[:username]
+        props.setProperty('JdbcPassword', @params[:password]) if @params[:password]
+        set_driver_properties(props)
+        props
       end
 
       private

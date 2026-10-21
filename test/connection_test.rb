@@ -134,21 +134,25 @@ describe "Connection" do
     end
   end
 
-  describe "driver properties" do
+  describe "jdbc_properties" do
+    before(:all) { @olap_connection = Mondrian::OLAP::Connection }
+
     describe "Oracle" do
       it "should pass properties as JDBC driver properties" do
-        props = java.util.Properties.new
-        Mondrian::OLAP::Connection.new(
-          driver: 'oracle',
-          properties: {'javax.net.ssl.keyStore' => '/keystore.jks', 'oracle.jdbc.ReadTimeout' => 60000}
-        ).send(:set_driver_properties, props)
         assert_equal(
           {
+            'JdbcUser' => 'scott',
+            'JdbcPassword' => 'tiger',
             'jdbc.defaultRowPrefetch' => '100',
             'jdbc.javax.net.ssl.keyStore' => '/keystore.jks',
             'jdbc.oracle.jdbc.ReadTimeout' => '60000'
           },
-          props.to_h
+          @olap_connection.new(
+            driver: 'oracle',
+            username: 'scott',
+            password: 'tiger',
+            properties: {'javax.net.ssl.keyStore' => '/keystore.jks', 'oracle.jdbc.ReadTimeout' => 60000}
+          ).jdbc_properties.to_h
         )
       end
     end
