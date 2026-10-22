@@ -138,7 +138,7 @@ describe "Connection" do
     describe "Oracle properties" do
       before do
         @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(
-          properties: {'defaultRowPrefetch' => 25}
+          properties: {'javax.net.ssl.keyStore' => '/keystore.jks'}
         ))
         @jdbc_connection = @olap.raw_mondrian_connection.getDataSource.getConnection
       end
@@ -149,7 +149,8 @@ describe "Connection" do
       end
 
       it "should pass properties to the JDBC connection" do
-        assert_equal 25, @jdbc_connection.createStatement.getFetchSize
+        oracle_connection = @jdbc_connection.unwrap(Java::OracleJdbc::OracleConnection.java_class)
+        assert_equal '/keystore.jks', oracle_connection.getProperties['javax.net.ssl.keyStore']
       end
     end
   end
