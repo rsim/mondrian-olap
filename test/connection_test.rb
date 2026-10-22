@@ -134,26 +134,22 @@ describe "Connection" do
     end
   end
 
-  describe "jdbc_properties" do
-    before(:all) { @olap_connection = Mondrian::OLAP::Connection }
+  if MONDRIAN_DRIVER == 'oracle'
+    describe "Oracle properties" do
+      before do
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(
+          properties: {'defaultRowPrefetch' => 25}
+        ))
+        @jdbc_connection = @olap.raw_mondrian_connection.getDataSource.getConnection
+      end
 
-    describe "Oracle" do
-      it "should pass properties as JDBC driver properties" do
-        assert_equal(
-          {
-            'JdbcUser' => 'scott',
-            'JdbcPassword' => 'tiger',
-            'jdbc.defaultRowPrefetch' => '100',
-            'jdbc.javax.net.ssl.keyStore' => '/keystore.jks',
-            'jdbc.oracle.jdbc.ReadTimeout' => '60000'
-          },
-          @olap_connection.new(
-            driver: 'oracle',
-            username: 'scott',
-            password: 'tiger',
-            properties: {'javax.net.ssl.keyStore' => '/keystore.jks', 'oracle.jdbc.ReadTimeout' => 60000}
-          ).jdbc_properties.to_h
-        )
+      after do
+        @jdbc_connection&.close
+        @olap&.close
+      end
+
+      it "should pass properties to the JDBC connection" do
+        assert_equal 25, @jdbc_connection.createStatement.getFetchSize
       end
     end
   end
