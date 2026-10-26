@@ -483,11 +483,16 @@ module Mondrian
         send(method_name, props) if respond_to?(method_name, true)
       end
 
-      # On Oracle increase default row prefetch size
-      # as default 10 is very low and slows down loading of all dimension members
       def set_oracle_properties(props)
+        # On Oracle increase default row prefetch size
+        # as default 10 is very low and slows down loading of all dimension members
         prefetch_rows = @params[:prefetch_rows] || 100
         props.setProperty("jdbc.defaultRowPrefetch", prefetch_rows.to_s)
+        # Pass properties to the JDBC driver and not in the URL, so that the URL does not show passwords,
+        # for example, javax.net.ssl.keyStorePassword
+        @params[:properties]&.each do |key, value|
+          props.setProperty("jdbc.#{key}", value.to_s)
+        end
       end
 
       # ClickHouse JDBC driver requires JdbcPassword to be set

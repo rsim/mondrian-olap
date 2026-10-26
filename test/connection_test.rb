@@ -133,4 +133,25 @@ describe "Connection" do
       end
     end
   end
+
+  if MONDRIAN_DRIVER == 'oracle'
+    describe "Oracle properties" do
+      before do
+        @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS_WITH_CATALOG.merge(
+          properties: {'javax.net.ssl.keyStore' => '/keystore.jks'}
+        ))
+        @jdbc_connection = @olap.raw_mondrian_connection.getDataSource.getConnection
+      end
+
+      after do
+        @jdbc_connection&.close
+        @olap&.close
+      end
+
+      it "should pass properties to the JDBC connection" do
+        oracle_connection = @jdbc_connection.unwrap(Java::OracleJdbc::OracleConnection.java_class)
+        assert_equal '/keystore.jks', oracle_connection.getProperties['javax.net.ssl.keyStore']
+      end
+    end
+  end
 end
