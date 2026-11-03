@@ -1,0 +1,19 @@
+[tools]
+java = ["temurin-11", "zulu-8", "temurin-17", "temurin-21", "temurin-25"]
+ruby = "jruby-9.4.15.0"
+
+[tasks.test]
+description = "Run Minitest tests, optionally with a database driver (e.g., MONDRIAN_DRIVER=postgresql mise test)"
+run = "rake test"
+
+[tasks.copy_mondrian_jar]
+description = "Copy the Mondrian jar from the ../mondrian-olap-java build to lib/mondrian/jars"
+run = "rake copy_mondrian_jar"
+
+[tasks.build]
+description = "Build the gem into the pkg directory"
+run = "rake build"
+
+[tasks.release]
+description = "Check the release, build the gem, push the git tag and publish the gem to rubygems.org"
+run = "rake release"
