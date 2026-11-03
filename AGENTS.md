@@ -50,6 +50,16 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 4. Test with specific databases: `rake test:mysql`, `rake test:postgresql`, `rake test:sqlserver`, `rake test:oracle`.
 5. Ensure tests pass with multiple database backends before finalizing changes.
 
+### Releasing a New Version
+
+1. Release mondrian-olap-java and copy its release jar with `mise copy_mondrian_jar`,
+   as a SNAPSHOT jar cannot be released.
+2. Update the version in `VERSION` and add the `## [x.y.z] - YYYY-MM-DD` entry to `CHANGELOG.md`
+   with the planned release date.
+3. Merge the changes to the `master` branch.
+4. Run `mise release` (or `rake release`) on the `master` branch. It checks the release with `rake release:check`,
+   builds the gem, pushes the `vx.y.z` git tag and publishes the gem to rubygems.org.
+
 ## Technology Stack
 
 - **JRuby** 9.4 or later (compatible with Ruby 3.1+)
@@ -101,6 +111,8 @@ mondrian-olap is a JRuby gem for performing multidimensional queries of relation
 ### mise
 
 - mise might be used to manage Ruby and Java versions.
+- `mise.toml` defines the default Ruby and Java versions and the `test`, `copy_mondrian_jar`, `build` and `release` tasks.
+  `mise.local.toml` (not committed) might override them.
 - If mise is available then prefix ruby, rake, java calls with `mise exec --` to initialize the correct environment.
 
 ### Testing
