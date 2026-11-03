@@ -14,7 +14,7 @@ Gem::Specification.new do |gem|
   gem.license       = 'MIT'
 
   gem.files         = Dir['CHANGELOG.md', 'LICENSE*', 'README.md', 'VERSION', 'lib/**/*', 'test/**/*'] -
-                      Dir['test/support/jars/*']
+                      Dir['test/support/jars/*', 'test/support/data/*.csv']
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^test/})
   gem.require_paths = ["lib"]
