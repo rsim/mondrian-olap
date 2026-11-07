@@ -4,7 +4,7 @@ set -ev
 
 # Download latest ClickHouse JDBC driver (all-in-one jar with dependencies)
 # Check https://github.com/ClickHouse/clickhouse-java/releases for latest version
-CLICKHOUSE_JDBC_VERSION=0.9.6
+CLICKHOUSE_JDBC_VERSION=0.11.0
 wget https://repo1.maven.org/maven2/com/clickhouse/clickhouse-jdbc/${CLICKHOUSE_JDBC_VERSION}/clickhouse-jdbc-${CLICKHOUSE_JDBC_VERSION}-all.jar
 cp clickhouse-jdbc-${CLICKHOUSE_JDBC_VERSION}-all.jar test/support/jars/
 
