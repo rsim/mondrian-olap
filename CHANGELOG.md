@@ -5,6 +5,19 @@ All notable changes to mondrian-olap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-11-07
+
+### Changed
+
+- The bundled Mondrian jar is updated to mondrian-olap-java 1.4.1.
+- The CI tests use the ClickHouse JDBC driver 0.11.0.
+
+### Fixed
+
+- A data access role was not applied to property references, for example,
+  `[Store].[USA].[WA].[VALUE]`. The `VALUE` property could return the cell value of a denied member
+  or measure, and the property error message showed that a denied member exists.
+
 ## [1.4.0] - 2026-11-03
 
 ### Added
@@ -371,6 +384,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release.
 - Support for MySQL, PostgreSQL and Oracle databases.
 
+[1.4.1]: https://github.com/rsim/mondrian-olap/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/rsim/mondrian-olap/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/rsim/mondrian-olap/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/rsim/mondrian-olap/compare/v1.1.0...v1.2.0
