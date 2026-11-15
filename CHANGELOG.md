@@ -5,6 +5,31 @@ All notable changes to mondrian-olap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- MDX `LookupCube(<Cube Name>, <Expression String>)` function evaluates an MDX expression in another
+  cube of the schema, like the SQL Server Analysis Services function. With two arguments, the
+  expression is evaluated in the default context of the other cube. The optional `SHARED_CONTEXT`
+  argument maps the current members of all hierarchies that exist in both cubes, and dimension or
+  hierarchy arguments map the current members of only those hierarchies. Compound slicers and
+  `Aggregate` calculated members are mapped as well. The cells of the other cube are loaded in the
+  same SQL queries as the cells of the query cube, and the role of the connection applies in the
+  other cube.
+
+### Changed
+
+- The bundled Mondrian jar is updated to mondrian-olap-java 1.5.0-SNAPSHOT.
+
+### Fixed
+
+- After some sequences of queries, a query could fail with the
+  `Query required more than 12 iterations` error, when the cached segments with different member
+  value lists were rolled up.
+- After some sequences of queries, a query could return wrong totals, when a rolled up segment
+  from the cached segments missed some member values.
+
 ## [1.4.1] - 2026-11-07
 
 ### Changed
