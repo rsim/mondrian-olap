@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Aggregate` calculated members are mapped as well. The cells of the other cube are loaded in the
   same SQL queries as the cells of the query cube, and the role of the connection applies in the
   other cube.
+- The `mondrian.olap.cellFormatter.allowedClasses` system property (a comma-separated list of
+  class names, an entry ending with `*` matches by prefix) restricts the cell formatter classes
+  that queries and schemas can use. The `mondrian.olap.cellFormatter.scriptEnabled` system
+  property set to `false` rejects cell formatter scripts. When only the Ruby cell formatters are
+  used, set `allowedClasses` to `rubyobj.*` and `scriptEnabled` to `false`. Set both properties at
+  startup, as a cached schema keeps the formatters it was created with.
+- A cell, member or property formatter class is loaded without initialization and is instantiated
+  only when it implements the expected formatter interface. Before, an MDX query with the
+  `CELL_FORMATTER` property could initialize and instantiate any class on the classpath.
 
 ### Changed
 
