@@ -258,22 +258,28 @@ module Mondrian
           !role.nil? && cube.getHierarchies.any? { |hierarchy| role.getAccess(hierarchy) != ALL_ACCESS }
         end
 
-        # The fields Mondrian selects without a return clause (every level of the drill through cube
-        # and the cell measure), limited to the levels and measures the role grants. Mondrian adds
-        # these columns without consulting the role, so a denied hierarchy would be returned.
+        # The fields Mondrian selects without a return clause, limited to the levels and measures the role grants.
+        # Mondrian adds these columns without consulting the role, so a denied hierarchy would be returned.
         def self.accessible_return_fields(rolap_cell, result, role)
           cell_members = drill_through_members(rolap_cell)
           base_cube = drill_through_cube(cell_members, result)
           measure, *members = cell_members.to_a
           schema_reader = result.getCube.getSchemaReader.withLocus
+          # Mondrian selects the columns of the drill through cell request, which depend on the cell members.
+          # For example, it omits the country of a cell with a state of unique members.
+          request_columns = Java::MondrianRolap::RolapAggregationManager.
+            makeDrillThroughRequest(cell_members, true, result.getCube, Java::JavaUtil::ArrayList.new).
+            getConstrainedColumns.to_a
 
           levels = members.flat_map do |member|
             hierarchy = member.getHierarchy
             next [] if closure_hierarchy?(hierarchy)
 
-            hierarchy.getLevels.to_a.select { |level| !level.isAll && level_accessible?(level, role, schema_reader) }
+            hierarchy.getLevels.to_a.select do |level|
+              request_columns.include?(level.getBaseStarKeyColumn(base_cube)) && level_accessible?(level, role, schema_reader)
+            end
           end
-          fields = level_fields(levels.select { |level| drill_through_cube_element?(level, base_cube) }, base_cube)
+          fields = level_fields(levels, base_cube)
           if measure.is_a?(Java::MondrianRolap::RolapStoredMeasure) && role.canAccess(measure)
             fields << measure.getUniqueName
           end

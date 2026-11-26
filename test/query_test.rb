@@ -1197,6 +1197,19 @@ describe "Query" do
       assert_equal labels, sales_result.drill_through(row: 0, column: 0, max_rows: 1, return: '').column_labels
     end
 
+    it "should return the default fields of the cell like Mondrian" do
+      california_result = lambda do |olap|
+        olap.from('Sales').columns('[Measures].[Unit Sales]').where('[Customers].[USA].[CA]').execute
+      end
+      unrestricted_labels = california_result.call(@olap).drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      refute_includes unrestricted_labels, 'Country'
+      connect_with_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+      end
+      labels = california_result.call(@role_olap).drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      assert_equal unrestricted_labels - ['Gender'], labels
+    end
+
     it "should return only the accessible default fields for a return string without fields" do
       connect_with_sales_role do
         dimension_grant dimension: '[Gender]', access: 'none'
