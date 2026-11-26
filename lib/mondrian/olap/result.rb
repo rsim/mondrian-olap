@@ -8,6 +8,8 @@ module Mondrian
       def initialize(connection, raw_cell_set, options = {})
         @connection = connection
         @raw_cell_set = raw_cell_set
+        # Drill through uses the role of the query execution, because the connection role may change later.
+        @role = options[:role] || connection.raw_mondrian_connection.getRole
         @profiling_handler = options[:profiling_handler]
         @total_duration = options[:total_duration]
       end
@@ -164,7 +166,7 @@ module Mondrian
             cell_params << Java::JavaLang::Integer.new(axis_position)
           end
           raw_cell = @raw_cell_set.getCell(cell_params)
-          DrillThrough.from_raw_cell(raw_cell, params.merge(role_name: @connection.role_name))
+          DrillThrough.from_raw_cell(raw_cell, params.merge(role: @role))
         end
       end
 

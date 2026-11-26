@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "test_helper"
+require 'minitest/mock'
 
 describe "Query" do
   def qt(name)
@@ -968,6 +969,13 @@ describe "Query" do
       assert_equal true, @drill_through.rows.all? { |r| r.any? { |c| c } }
     end
 
+    it "should return a property name with quote characters as one column alias without the quote characters" do
+      quote = @olap.raw_mondrian_connection.getSchema.getDialect.getQuoteIdentifierString
+      drill_through = @result.drill_through(row: 0, column: 0, max_rows: 1,
+        return: ["Property([Customers].[Name], '#{quote}a#{quote}, 1 AS #{quote}b#{quote}')"])
+      assert_equal ['a, 1 AS b'], drill_through.column_labels
+    end
+
     it "should return member name and property values" do
       @drill_through = @result.drill_through(row: 0, column: 0,
         return: [
@@ -1066,6 +1074,655 @@ describe "Query" do
 
     it "should return only specified max rows" do
       assert_equal 10, @drill_through.rows.size
+    end
+  end
+
+  describe "drill through cell with a role restriction omitted from the return fields" do
+    after(:all) do
+      @olap.role_name = nil
+    end
+
+    def sales_drill_through(role_name, params = {})
+      @olap.role_name = role_name
+      result = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[All Customers]').execute
+      result.drill_through(params.merge(row: 0, column: 0))
+    end
+
+    it "should filter rows by a role restriction that is not in the return fields" do
+      return_fields = ['[Product].[Product Family]', '[Measures].[Unit Sales]']
+      restricted_rows = sales_drill_through("Mexico manager", return: return_fields).rows.size
+      unrestricted_rows = sales_drill_through(nil, return: return_fields).rows.size
+      assert restricted_rows > 0
+      assert restricted_rows < unrestricted_rows,
+        "expected role to filter rows (#{restricted_rows}) below unrestricted (#{unrestricted_rows})"
+    end
+
+    it "should filter rows by a role restriction without return fields" do
+      drill_through = sales_drill_through("Mexico manager")
+      country_index = drill_through.column_labels.index('Country')
+      rows = drill_through.rows
+      refute_empty rows
+      assert rows.all? { |row| row[country_index] == 'Mexico' }
+    end
+  end
+
+  describe "drill through cell with a role" do
+    after(:each) do
+      @role_olap&.close
+    end
+
+    # Connects to the test schema with an added role and uses this role.
+    def connect_with_role(&grants)
+      @role_olap&.close
+      role_name = 'Drill through role'
+      role_xml = Nokogiri::XML(Mondrian::OLAP::Schema::Role.new(role_name, &grants).to_xml).root.to_xml
+      catalog_content = File.read(CATALOG_FILE).sub('</Schema>', "#{role_xml}\n</Schema>")
+      @role_olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(catalog_content: catalog_content))
+      @role_olap.role_name = role_name
+    end
+
+    def connect_with_sales_role(&cube_grants)
+      connect_with_role do
+        schema_grant access: 'none' do
+          cube_grant cube: 'Sales', access: 'all', &cube_grants
+        end
+      end
+    end
+
+    def sales_result(olap = @role_olap)
+      olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[All Customers]').execute
+    end
+
+    # Returns the drill through rows and the executed drill through SQL statement.
+    def drill_through_rows_and_sql(result, params)
+      execute_sql = Mondrian::OLAP::Result::DrillThrough.method(:execute_drill_through_sql)
+      drill_through_sql = nil
+      capture_sql = lambda do |rolap_result, sql, max_rows|
+        drill_through_sql = sql
+        execute_sql.call(rolap_result, sql, max_rows)
+      end
+      rows = Mondrian::OLAP::Result::DrillThrough.stub(:execute_drill_through_sql, capture_sql) do
+        result.drill_through(params).rows
+      end
+      [rows, drill_through_sql]
+    end
+
+    it "should return the return fields the role denies without values" do
+      connect_with_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+        hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+          member_grant member: '[Measures].[Unit Sales]', access: 'all'
+        end
+      end
+      drill_through = sales_result.drill_through(row: 0, column: 0, max_rows: 5,
+        return: ['[Gender].[Gender]', '[Product].[Product Family]', '[measures].[Store Sales]', '[Measures].[Unit Sales]'])
+      assert_equal ['Gender (Key)', 'Product Family (Key)', 'Store Sales', 'Unit Sales'], drill_through.column_labels
+      rows = drill_through.rows
+      assert_equal 5, rows.size
+      assert_equal [[nil, nil]], rows.map { |row| row.values_at(0, 2) }.uniq
+      assert rows.none? { |row| row[1].nil? || row[3].nil? }
+    end
+
+    it "should not select the rows by the nonempty fields the role denies" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Measures]', access: 'custom' do
+          member_grant member: '[Measures].[Unit Sales]', access: 'all'
+        end
+      end
+      result = sales_result
+      nonempty_rows = lambda do |nonempty_fields|
+        result.drill_through(row: 0, column: 0, return: ['[Measures].[Unit Sales]'], nonempty: nonempty_fields).rows
+      end
+      unit_sales_rows = nonempty_rows.call(['[Measures].[Unit Sales]'])
+      refute_empty unit_sales_rows
+      assert_equal unit_sales_rows, nonempty_rows.call(['[Measures].[Unit Sales]', '[Measures].[Store Sales]'])
+    end
+
+    it "should return only the accessible levels and measures without return fields" do
+      unrestricted_labels = sales_result(@olap).drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      refute_empty unrestricted_labels.grep(/Gender/)
+
+      connect_with_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[Mexico]', access: 'all'
+        end
+      end
+      drill_through = sales_result.drill_through(row: 0, column: 0, max_rows: 5)
+      labels = drill_through.column_labels
+      assert_equal unrestricted_labels - ['Gender'], labels
+      rows = drill_through.rows
+      assert_equal 5, rows.size
+      assert rows.all? { |row| row[labels.index('Country')] == 'Mexico' }
+      assert_equal labels, sales_result.drill_through(row: 0, column: 0, max_rows: 1, return: '').column_labels
+    end
+
+    it "should return only the accessible default fields for a return string without fields" do
+      connect_with_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+      end
+      default_labels = sales_result.drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      refute_includes default_labels, 'Gender'
+      assert_equal default_labels, sales_result.drill_through(row: 0, column: 0, max_rows: 1, return: ',,,').column_labels
+    end
+
+    it "should not group the rows without return fields" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[Mexico]', access: 'all'
+        end
+      end
+      rows, drill_through_sql = drill_through_rows_and_sql(sales_result, row: 0, column: 0, group_by: true)
+      refute_empty rows
+      refute_match(/ group by /i, drill_through_sql)
+    end
+
+    it "should limit the rows of a returned level to the granted descendants" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
+        end
+      end
+      # The returned country USA is visible under the role, but only its California rows are granted.
+      rows = sales_result.drill_through(row: 0, column: 0, max_rows: 10,
+        return: ['[Customers].[Country]', '[Customers].[State Province]', '[Measures].[Unit Sales]']).rows
+      assert_equal 10, rows.size
+      assert rows.all? { |row| row[0, 2] == ['USA', 'CA'] }
+    end
+
+    it "should filter rows by a hierarchy grant with a bottom level" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom', bottom_level: '[Customers].[State Province]' do
+          member_grant member: '[Customers].[USA]', access: 'all'
+        end
+      end
+      rows = sales_result.drill_through(row: 0, column: 0, group_by: true,
+        return: ['[Customers].[Country]', '[Measures].[Unit Sales]']).rows
+      assert_equal ['USA'], rows.map(&:first)
+    end
+
+    it "should not limit rows in SQL when the hierarchy grant denies no member" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom', top_level: '[Customers].[City]'
+      end
+      result = @role_olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[USA].[CA].[Altadena]').execute
+      rows, drill_through_sql = drill_through_rows_and_sql(result,
+        row: 0, column: 0, return: ['[Customers].[City]', '[Measures].[Unit Sales]'])
+      refute_empty rows
+      refute_match(/ OR /, drill_through_sql)
+    end
+
+    it "should not limit rows in SQL when the hierarchy grant grants the all member" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom', bottom_level: '[Customers].[State Province]' do
+          member_grant member: '[Customers].[All Customers]', access: 'all'
+        end
+      end
+      rows, drill_through_sql = drill_through_rows_and_sql(sales_result,
+        row: 0, column: 0, max_rows: 5, return: ['[Product].[Product Family]', '[Measures].[Unit Sales]'])
+      assert_equal 5, rows.size
+      refute_match(/customers/i, drill_through_sql)
+    end
+
+    it "should group rows by the return fields when the role limits a hierarchy not returned" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA]', access: 'all'
+          member_grant member: '[Customers].[USA].[CA]', access: 'none'
+        end
+      end
+      drill_through = sales_result.drill_through(row: 0, column: 0,
+        return: ['[Product].[Product Family]', '[Measures].[Unit Sales]'], group_by: true)
+      assert_equal @sql.select_rows(<<~SQL), drill_through.rows
+        SELECT
+          product_classes.product_family,
+          SUM(sales.unit_sales) AS unit_sales
+        FROM
+          sales,
+          products,
+          product_classes,
+          customers
+        WHERE
+          products.product_class_id = product_classes.id AND
+          sales.product_id = products.id AND
+          customers.id = sales.customer_id AND
+          customers.country = 'USA' AND
+          customers.state_province <> 'CA'
+        GROUP BY
+          product_classes.product_family
+        ORDER BY
+          product_classes.product_family
+      SQL
+    end
+
+    it "should return the rows of a bottom level member with a denied descendant only with the full rollup policy" do
+      unrestricted_california_sales =
+        @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[USA].[CA]').execute.values.first.first
+      california_rows = lambda do |rollup_policy|
+        connect_with_sales_role do
+          hierarchy_grant hierarchy: '[Customers]', access: 'custom', bottom_level: '[Customers].[State Province]',
+                          rollup_policy: rollup_policy do
+            member_grant member: '[Customers].[USA].[CA]', access: 'all'
+            member_grant member: '[Customers].[USA].[CA].[Los Angeles]', access: 'none'
+          end
+        end
+        sales_result.drill_through(row: 0, column: 0,
+          return: ['[Customers].[State Province]', '[Measures].[Unit Sales]'], group_by: true).rows
+      end
+      # The full rollup policy includes the denied city in the California cell value, so its rows are returned too.
+      assert_equal [['CA', unrestricted_california_sales]],
+        california_rows.call('full').map { |state, unit_sales| [state, unit_sales.to_f] }
+      # The partial and hidden rollup policies show an empty California cell value.
+      assert_empty california_rows.call('partial')
+      assert_empty california_rows.call('hidden')
+    end
+
+    it "should return the fact rows without a member of the hierarchy only with the full rollup policy" do
+      mexico_rows_count = @sql.select_value(<<~SQL).to_i
+        SELECT COUNT(*) FROM sales, customers WHERE sales.customer_id = customers.id AND customers.country = 'Mexico'
+      SQL
+      @sql.execute("INSERT INTO sales (product_id, time_id, customer_id, unit_sales) VALUES (1, 1, NULL, 1)")
+      mexico_rows = lambda do |rollup_policy|
+        connect_with_sales_role do
+          hierarchy_grant hierarchy: '[Customers]', access: 'custom', rollup_policy: rollup_policy do
+            member_grant member: '[Customers].[Mexico]', access: 'all'
+          end
+        end
+        sales_result.drill_through(row: 0, column: 0, return: ['[Customers].[Country]', '[Measures].[Unit Sales]']).rows
+      end
+      # The all member cell value of the full rollup policy includes the fact row without a customer.
+      assert_equal [nil] + ['Mexico'] * mexico_rows_count, mexico_rows.call('full').map(&:first).sort_by(&:to_s)
+      assert_equal ['Mexico'] * mexico_rows_count, mexico_rows.call('partial').map(&:first)
+    ensure
+      @sql.execute("DELETE FROM sales WHERE customer_id IS NULL")
+    end
+
+    it "should match the granted members with the same parent by one key list" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          %w(CA OR WA).each do |state|
+            member_grant member: "[Customers].[USA].[#{state}]", access: 'all'
+          end
+          member_grant member: '[Customers].[USA].[CA].[Altadena]', access: 'none'
+        end
+      end
+      rows, drill_through_sql = drill_through_rows_and_sql(sales_result, row: 0, column: 0, group_by: true,
+        return: ['[Customers].[State Province]', '[Customers].[City]', '[Measures].[Unit Sales]'])
+      assert_match(/state_province\W* IN \(N?'OR', N?'WA'\)/i, drill_through_sql)
+      assert_equal @sql.select_rows(<<~SQL), rows
+        SELECT
+          customers.state_province,
+          customers.city,
+          SUM(sales.unit_sales) AS unit_sales
+        FROM
+          sales,
+          customers
+        WHERE
+          customers.id = sales.customer_id AND
+          customers.country = 'USA' AND
+          customers.state_province IN ('CA', 'OR', 'WA') AND
+          (customers.state_province <> 'CA' OR customers.city <> 'Altadena')
+        GROUP BY
+          customers.state_province,
+          customers.city
+        ORDER BY
+          customers.state_province,
+          customers.city
+      SQL
+    end
+
+    it "should drill through with the role of the query execution" do
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
+        end
+      end
+      result = sales_result
+      @role_olap.role_name = nil
+      rows = result.drill_through(row: 0, column: 0, return: ['[Customers].[State Province]'], group_by: true).rows
+      assert_equal [['CA']], rows
+    end
+
+    it "should apply the role to a drill through statement" do
+      unrestricted_query = @olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Product].children')
+      return_fields = ['[Measures].[Unit Sales]', '[Customers].[Name]', '[Customers].[State Province]']
+      unrestricted_labels = unrestricted_query.execute_drill_through(max_rows: 1, return: return_fields).column_labels
+      unrestricted_default_labels = unrestricted_query.execute_drill_through(max_rows: 1).column_labels
+
+      connect_with_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
+        end
+      end
+      query = @role_olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Product].children')
+      drill_through = query.execute_drill_through(return: return_fields)
+      assert_equal unrestricted_labels, drill_through.column_labels
+      rows = drill_through.rows
+      refute_empty rows
+      state_index = unrestricted_labels.index('State Province')
+      assert rows.all? { |row| row[state_index] == 'CA' }
+
+      default_drill_through = query.execute_drill_through(max_rows: 5)
+      assert_equal unrestricted_default_labels - ['Gender'], default_drill_through.column_labels
+      assert_equal 5, default_drill_through.rows.size
+
+      gender_drill_through = query.execute_drill_through(max_rows: 5, return: ['[Gender].[Gender]'])
+      assert_equal ['Gender'], gender_drill_through.column_labels
+      assert_equal [[nil]], gender_drill_through.rows.uniq
+      error = assert_raises(ArgumentError) { query.execute_drill_through(return: ['[Customers].[USA].[CA]']) }
+      assert_match(/should be level or measure/, error.message)
+    end
+
+    it "should raise the Mondrian error when the drill through statement cell cannot be drilled through" do
+      mdx = <<~MDX
+        DRILLTHROUGH
+        WITH MEMBER [Time].[H1] AS 'Aggregate({[Time].[2010].[Q1], [Time].[2010].[Q2]})'
+        SELECT {[Measures].[Unit Sales]} ON COLUMNS FROM [Sales] WHERE ([Time].[H1])
+      MDX
+      unrestricted_error = assert_raises(Mondrian::OLAP::Error) { @olap.execute_drill_through(mdx) }
+
+      connect_with_sales_role do
+        hierarchy_grant hierarchy: '[Customers]', access: 'custom' do
+          member_grant member: '[Customers].[USA].[CA]', access: 'all'
+        end
+      end
+      error = assert_raises(Mondrian::OLAP::Error) { @role_olap.execute_drill_through(mdx) }
+      assert_equal unrestricted_error.message, error.message
+    end
+
+    def connect_with_drink_role
+      connect_with_role do
+        schema_grant access: 'none' do
+          cube_grant cube: 'Warehouse', access: 'all'
+          cube_grant cube: 'Sales and Warehouse', access: 'all' do
+            hierarchy_grant hierarchy: '[Product]', access: 'custom' do
+              member_grant member: '[Product].[Drink]', access: 'all'
+            end
+          end
+        end
+      end
+    end
+
+    it "should return the fields of another cube of a virtual cube like Mondrian in a drill through statement" do
+      return_fields = [
+        '[Customers].[City]', '[Product].[Product Family]', '[Measures].[Unit Sales]', '[Measures].[Units Shipped]',
+        '[Time].[Month]'
+      ]
+      unrestricted_labels = @olap.from('Sales and Warehouse').columns('[Measures].[Units Shipped]').
+        execute_drill_through(max_rows: 1, return: return_fields).column_labels
+      connect_with_drink_role
+      drill_through = @role_olap.from('Sales and Warehouse').columns('[Measures].[Units Shipped]').
+        execute_drill_through(max_rows: 5, return: return_fields)
+      # Mondrian returns the fields of the Sales cube last and without values.
+      assert_equal unrestricted_labels, drill_through.column_labels
+      assert_equal ['Month', 'Product Family', 'Units Shipped', 'City', 'Unit Sales'], unrestricted_labels
+      rows = drill_through.rows
+      assert_equal 5, rows.size
+      assert_equal [['Drink', nil, nil]], rows.map { |row| [row[1], row[3], row[4]] }.uniq
+    end
+
+    it "should return the default fields of the drill through cube of a virtual cube" do
+      warehouse_result = lambda do |olap|
+        olap.from('Sales and Warehouse').columns('[Measures].[Units Shipped]').rows('[Product].[All Products]').execute
+      end
+      unrestricted_labels = warehouse_result.call(@olap).drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      connect_with_drink_role
+      drill_through = warehouse_result.call(@role_olap).drill_through(row: 0, column: 0, max_rows: 5)
+      # The Customers levels of the Sales cube are not returned as empty columns.
+      assert_equal unrestricted_labels, drill_through.column_labels
+      rows = drill_through.rows
+      assert_equal 5, rows.size
+      assert rows.all? { |row| row[unrestricted_labels.index('Product Family')] == 'Drink' }
+    end
+  end
+
+  describe "drill through cell with several roles" do
+    before(:all) do
+      customers_role = lambda do |name, member_name, hierarchy_options = {}|
+        Mondrian::OLAP::Schema::Role.new(name) do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales', access: 'all' do
+              if member_name
+                hierarchy_grant hierarchy_options.merge(hierarchy: '[Customers]', access: 'custom') do
+                  member_grant member: "[Customers].[#{member_name}]", access: 'all'
+                end
+              end
+            end
+          end
+        end
+      end
+      roles = [
+        customers_role.call('USA states', 'USA', bottom_level: '[Customers].[State Province]'),
+        customers_role.call('Canada', 'Canada'),
+        customers_role.call('Mexico', 'Mexico'),
+        customers_role.call('All customers', nil)
+      ]
+      roles_xml = roles.map { |role| Nokogiri::XML(role.to_xml).root.to_xml }.join("\n")
+      catalog_content = File.read(CATALOG_FILE).sub('</Schema>', "#{roles_xml}\n</Schema>")
+      @roles_olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(catalog_content: catalog_content))
+    end
+
+    after(:all) do
+      @roles_olap&.close
+    end
+
+    def drill_through(role_names, params = {})
+      @roles_olap.role_names = role_names
+      result = @roles_olap.from('Sales').columns('[Measures].[Unit Sales]').rows('[Customers].[All Customers]').execute
+      result.drill_through(params.merge(row: 0, column: 0))
+    end
+
+    def customer_rows_count(countries)
+      @sql.select_value(<<~SQL).to_i
+        SELECT COUNT(*) FROM sales, customers
+        WHERE sales.customer_id = customers.id AND customers.country IN (#{countries.map { |c| "'#{c}'" }.join(', ')})
+      SQL
+    end
+
+    it "should return a level below the bottom level of the role that grants a member without values" do
+      ['USA states', 'Canada'].permutation.each do |role_names|
+        rows = drill_through(role_names, return: ['[Customers].[Country]', '[Customers].[City]']).rows
+        assert_equal customer_rows_count(%w(USA Canada)), rows.size
+        assert_equal [nil], rows.map(&:last).uniq
+      end
+    end
+
+    it "should return only the levels down to the bottom level of the role that grants a member without return fields" do
+      drill_through = drill_through(['USA states', 'Canada'])
+      labels = drill_through.column_labels
+      assert_includes labels, 'State Province'
+      assert_empty labels & ['City', 'Name']
+      assert_equal customer_rows_count(%w(USA Canada)), drill_through.rows.size
+    end
+
+    it "should return a level that each role reaches with its bottom level" do
+      rows = drill_through(['Canada', 'Mexico'], return: ['[Customers].[Country]', '[Customers].[City]']).rows
+      assert_equal customer_rows_count(%w(Canada Mexico)), rows.size
+      assert_equal %w(Canada Mexico), rows.map(&:first).uniq.sort
+    end
+
+    it "should return every level when a role grants the whole hierarchy" do
+      rows = drill_through(['USA states', 'All customers'], return: ['[Customers].[Country]', '[Customers].[City]']).rows
+      assert_equal customer_rows_count(%w(USA Canada Mexico)), rows.size
+    end
+  end
+
+  describe "drill through cell with a role on parent child and nullable hierarchies" do
+    before(:all) do
+      @schema = Mondrian::OLAP::Schema.define do
+        cube 'Sales' do
+          table 'sales'
+          # Each customer after the first ten reports to the customer with an ID smaller by ten.
+          # The customer with a large ID is excluded, because its ID overflows the Oracle integer key.
+          dimension 'Employees', foreign_key: 'customer_id' do
+            hierarchy has_all: true, primary_key: 'id' do
+              table 'customers' do
+                sql 'customers.id < 1000'
+              end
+              level 'Employee', column: 'id', name_column: 'fullname', unique_members: true, type: 'Numeric' do
+                parent_expression do
+                  sql 'CASE WHEN customers.id > 10 THEN customers.id - 10 END'
+                end
+              end
+            end
+          end
+          # Customers from Mexico have a NULL country key.
+          dimension 'Country', foreign_key: 'customer_id' do
+            hierarchy has_all: true, primary_key: 'id' do
+              table 'customers', alias: 'countries'
+              level 'Country', unique_members: true do
+                key_expression do
+                  sql "CASE WHEN countries.country <> 'Mexico' THEN countries.country END"
+                end
+              end
+            end
+          end
+          measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
+        end
+        role 'First11 manager' do
+          schema_grant access: 'all' do
+            cube_grant cube: 'Sales', access: 'all' do
+              hierarchy_grant hierarchy: '[Employees]', access: 'custom' do
+                member_grant member: '[Employees].[First1 Last1].[First11 Last11]', access: 'all'
+              end
+            end
+          end
+        end
+        role 'Mexico manager' do
+          schema_grant access: 'all' do
+            cube_grant cube: 'Sales', access: 'all' do
+              # The full rollup policy would return the fact rows without a customer.
+              hierarchy_grant hierarchy: '[Country]', access: 'custom', rollup_policy: 'partial' do
+                member_grant member: '[Country].[#null]', access: 'all'
+              end
+            end
+          end
+        end
+      end
+      # Customer 11 and its descendants have one sales row each, customer 1 is visible only as their supervisor.
+      @first11_subtree_ids = (11..91).step(10).to_a
+    end
+
+    after(:each) do
+      @olap&.close
+    end
+
+    def employee_ids(olap)
+      result = olap.from('Sales').columns('[Measures].[Unit Sales]').execute
+      result.drill_through(row: 0, column: 0, return: ['[Employees].[Employee]', '[Measures].[Unit Sales]']).
+        rows.map { |row| row.first.to_i }
+    end
+
+    it "should return the rows of the granted parent child subtree" do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
+      @olap.role_name = 'First11 manager'
+      assert_equal @first11_subtree_ids, employee_ids(@olap).sort
+    end
+
+    it "should apply the role from the connection string" do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema, role: 'First11 manager'))
+      assert_nil @olap.role_name
+      assert_equal @first11_subtree_ids, employee_ids(@olap).sort
+    end
+
+    it "should return the rows of a granted member with a NULL key" do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
+      @olap.role_name = 'Mexico manager'
+      mexico_ids = @sql.select_values(<<~SQL).map(&:to_i)
+        SELECT customers.id FROM sales, customers WHERE sales.customer_id = customers.id AND customers.country = 'Mexico'
+      SQL
+      refute_empty mexico_ids
+      assert_equal mexico_ids.sort, employee_ids(@olap).sort
+    end
+
+    it "should not return a row without a dimension row for a granted member with a NULL key" do
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
+      @olap.role_name = 'Mexico manager'
+      mexico_rows_count = @sql.select_value(<<~SQL).to_i
+        SELECT COUNT(*) FROM sales, customers WHERE sales.customer_id = customers.id AND customers.country = 'Mexico'
+      SQL
+      @sql.execute("INSERT INTO sales (product_id, time_id, customer_id, unit_sales) VALUES (1, 1, NULL, 1)")
+      result = @olap.from('Sales').columns('[Measures].[Unit Sales]').execute
+      rows = result.drill_through(row: 0, column: 0, return: ['[Measures].[Unit Sales]']).rows
+      assert_equal mexico_rows_count, rows.size
+    ensure
+      @sql.execute("DELETE FROM sales WHERE customer_id IS NULL")
+    end
+  end
+
+  describe "drill through virtual cube cell with a role on a dimension table alias" do
+    before(:all) do
+      schema = Mondrian::OLAP::Schema.define do
+        dimension 'Customers' do
+          hierarchy has_all: true, primary_key: 'id' do
+            table 'customers'
+            level 'Country', column: 'country', unique_members: true
+          end
+        end
+        # Mondrian joins the customers table of the second dimension usage with another table alias.
+        # The test promotion IDs match the IDs of customers from Canada only.
+        cube 'Sales' do
+          table 'sales'
+          dimension_usage 'Customers', source: 'Customers', foreign_key: 'customer_id'
+          dimension_usage 'Promotion Customers', source: 'Customers', foreign_key: 'promotion_id'
+          measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
+        end
+        virtual_cube 'Sales Virtual' do
+          virtual_cube_dimension 'Customers', cube_name: 'Sales'
+          virtual_cube_dimension 'Promotion Customers', cube_name: 'Sales'
+          virtual_cube_measure '[Measures].[Unit Sales]', cube_name: 'Sales'
+        end
+        role 'Canada promotion customers' do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales Virtual', access: 'all' do
+              hierarchy_grant hierarchy: '[Promotion Customers]', access: 'custom' do
+                member_grant member: '[Promotion Customers].[Canada]', access: 'all'
+              end
+            end
+          end
+        end
+      end
+      @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: schema))
+      @olap.role_name = 'Canada promotion customers'
+      @customer_countries = @sql.select_values(<<~SQL)
+        SELECT customers.country FROM sales, customers, customers promotion_customers
+        WHERE sales.customer_id = customers.id AND sales.promotion_id = promotion_customers.id AND
+          promotion_customers.country = 'Canada'
+      SQL
+    end
+
+    after(:all) do
+      @olap&.close
+    end
+
+    def drill_through_rows(return_fields)
+      result = @olap.from('Sales Virtual').columns('[Measures].[Unit Sales]').execute
+      result.drill_through(row: 0, column: 0, return: return_fields).rows
+    end
+
+    it "should limit the rows by the table alias of the drill through cube" do
+      refute_empty @customer_countries
+      assert_equal @customer_countries.size, drill_through_rows(['[Measures].[Unit Sales]']).size
+    end
+
+    it "should limit the rows by the restricted hierarchy when another hierarchy of its table is returned" do
+      refute_equal ['Canada'], @customer_countries.uniq
+      rows = drill_through_rows(['[Customers].[Country]', '[Measures].[Unit Sales]'])
+      assert_equal @customer_countries.sort, rows.map(&:first).sort
+    end
+
+    it "should make the default field aliases unique like Mondrian" do
+      default_labels = lambda do
+        result = @olap.from('Sales Virtual').columns('[Measures].[Unit Sales]').execute
+        result.drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      end
+      @olap.role_name = nil
+      unrestricted_labels = default_labels.call
+      @olap.role_name = 'Canada promotion customers'
+      assert_equal unrestricted_labels, default_labels.call
+    ensure
+      @olap.role_name = 'Canada promotion customers'
     end
   end
 
