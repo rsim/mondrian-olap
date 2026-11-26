@@ -1318,6 +1318,7 @@ describe "Query" do
     end
 
     it "should return the fact rows without a member of the hierarchy only with the full rollup policy" do
+      skip "ClickHouse stores a NULL foreign key as 0 in the non-Nullable test columns" if MONDRIAN_DRIVER == 'clickhouse'
       mexico_rows_count = @sql.select_value(<<~SQL).to_i
         SELECT COUNT(*) FROM sales, customers WHERE sales.customer_id = customers.id AND customers.country = 'Mexico'
       SQL
@@ -1638,6 +1639,7 @@ describe "Query" do
 
     it "should not return a row without a dimension row for a granted member with a NULL key" do
       @olap = Mondrian::OLAP::Connection.create(CONNECTION_PARAMS.merge(schema: @schema))
+      skip "ClickHouse stores a NULL foreign key as 0 in the non-Nullable test columns" if MONDRIAN_DRIVER == 'clickhouse'
       @olap.role_name = 'Mexico manager'
       mexico_rows_count = @sql.select_value(<<~SQL).to_i
         SELECT COUNT(*) FROM sales, customers WHERE sales.customer_id = customers.id AND customers.country = 'Mexico'
