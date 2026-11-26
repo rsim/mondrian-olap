@@ -1708,6 +1708,14 @@ describe "Query" do
           virtual_cube_measure '[Measures].[Unit Sales]', cube_name: 'Sales'
           virtual_cube_measure '[Measures].[Store Cost]', cube_name: 'Sales Costs'
         end
+        role 'No customers' do
+          schema_grant access: 'none' do
+            cube_grant cube: 'Sales Virtual', access: 'all' do
+              dimension_grant dimension: '[Customers]', access: 'none'
+              dimension_grant dimension: '[Promotion Customers]', access: 'none'
+            end
+          end
+        end
         role 'Canada promotion customers' do
           schema_grant access: 'none' do
             cube_grant cube: 'Sales Virtual', access: 'all' do
@@ -1776,6 +1784,16 @@ describe "Query" do
       assert_equal [nil], store_costs.call
       @olap.role_name = 'Canada promotion customers'
       assert_equal [nil], store_costs.call
+    ensure
+      @olap.role_name = 'Canada promotion customers'
+    end
+
+    it "should return the default measure when the role denies every dimension" do
+      @olap.role_name = 'No customers'
+      result = @olap.from('Sales Virtual').columns('[Measures].[Unit Sales]').execute
+      drill_through = result.drill_through(row: 0, column: 0)
+      assert_equal ['Unit Sales'], drill_through.column_labels
+      assert_equal @sql.select_value('SELECT COUNT(*) FROM sales').to_i, drill_through.rows.size
     ensure
       @olap.role_name = 'Canada promotion customers'
     end

@@ -152,7 +152,7 @@ module Mondrian
             non_extended_from = $2
             non_extended_where = $3
           # If drill through total measure with just all members selection
-          elsif sql_non_extended =~ /\Aselect (.*) from (.*)\Z/m
+          elsif sql_non_extended =~ /\Aselect (.*) from (.*?)(?: order by (.*))?\Z/m
             non_extended_from = $2
             non_extended_where = "1 = 1" # dummy true condition
           else
@@ -170,6 +170,12 @@ module Mondrian
             extended_from = $2
             extended_where = $3
             extended_order_by = +''
+          # If the cell and the return fields do not constrain any dimension table
+          elsif sql_extended =~ /\Aselect (.*) from (.*?)(?: order by (.*))?\Z/m
+            extended_select = $1
+            extended_from = $2
+            extended_where = "1 = 1" # dummy true condition
+            extended_order_by = $3 || +''
           else
             raise ArgumentError, "cannot parse drill through SQL: #{sql_extended}"
           end
