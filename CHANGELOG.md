@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   policy, the fact rows without a member of the restricted hierarchy are returned too, as the cell
   value includes them.
 - A drill through statement (`execute_drill_through`) did not apply the data access role.
+- A drill through return field of a virtual cube read the column of another table alias, when the
+  drill through cube joins the dimension table of the field more than once.
 - The property name of a `Property()` drill through return field was not escaped in the column
   alias of the drill through SQL. The quote characters are removed from the column aliases now.
 - After some sequences of queries, a query could fail with the
