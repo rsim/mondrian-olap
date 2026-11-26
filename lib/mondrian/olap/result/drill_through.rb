@@ -133,7 +133,8 @@ module Mondrian
               return: accessible_return_fields(rolap_cell, result, role), native_columns: true, group_by: nil
             )
           end
-          nonempty_columns, return_fields = parse_return_fields(result, params)
+          base_cube = drill_through_cube(drill_through_members(rolap_cell), result)
+          nonempty_columns, return_fields = parse_return_fields(result, params, base_cube)
           role_conditions = role ? role_restriction_conditions(rolap_cell, result, role) : []
           # Mondrian joins the tables of the return expressions, so the levels of the role conditions
           # are passed too. The select list is built from the return fields below.
@@ -390,7 +391,7 @@ module Mondrian
           return_fields.is_a?(String) ? return_fields.split(/,\s*/) : Array(return_fields)
         end
 
-        def self.parse_return_fields(result, params)
+        def self.parse_return_fields(result, params, base_cube)
           nonempty_columns = []
           return_fields = []
           role = params[:role]
@@ -424,7 +425,8 @@ module Mondrian
                 sql_query: sql_query,
                 max_alias_length: max_alias_length,
                 params: params,
-                column_aliases: []
+                column_aliases: [],
+                base_cube: base_cube
               }
 
               return_fields.size.times do |i|
@@ -494,7 +496,7 @@ module Mondrian
         end
 
         def self.add_sql_attributes(field, options = {})
-          member = field[:member]
+          member = drill_through_cube_level(field[:member], options[:base_cube])
           dialect = options[:dialect]
           sql_query = options[:sql_query]
           max_alias_length = options[:max_alias_length]
@@ -574,6 +576,16 @@ module Mondrian
             column_alias.gsub(/\W/, '_')
           else
             dialect.quoteIdentifier(column_alias.gsub(quote, ''))
+          end
+        end
+
+        # The expressions of a virtual cube level use the table aliases of the schema. The drill through SQL uses
+        # the table aliases of the drill through cube, which joins a dimension table twice with another alias.
+        def self.drill_through_cube_level(level_or_member, base_cube)
+          if level_or_member.is_a?(Java::MondrianRolap::RolapCubeLevel) && level_or_member.getCube.isVirtual
+            base_cube&.findBaseCubeLevel(level_or_member) || level_or_member
+          else
+            level_or_member
           end
         end
 
