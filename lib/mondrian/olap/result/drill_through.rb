@@ -270,7 +270,7 @@ module Mondrian
         # The fields Mondrian selects without a return clause, limited to the levels and measures the role grants.
         # Mondrian adds these columns without consulting the role, so a denied hierarchy would be returned.
         def self.accessible_return_fields(rolap_cell, result, role)
-          cell_members = drill_through_members(rolap_cell)
+          cell_members = drill_through_request_members(rolap_cell, result)
           base_cube = drill_through_cube(cell_members, result)
           cell_measure, *members = cell_members.to_a
           schema_reader = result.getCube.getSchemaReader.withLocus
@@ -295,6 +295,24 @@ module Mondrian
           raise ArgumentError, "no accessible drill through fields" if fields.empty?
 
           fields
+        end
+
+        # Mondrian RolapCell buildDrillthroughSlicerPredicate replaces the member of each hierarchy of a compound slicer
+        # with the all member before the drill through cell request is made. The method is private, so the members
+        # are replaced here in the same way.
+        def self.drill_through_request_members(rolap_cell, result)
+          members = drill_through_members(rolap_cell)
+          slicer_positions = result.getSlicerAxis.getPositions.to_a
+          return members if slicer_positions.size <= 1
+
+          slicer_positions.each do |position|
+            position.each do |member|
+              hierarchy = member.getHierarchy
+              ordinal = hierarchy.getOrdinalInCube
+              members[ordinal] = hierarchy.getAllMember unless members[ordinal].equals(member)
+            end
+          end
+          members
         end
 
         # Mondrian RolapAggregationManager selects the first stored measure of the drill through cube for a cell of

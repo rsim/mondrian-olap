@@ -1210,6 +1210,21 @@ describe "Query" do
       assert_equal unrestricted_labels - ['Gender'], labels
     end
 
+    it "should return the default fields of a compound slicer cell like Mondrian" do
+      compound_slicer_labels = lambda do |olap|
+        result = olap.execute(<<~MDX)
+          SELECT {[Measures].[Unit Sales]} ON COLUMNS FROM [Sales] WHERE {[Customers].[USA].[CA], [Customers].[USA].[OR]}
+        MDX
+        result.drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      end
+      unrestricted_labels = compound_slicer_labels.call(@olap)
+      assert_includes unrestricted_labels, 'Country'
+      connect_with_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+      end
+      assert_equal unrestricted_labels - ['Gender'], compound_slicer_labels.call(@role_olap)
+    end
+
     it "should return the first stored measure for a cell of a calculated measure like Mondrian" do
       double_sales_result = lambda do |olap|
         olap.from('Sales').with_member('[Measures].[Double Unit Sales]').as('[Measures].[Unit Sales] * 2').
