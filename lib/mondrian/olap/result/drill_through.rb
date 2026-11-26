@@ -184,8 +184,11 @@ module Mondrian
               column_alias = return_fields[i][:column_alias]
               column_expression = return_fields[i][:column_expression]
               quoted_table_name = return_fields[i][:quoted_table_name]
+              # Another cube of a virtual cube may use the same tables, and its fields have no values in Mondrian.
+              other_cube_field = params[:native_columns] && !drill_through_cube_element?(return_fields[i][:member], base_cube)
               new_select_columns <<
-                if column_expression && (!quoted_table_name || extended_from.include?(quoted_table_name))
+                if column_expression && !other_cube_field &&
+                    (!quoted_table_name || extended_from.include?(quoted_table_name))
                   new_order_by_columns << column_expression
                   new_group_by_columns << column_expression if group_by && return_fields[i][:type] != :measure
                   "#{column_expression} AS #{column_alias}"

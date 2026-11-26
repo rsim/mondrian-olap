@@ -1697,10 +1697,16 @@ describe "Query" do
           dimension_usage 'Promotion Customers', source: 'Customers', foreign_key: 'promotion_id'
           measure 'Unit Sales', column: 'unit_sales', aggregator: 'sum'
         end
+        cube 'Sales Costs' do
+          table 'sales'
+          dimension_usage 'Customers', source: 'Customers', foreign_key: 'customer_id'
+          measure 'Store Cost', column: 'store_cost', aggregator: 'sum'
+        end
         virtual_cube 'Sales Virtual' do
           virtual_cube_dimension 'Customers', cube_name: 'Sales'
           virtual_cube_dimension 'Promotion Customers', cube_name: 'Sales'
           virtual_cube_measure '[Measures].[Unit Sales]', cube_name: 'Sales'
+          virtual_cube_measure '[Measures].[Store Cost]', cube_name: 'Sales Costs'
         end
         role 'Canada promotion customers' do
           schema_grant access: 'none' do
@@ -1758,6 +1764,20 @@ describe "Query" do
       rows = drill_through.rows
       assert_equal @customer_countries.sort, rows.map { |row| row[labels.index('Country')] }.sort
       assert_equal ['Canada'], rows.map { |row| row[labels.index('Country_0')] }.uniq
+    end
+
+    it "should return a measure of another cube with the same fact table without values like Mondrian" do
+      return_fields = ['[Measures].[Unit Sales]', '[Measures].[Store Cost]']
+      store_costs = lambda do
+        @olap.from('Sales Virtual').columns('[Measures].[Unit Sales]').execute_drill_through(return: return_fields).
+          rows.map(&:last).uniq
+      end
+      @olap.role_name = nil
+      assert_equal [nil], store_costs.call
+      @olap.role_name = 'Canada promotion customers'
+      assert_equal [nil], store_costs.call
+    ensure
+      @olap.role_name = 'Canada promotion customers'
     end
 
     it "should make the default field aliases unique like Mondrian" do
