@@ -1210,6 +1210,20 @@ describe "Query" do
       assert_equal unrestricted_labels - ['Gender'], labels
     end
 
+    it "should return the first stored measure for a cell of a calculated measure like Mondrian" do
+      double_sales_result = lambda do |olap|
+        olap.from('Sales').with_member('[Measures].[Double Unit Sales]').as('[Measures].[Unit Sales] * 2').
+          columns('[Measures].[Double Unit Sales]').execute
+      end
+      unrestricted_labels = double_sales_result.call(@olap).drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      assert_equal 'Unit Sales', unrestricted_labels.last
+      connect_with_sales_role do
+        dimension_grant dimension: '[Gender]', access: 'none'
+      end
+      labels = double_sales_result.call(@role_olap).drill_through(row: 0, column: 0, max_rows: 1).column_labels
+      assert_equal unrestricted_labels - ['Gender'], labels
+    end
+
     it "should return only the accessible default fields for a return string without fields" do
       connect_with_sales_role do
         dimension_grant dimension: '[Gender]', access: 'none'

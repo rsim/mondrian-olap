@@ -263,7 +263,7 @@ module Mondrian
         def self.accessible_return_fields(rolap_cell, result, role)
           cell_members = drill_through_members(rolap_cell)
           base_cube = drill_through_cube(cell_members, result)
-          measure, *members = cell_members.to_a
+          cell_measure, *members = cell_members.to_a
           schema_reader = result.getCube.getSchemaReader.withLocus
           # Mondrian selects the columns of the drill through cell request, which depend on the cell members.
           # For example, it omits the country of a cell with a state of unique members.
@@ -280,12 +280,24 @@ module Mondrian
             end
           end
           fields = level_fields(levels, base_cube)
-          if measure.is_a?(Java::MondrianRolap::RolapStoredMeasure) && role.canAccess(measure)
+          if (measure = default_measure(cell_measure, base_cube, result, schema_reader)) && role.canAccess(measure)
             fields << measure.getUniqueName
           end
           raise ArgumentError, "no accessible drill through fields" if fields.empty?
 
           fields
+        end
+
+        # Mondrian RolapAggregationManager selects the first stored measure of the drill through cube for a cell of
+        # a calculated measure. The measure is returned from the query cube, where the role grants it.
+        def self.default_measure(cell_measure, base_cube, result, schema_reader)
+          return cell_measure if cell_measure.is_a?(Java::MondrianRolap::RolapStoredMeasure)
+
+          # Mondrian RolapCube getMeasures is not public, so its measures are read in the same way.
+          measures_level = base_cube.getMeasuresHierarchy.getLevels.first
+          first_measure = base_cube.getSchemaReader.getLevelMembers(measures_level, true).first
+          segment_list = Java::MondrianOlap::Util.parseIdentifier(first_measure.getUniqueName)
+          schema_reader.lookupCompound(result.getCube, segment_list, false, 0)
         end
 
         # The fields of a DRILLTHROUGH statement return clause in the order Mondrian selects them: the
