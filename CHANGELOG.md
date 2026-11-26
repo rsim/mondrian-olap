@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A cell, member or property formatter class is loaded without initialization and is instantiated
   only when it implements the expected formatter interface. Before, an MDX query with the
   `CELL_FORMATTER` property could initialize and instantiate any class on the classpath.
+- The `parent_expression` element of a level in the schema definition.
 
 ### Changed
 
@@ -33,6 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Drill through with a data access role returned the rows of denied members when the return fields
+  did not include a level of the restricted hierarchy, also when no return fields were given. The
+  role restrictions are added to the drill through SQL now. A return field that the role denies is
+  returned without values, a nonempty field that the role denies does not select the rows, and the
+  default return fields exclude the levels and measures that the role denies. With the full rollup
+  policy, the fact rows without a member of the restricted hierarchy are returned too, as the cell
+  value includes them.
+- A drill through statement (`execute_drill_through`) did not apply the data access role.
+- A drill through return field of a virtual cube read the column of another table alias, when the
+  drill through cube joins the dimension table of the field more than once.
+- The property name of a `Property()` drill through return field was not escaped in the column
+  alias of the drill through SQL. The quote characters are removed from the column aliases now.
 - After some sequences of queries, a query could fail with the
   `Query required more than 12 iterations` error, when the cached segments with different member
   value lists were rolled up.

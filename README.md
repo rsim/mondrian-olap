@@ -453,6 +453,13 @@ drill_through = olap.from('Sales').
   )
 ```
 
+Drill through applies the data access role of the query execution.
+It returns only the rows of the granted members, and without return fields it returns only the
+accessible levels and measures. A return field that the role denies is returned without values.
+With the full rollup policy, the fact rows without a member of the restricted hierarchy are returned too.
+A drill through statement (`execute_drill_through`) applies the role as well,
+but does not support the `FIRSTROWSET` clause when the role restricts the cube.
+
 See more examples of drill through in `test/query_test.rb`.
 
 ### Additional schema options
